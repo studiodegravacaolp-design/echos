@@ -9,6 +9,7 @@
  *   - Bypass limpo para raças místicas (ELF, FAERIE, DRACONIAN,
  *     LURID, e personagem sem raça definida)
  *   - Garantia de que shortTermEstafa nunca é tocado por este método
+ *   - reloadKit: recarga segura de cargas físicas, com e sem teto
  *
  * Fonte: src/modules/engineering/EngineeringManager.ts
  *        src/core/CharacterState.ts
@@ -228,6 +229,50 @@ function runTestC(): void {
 }
 
 // ====================================================================
+// CENÁRIO D: RELOADKIT — RECARGA SEGURA DE CARGAS FÍSICAS
+// ====================================================================
+
+function runTestD(): void {
+  printSection('CENÁRIO D — reloadKit: RECARGA SEGURA DE CARGAS FÍSICAS');
+
+  printSubSection('D.1 — Recarga simples, sem teto definido (maxCharges omitido)');
+
+  const kitNoLimit = createKit(1, 2, 3);
+  EngineeringManager.reloadKit(kitNoLimit, 'FIRE', 3);
+
+  assert(kitNoLimit.charges.FIRE === 4, `FIRE recarregado de 1 para 4: ${kitNoLimit.charges.FIRE}`);
+  assert(kitNoLimit.charges.ICE === 2, `ICE permanece intocado: ${kitNoLimit.charges.ICE}`);
+  assert(kitNoLimit.charges.LIGHTNING === 3, `LIGHTNING permanece intocado: ${kitNoLimit.charges.LIGHTNING}`);
+
+  printSubSection('D.2 — Recarga respeita o teto (maxCharges) quando o amount excede o espaço restante');
+
+  const kitWithCap: IEngineeringKit = { charges: { FIRE: 4, ICE: 0, LIGHTNING: 0 }, maxCharges: 5 };
+  EngineeringManager.reloadKit(kitWithCap, 'FIRE', 10);
+
+  assert(kitWithCap.charges.FIRE === 5,
+    `FIRE travado no teto de 5 (não 14): ${kitWithCap.charges.FIRE}`);
+
+  printSubSection('D.3 — Recarga em elemento já no teto não estoura o limite');
+
+  const kitAtCap: IEngineeringKit = { charges: { FIRE: 0, ICE: 5, LIGHTNING: 0 }, maxCharges: 5 };
+  EngineeringManager.reloadKit(kitAtCap, 'ICE', 1);
+
+  assert(kitAtCap.charges.ICE === 5, `ICE permanece em 5 (já estava no teto): ${kitAtCap.charges.ICE}`);
+
+  printSubSection('D.4 — Proteção contra amount inválido (no-op seguro)');
+
+  const invalidAmounts = [-5, 0, NaN, Infinity, -Infinity];
+
+  for (const invalidAmount of invalidAmounts) {
+    const kit = createKit(2, 2, 2);
+    EngineeringManager.reloadKit(kit, 'LIGHTNING', invalidAmount);
+
+    assert(kit.charges.LIGHTNING === 2,
+      `amount=${invalidAmount}: reloadKit é no-op, carga permanece em 2: ${kit.charges.LIGHTNING}`);
+  }
+}
+
+// ====================================================================
 // EXECUTOR PRINCIPAL
 // ====================================================================
 
@@ -240,6 +285,7 @@ function main(): void {
   runTestA();
   runTestB();
   runTestC();
+  runTestD();
 
   // ================================================================
   // RELATÓRIO FINAL

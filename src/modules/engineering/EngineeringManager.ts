@@ -12,6 +12,8 @@
  *     consome 1 carga do kit correspondente ao elemento da skill (sem
  *     tocar em shortTermEstafa); para as demais raças, autoriza o
  *     fluxo místico padrão sem mexer no kit.
+ *   - reloadKit — Incrementa cargas físicas de um elemento (itens
+ *     consumíveis de recarga), respeitando um teto opcional.
  *
  * Fonte: src/types/aetheris.types.ts (ISkillOrSpell, ElementType, Race)
  *        src/core/CharacterState.ts (race)
@@ -29,6 +31,11 @@ import { ISkillOrSpell, ElementType, Race } from '../../types/aetheris.types';
  */
 export interface IEngineeringKit {
   charges: Record<ElementType, number>;
+  /**
+   * Teto opcional de cargas por elemento (mesmo teto para os três).
+   * Se omitido, reloadKit() não aplica nenhum limite superior.
+   */
+  maxCharges?: number;
 }
 
 /**
@@ -109,5 +116,46 @@ export class EngineeringManager {
     }
 
     return false; // Falha por falta de suprimento
+  }
+
+  // ==================================================================
+  // MÉTODO: reloadKit
+  // ==================================================================
+
+  /**
+   * reloadKit(kit, element, amount)
+   * ------------------------------------------------------------------
+   * Incrementa com segurança o número de cargas físicas de um
+   * elemento específico no kit — usado por itens consumíveis de
+   * recarga (ex: caixa de munição elemental).
+   *
+   * Proteções:
+   *   1. `amount` inválido (NaN, Infinity, <= 0) é ignorado — no-op
+   *      seguro, nenhuma mutação ocorre.
+   *   2. Se `kit.maxCharges` estiver definido, o resultado é travado
+   *      nesse teto — a recarga nunca ultrapassa o limite físico do
+   *      kit, mesmo que `amount` exceda o espaço restante.
+   *   3. Sem `kit.maxCharges`, a carga apenas soma normalmente (sem
+   *      teto superior).
+   *
+   * @param kit     - Kit de Engenharia Elemental a recarregar
+   * @param element - Elemento cuja carga será incrementada
+   * @param amount  - Quantidade de cargas a adicionar (deve ser > 0)
+   */
+  public static reloadKit(
+    kit: IEngineeringKit,
+    element: ElementType,
+    amount: number,
+  ): void {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return; // Proteção contra valores inválidos — no-op seguro
+    }
+
+    const rechargedAmount = kit.charges[element] + amount;
+
+    kit.charges[element] =
+      kit.maxCharges !== undefined
+        ? Math.min(rechargedAmount, kit.maxCharges)
+        : rechargedAmount;
   }
 }

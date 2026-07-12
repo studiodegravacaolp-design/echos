@@ -18,7 +18,11 @@
  */
 
 import { SkillEngine } from '../modules/skills/SkillEngine';
-import { IEngineeringKit } from '../modules/engineering/EngineeringManager';
+import {
+  EngineeringManager,
+  IEngineeringKit,
+} from '../modules/engineering/EngineeringManager';
+import { skillDatabase, SKILL_ID_THERMITE_GRENADE } from '../modules/skills/SkillRegistry';
 import { CharacterState } from '../core/CharacterState';
 import {
   ICharacterStats,
@@ -389,6 +393,89 @@ function runTestD(): void {
 }
 
 // ====================================================================
+// CENÁRIO E: SIMULAÇÃO DE COMBATE MULTI-TURNO — THERMITE_GRENADE
+// (skill real do SkillRegistry) COM CONSUMO E RECARGA DE KIT
+// ====================================================================
+
+function runTestE(): void {
+  printSection('CENÁRIO E — COMBATE MULTI-TURNO: THERMITE_GRENADE (REGISTRY REAL) + reloadKit');
+
+  const thermiteGrenade = skillDatabase.get(SKILL_ID_THERMITE_GRENADE);
+
+  assert(thermiteGrenade !== undefined,
+    `THERMITE_GRENADE está cadastrada em skillDatabase: ${thermiteGrenade !== undefined}`);
+
+  if (!thermiteGrenade) {
+    return; // Guarda de tipo — os asserts acima já reportaram a falha
+  }
+
+  const initialHp = 1000;
+  const dwarfCaster = createCharacter(Race.DWARF, { currentHp: initialHp, maxHp: initialHp });
+  const target = createCharacter(null);
+  const initialEstafa = dwarfCaster.shortTermEstafa;
+
+  // Kit com exatamente 1 carga de FIRE — força depleção já no turno 2
+  const kit: IEngineeringKit = { charges: { FIRE: 1, ICE: 0, LIGHTNING: 0 } };
+
+  // ------------------------------------------------------------------
+  // Turno 1 — kit tem 1 carga de FIRE: disparo bem-sucedido via Engenharia
+  // ------------------------------------------------------------------
+  printSubSection('E.1 — Turno 1: THERMITE_GRENADE com carga disponível');
+
+  const turn1 = SkillEngine.executeSkill(thermiteGrenade, dwarfCaster, target, undefined, kit);
+
+  assert(turn1.success === true, `Turno 1: success === true: ${turn1.success}`);
+  assert(kit.charges.FIRE === 0, `Turno 1: carga de FIRE consumida (1 → 0): ${kit.charges.FIRE}`);
+  assert(turn1.backlashDamage === 0, `Turno 1: sem backlash (Engenharia bypassou a ETAPA 1): ${turn1.backlashDamage}`);
+  assert(turn1.actualDamage === 80, `Turno 1: actualDamage === baseDamage da skill (80): ${turn1.actualDamage}`);
+  assert(dwarfCaster.shortTermEstafa === initialEstafa,
+    `Turno 1: shortTermEstafa intocado: ${dwarfCaster.shortTermEstafa} === ${initialEstafa}`);
+  assert(dwarfCaster.stats.currentHp === initialHp,
+    `Turno 1: HP do caster intocado: ${dwarfCaster.stats.currentHp} === ${initialHp}`);
+
+  // ------------------------------------------------------------------
+  // Turno 2 — kit depletado (0 cargas de FIRE): falha por falta de suprimento
+  // ------------------------------------------------------------------
+  printSubSection('E.2 — Turno 2: kit depletado, disparo bloqueado');
+
+  const turn2 = SkillEngine.executeSkill(thermiteGrenade, dwarfCaster, target, undefined, kit);
+
+  assert(turn2.success === false, `Turno 2: success === false (sem suprimento): ${turn2.success}`);
+  assert(turn2.actualDamage === 0, `Turno 2: actualDamage === 0 (execução interrompida): ${turn2.actualDamage}`);
+  assert(turn2.backlashDamage === 0, `Turno 2: backlashDamage === 0: ${turn2.backlashDamage}`);
+  assert(kit.charges.FIRE === 0, `Turno 2: carga de FIRE permanece em 0: ${kit.charges.FIRE}`);
+  assert(dwarfCaster.shortTermEstafa === initialEstafa,
+    `Turno 2: shortTermEstafa continua intocado: ${dwarfCaster.shortTermEstafa} === ${initialEstafa}`);
+  assert(dwarfCaster.stats.currentHp === initialHp,
+    `Turno 2: HP do caster continua intocado: ${dwarfCaster.stats.currentHp} === ${initialHp}`);
+
+  // ------------------------------------------------------------------
+  // Reabastecimento — item consumível de recarga usa reloadKit()
+  // ------------------------------------------------------------------
+  printSubSection('E.3 — Reabastecimento via reloadKit (item consumível)');
+
+  EngineeringManager.reloadKit(kit, 'FIRE', 1);
+
+  assert(kit.charges.FIRE === 1, `Kit reabastecido: carga de FIRE volta a 1: ${kit.charges.FIRE}`);
+
+  // ------------------------------------------------------------------
+  // Turno 3 — kit reabastecido: disparo volta a funcionar via Engenharia
+  // ------------------------------------------------------------------
+  printSubSection('E.4 — Turno 3: THERMITE_GRENADE dispara novamente após recarga');
+
+  const turn3 = SkillEngine.executeSkill(thermiteGrenade, dwarfCaster, target, undefined, kit);
+
+  assert(turn3.success === true, `Turno 3: success === true: ${turn3.success}`);
+  assert(kit.charges.FIRE === 0, `Turno 3: carga de FIRE consumida novamente (1 → 0): ${kit.charges.FIRE}`);
+  assert(turn3.backlashDamage === 0, `Turno 3: sem backlash: ${turn3.backlashDamage}`);
+  assert(turn3.actualDamage === 80, `Turno 3: actualDamage === 80 novamente: ${turn3.actualDamage}`);
+  assert(dwarfCaster.shortTermEstafa === initialEstafa,
+    `Turno 3: shortTermEstafa permanece intocado ao longo de todo o combate: ${dwarfCaster.shortTermEstafa} === ${initialEstafa}`);
+  assert(dwarfCaster.stats.currentHp === initialHp,
+    `Turno 3: HP do caster permanece intocado ao longo de todo o combate: ${dwarfCaster.stats.currentHp} === ${initialHp}`);
+}
+
+// ====================================================================
 // EXECUTOR PRINCIPAL
 // ====================================================================
 
@@ -402,6 +489,7 @@ function main(): void {
   runTestB();
   runTestC();
   runTestD();
+  runTestE();
 
   // ================================================================
   // RELATÓRIO FINAL

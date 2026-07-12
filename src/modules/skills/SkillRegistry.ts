@@ -34,6 +34,14 @@ export const SKILL_ID_SPARK = 'SPARK';
 export const SKILL_ID_ICE_SPIKE = 'ICE_SPIKE';
 export const SKILL_ID_FIREBALL = 'FIREBALL';
 
+// Habilidades tecnológicas — canônicas da Engenharia Elemental
+// (HUMAN/DWARF), mas com estafaCost padrão para retrocompatibilidade:
+// funcionam normalmente via fluxo místico quando usadas sem kit ou por
+// outra raça.
+export const SKILL_ID_THERMITE_GRENADE = 'THERMITE_GRENADE';
+export const SKILL_ID_CRYO_DISCHARGER = 'CRYO_DISCHARGER';
+export const SKILL_ID_TESLA_COIL = 'TESLA_COIL';
+
 // ====================================================================
 // FÁBRICA: createDamageSkill
 // ====================================================================
@@ -117,6 +125,47 @@ export const skillDatabase: Map<string, ISkillOrSpell> = new Map([
       5,
       75,
       3,
+    ),
+  ],
+  [
+    SKILL_ID_THERMITE_GRENADE,
+    createDamageSkill(
+      SKILL_ID_THERMITE_GRENADE,
+      'Granada de Termite',
+      'Carga incendiária de engenharia HUMAN/DWARF. estafaCost padrão ' +
+        'mantido para retrocompatibilidade — funciona via fluxo místico ' +
+        'quando usada sem kit de Engenharia Elemental ou por outra raça.',
+      'FIRE',
+      60,
+      5,
+      80,
+      3,
+    ),
+  ],
+  [
+    SKILL_ID_CRYO_DISCHARGER,
+    createDamageSkill(
+      SKILL_ID_CRYO_DISCHARGER,
+      'Descarregador Criogênico',
+      'Dispositivo de engenharia que libera um jato de frio concentrado.',
+      'ICE',
+      35,
+      3,
+      45,
+      2,
+    ),
+  ],
+  [
+    SKILL_ID_TESLA_COIL,
+    createDamageSkill(
+      SKILL_ID_TESLA_COIL,
+      'Bobina de Tesla',
+      'Dispositivo portátil de engenharia que descarrega um arco elétrico.',
+      'LIGHTNING',
+      15,
+      1,
+      25,
+      1,
     ),
   ],
 ]);
