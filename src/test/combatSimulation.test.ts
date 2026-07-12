@@ -17,6 +17,7 @@
 
 import { CombatEngine } from '../core/CombatEngine';
 import { CharacterState } from '../core/CharacterState';
+import { StatusEngine, TECH_STATUS_IDS } from '../modules/combat/StatusEngine';
 import {
   ICharacterStats,
   IEquipment,
@@ -445,6 +446,73 @@ function runTestB(engine: CombatEngine): void {
 }
 
 // ====================================================================
+// CENÁRIO C: CONEXÃO DA MATRIZ DE STATUS TECNOLÓGICOS NO COMBATENGINE
+// ====================================================================
+
+function runTestC(engine: CombatEngine): void {
+  printSection('CENÁRIO C — CONEXÃO TECH_SLOW / TECH_BURN NO COMBATENGINE');
+
+  // ----------------------------------------------------------------
+  // Subteste C.1: calculateMovementSpeed aceita techSlowMultiplier
+  // ----------------------------------------------------------------
+  printSubSection('C.1 — calculateMovementSpeed aplica o redutor de TECH_SLOW');
+
+  const slowedSpeed = engine.calculateMovementSpeed(100, 0, 0, false, 0, 0.7);
+  assertApprox(slowedSpeed, 70, 0.001, `Velocidade com TECH_SLOW (0.7x): ${slowedSpeed} ≈ 70`);
+
+  const normalSpeed = engine.calculateMovementSpeed(100, 0, 0, false, 0, 1.0);
+  assertApprox(normalSpeed, 100, 0.001, `Velocidade sem TECH_SLOW (1.0x): ${normalSpeed} ≈ 100`);
+
+  const invalidMultiplierSpeed = engine.calculateMovementSpeed(100, 0, 0, false, 0, NaN);
+  assertApprox(invalidMultiplierSpeed, 100, 0.001,
+    `Multiplicador inválido (NaN) tratado como 1.0: ${invalidMultiplierSpeed} ≈ 100`);
+
+  // ----------------------------------------------------------------
+  // Subteste C.2: generateTurnQueue consulta StatusEngine.getSlowSpeedMultiplier
+  // ----------------------------------------------------------------
+  printSubSection('C.2 — generateTurnQueue penaliza a iniciativa de quem está sob TECH_SLOW');
+
+  const statsEqual = createBaseStats({ movementSpeed: 100 });
+  const slowedCharacter = new CharacterState(statsEqual);
+  const normalCharacter = new CharacterState(statsEqual);
+
+  StatusEngine.applyTechStatus(slowedCharacter, TECH_STATUS_IDS.TECH_SLOW);
+
+  assert(slowedCharacter.hasStatusEffect('TECH_SLOW'), 'TECH_SLOW aplicado ao personagem lento');
+
+  const queue = engine.generateTurnQueue([slowedCharacter, normalCharacter]);
+
+  assert(queue[0] === normalCharacter,
+    'Personagem sem TECH_SLOW (iniciativa 100) age primeiro');
+  assert(queue[1] === slowedCharacter,
+    'Personagem com TECH_SLOW (iniciativa 70) age depois');
+
+  // ----------------------------------------------------------------
+  // Subteste C.3: processTurnStartEffects aplica o tick de TECH_BURN
+  // ----------------------------------------------------------------
+  printSubSection('C.3 — processTurnStartEffects aplica dano de TECH_BURN via StatusEngine');
+
+  const burningStats = createBaseStats({ currentHp: 1000, maxHp: 1000 });
+  const burningCharacter = new CharacterState(burningStats);
+
+  StatusEngine.applyTechStatus(burningCharacter, TECH_STATUS_IDS.TECH_BURN);
+
+  const burnDamage = engine.processTurnStartEffects(burningCharacter);
+
+  assert(burnDamage === 15, `Dano de TECH_BURN aplicado pelo CombatEngine: ${burnDamage} === 15`);
+  assert(burningCharacter.stats.currentHp === 985,
+    `HP reduzido pelo tick de TECH_BURN via CombatEngine: ${burningCharacter.stats.currentHp} === 985`);
+
+  // Personagem sem TECH_BURN: nenhum dano
+  const healthyCharacter = new CharacterState(createBaseStats({ currentHp: 1000, maxHp: 1000 }));
+  const noDamage = engine.processTurnStartEffects(healthyCharacter);
+
+  assert(noDamage === 0, `Sem TECH_BURN: processTurnStartEffects retorna 0: ${noDamage}`);
+  assert(healthyCharacter.stats.currentHp === 1000,
+    `Sem TECH_BURN: HP inalterado: ${healthyCharacter.stats.currentHp} === 1000`);
+}
+
+// ====================================================================
 // EXECUTOR PRINCIPAL
 // ====================================================================
 
@@ -462,6 +530,9 @@ function main(): void {
 
   // Executa Cenário B
   runTestB(engine);
+
+  // Executa Cenário C
+  runTestC(engine);
 
   // ================================================================
   // RELATÓRIO FINAL

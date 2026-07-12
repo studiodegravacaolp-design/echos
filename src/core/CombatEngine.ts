@@ -24,6 +24,7 @@ import {
   ErrorCodes,
 } from '../types/aetheris.types';
 import { CharacterState } from './CharacterState';
+import { StatusEngine } from '../modules/combat/StatusEngine';
 
 /**
  * Constantes calibradas do motor de dano.
@@ -191,11 +192,16 @@ export class CombatEngine {
    *        ENG-MOTOR-COMBATE Seção 4.3.2 (ESTAGNACAO_TATICA)
    *        Sprint 4 — Tarefa 4.2 (Inventory Weight Integration)
    *
-   * @param baseSpeed        - Velocidade de movimento base do personagem
-   * @param armorWeight      - Peso total da armadura equipada
-   * @param materialCoeff    - Coeficiente de atrito do material da armadura
-   * @param hasEstagnacao    - Se o personagem está sob ESTAGNACAO_TATICA
-   * @param inventoryWeight  - Peso cumulativo do inventário (padrão: 0)
+   * @param baseSpeed          - Velocidade de movimento base do personagem
+   * @param armorWeight        - Peso total da armadura equipada
+   * @param materialCoeff      - Coeficiente de atrito do material da armadura
+   * @param hasEstagnacao      - Se o personagem está sob ESTAGNACAO_TATICA
+   * @param inventoryWeight    - Peso cumulativo do inventário (padrão: 0)
+   * @param techSlowMultiplier - Multiplicador de TECH_SLOW (Matriz de
+   *                             Status Tecnológicos — StatusEngine
+   *                             .getSlowSpeedMultiplier). Padrão: 1.0
+   *                             (sem redução). Valor inválido (<= 0,
+   *                             NaN, Infinity) é tratado como 1.0.
    * @returns number — Velocidade final após atrito e clamps
    */
   public calculateMovementSpeed(
@@ -204,6 +210,7 @@ export class CombatEngine {
     materialCoeff: number,
     hasEstagnacao: boolean,
     inventoryWeight: number = 0,
+    techSlowMultiplier: number = 1.0,
   ): number {
     // ================================================================
     // ETAPA 1: VALIDAÇÃO DE ENTRADA
@@ -226,6 +233,11 @@ export class CombatEngine {
     const safeInventoryWeight: number =
       Number.isFinite(inventoryWeight) && inventoryWeight >= 0 ? inventoryWeight : 0;
 
+    // 1.5 Proteção contra NaN, Infinity ou valores <= 0 no techSlowMultiplier
+    //     (um multiplicador inválido não deve travar nem acelerar o personagem)
+    const safeTechSlowMultiplier: number =
+      Number.isFinite(techSlowMultiplier) && techSlowMultiplier > 0 ? techSlowMultiplier : 1.0;
+
     // ================================================================
     // ETAPA 2: CÁLCULO DA VELOCIDADE EFETIVA
     // Fórmula: totalWeightPenalty = (armorWeight * materialCoeff) + inventoryWeight
@@ -247,6 +259,16 @@ export class CombatEngine {
     if (hasEstagnacao) {
       effectiveSpeed *= ESTAGNACAO_SPEED_MULTIPLIER;
     }
+
+    // ================================================================
+    // ETAPA 3.5: APLICAÇÃO DO REDUTOR DE TECH_SLOW
+    // Matriz de Status Tecnológicos (StatusEngine) — mesma natureza
+    // multiplicativa do redutor de ESTAGNACAO_TATICA, mas independente
+    // dele (os dois podem coexistir e se acumulam).
+    // Fonte: Débito técnico — Matriz de Efeitos de Status Tecnológicos
+    // ================================================================
+
+    effectiveSpeed *= safeTechSlowMultiplier;
 
     // ================================================================
     // ETAPA 4: CLAMP DE VELOCIDADE MÍNIMA (Garantia de jogabilidade)
@@ -343,12 +365,17 @@ export class CombatEngine {
         character.shortTermEstafa <= ESTAGNACAO_THRESHOLD &&
         character.hasStatusEffect('ESTAGNACAO_TATICA');
 
-      // 2.4 Calcula a velocidade efetiva (com atrito e estagnação)
+      // 2.3.1 Consulta o redutor de TECH_SLOW (Matriz de Status Tecnológicos)
+      const techSlowMultiplier: number = StatusEngine.getSlowSpeedMultiplier(character);
+
+      // 2.4 Calcula a velocidade efetiva (com atrito, estagnação e TECH_SLOW)
       const effectiveSpeed: number = this.calculateMovementSpeed(
         baseSpeed,
         armorWeight,
         materialCoeff,
         hasEstagnacao,
+        0,
+        techSlowMultiplier,
       );
 
       // 2.5 Iniciativa base = velocidade efetiva
@@ -387,6 +414,35 @@ export class CombatEngine {
     // ================================================================
 
     return sortedCharacters;
+  }
+
+  // ==================================================================
+  // MÉTODO: processTurnStartEffects
+  // ==================================================================
+
+  /**
+   * processTurnStartEffects(character)
+   * ------------------------------------------------------------------
+   * Processa os efeitos de início de turno da Matriz de Status
+   * Tecnológicos (StatusEngine) — hoje, exclusivamente o tick de dano
+   * de TECH_BURN.
+   *
+   * ATENÇÃO — CONEXÃO PARCIAL: este motor ainda não possui um loop de
+   * turnos automático (não existe nenhuma rotina "runTurn" ou
+   * "simulateRound" em CombatEngine). Este método é o ponto de
+   * conexão correto para o tick de TECH_BURN, mas depende de um
+   * driver externo — ainda não implementado — que o chame uma vez por
+   * turno para cada personagem ativo. Sem esse driver, TECH_BURN
+   * continua aplicado ao personagem (via StatusEngine.applyTechStatus)
+   * mas não causa dano automaticamente.
+   *
+   * Fonte: StatusEngine.processBurnTick
+   *
+   * @param character - Personagem cujo turno está começando
+   * @returns O dano de TECH_BURN aplicado neste tick (0 se inativo)
+   */
+  public processTurnStartEffects(character: CharacterState): number {
+    return StatusEngine.processBurnTick(character);
   }
 
   // ==================================================================

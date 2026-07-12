@@ -27,10 +27,19 @@ import {
   EngineeringManager,
   IEngineeringKit,
 } from '../engineering/EngineeringManager';
+import {
+  StatusEngine,
+  TechStatusId,
+  TECH_STATUS_IDS,
+} from '../combat/StatusEngine';
 
 // Re-exportado por conveniência — quem consome SkillEngine.executeSkill
 // também costuma precisar tipar o kit de Engenharia Elemental.
 export type { IEngineeringKit };
+
+// Re-exportado por conveniência — o campo `appliedStatus` do retorno de
+// executeSkill é tipado com TechStatusId.
+export type { TechStatusId };
 
 // Re-exportado por compatibilidade — a definição canônica de
 // ElementType agora vive em src/types/aetheris.types.ts.
@@ -73,6 +82,22 @@ const RACIAL_ELEMENTAL_WEAKNESS: Partial<Record<Race, ElementType>> = {
   [Race.FAERIE]: 'ICE',
   [Race.DRACONIAN]: 'LIGHTNING',
   [Race.LURID]: 'FIRE',
+};
+
+/**
+ * Mapeia os IDs das skills tecnológicas do SkillRegistry (armamentos
+ * de Engenharia Elemental) para a condição tecnológica que aplicam no
+ * target quando disparadas com sucesso ATRAVÉS DO KIT (bypassMysticCost).
+ *
+ * IDs mantidos como literais (em vez de importar de SkillRegistry.ts)
+ * para não acoplar o motor genérico de skills a um catálogo de
+ * conteúdo específico — mesmo princípio de ErrorCodes/EventIds.
+ * Fonte: Débito técnico — Matriz de Efeitos de Status Tecnológicos
+ */
+const ENGINEERING_TECH_STATUS_BY_SKILL_ID: Record<string, TechStatusId> = {
+  THERMITE_GRENADE: TECH_STATUS_IDS.TECH_BURN,
+  CRYO_DISCHARGER: TECH_STATUS_IDS.TECH_SLOW,
+  TESLA_COIL: TECH_STATUS_IDS.TECH_CONDUCTIVE,
 };
 
 /**
@@ -178,6 +203,19 @@ export class SkillEngine {
    *     carrega seu próprio elemento). Se nenhum dos dois estiver
    *     definido, nenhum multiplicador é aplicado.
    *
+   * Matriz de Efeitos de Status Tecnológicos:
+   *   - Se o disparo foi bem-sucedido ATRAVÉS DO KIT (bypassMysticCost
+   *     true) e `skill.id` for THERMITE_GRENADE, CRYO_DISCHARGER ou
+   *     TESLA_COIL, a condição correspondente (TECH_BURN, TECH_SLOW ou
+   *     TECH_CONDUCTIVE) é aplicada ao `target` via
+   *     StatusEngine.applyTechStatus, e refletida em `appliedStatus`.
+   *   - Skills tecnológicas disparadas via fluxo místico padrão (sem
+   *     kit, ou por outra raça) NÃO aplicam a condição — `appliedStatus`
+   *     permanece null. A condição é uma propriedade do armamento
+   *     físico, não do efeito místico homônimo.
+   *   - `appliedStatus` também é null se StatusEngine.applyTechStatus
+   *     retornar false (ex: target já possui a condição ativa).
+   *
    * @param skill   - A skill/feitiço sendo executado
    * @param caster  - Personagem que conjura a skill
    * @param target  - Personagem alvo do efeito
@@ -185,7 +223,7 @@ export class SkillEngine {
    *                  (opcional — se omitido, cai para `skill.element`)
    * @param kit     - Kit de Engenharia Elemental do caster (opcional
    *                  — só é consultado para HUMAN/DWARF)
-   * @returns { backlashDamage, actualDamage, success }
+   * @returns { backlashDamage, actualDamage, success, appliedStatus }
    */
   public static executeSkill(
     skill: ISkillOrSpell,
@@ -193,7 +231,12 @@ export class SkillEngine {
     target: CharacterState,
     element?: ElementType,
     kit?: IEngineeringKit,
-  ): { backlashDamage: number; actualDamage: number; success: boolean } {
+  ): {
+    backlashDamage: number;
+    actualDamage: number;
+    success: boolean;
+    appliedStatus: TechStatusId | null;
+  } {
     // Fallback: se o chamador não informar `element`, usa o elemento
     // nativo da própria skill (ver ISkillOrSpell.element / SkillRegistry.ts)
     const resolvedElement = element ?? skill.element;
@@ -210,7 +253,7 @@ export class SkillEngine {
       if (!engineeringSuccess) {
         // Falha por falta de suprimento — interrompe a execução por
         // completo, sem tocar em estafa, HP ou efeito da skill.
-        return { backlashDamage: 0, actualDamage: 0, success: false };
+        return { backlashDamage: 0, actualDamage: 0, success: false, appliedStatus: null };
       }
 
       bypassMysticCost = true;
@@ -277,10 +320,40 @@ export class SkillEngine {
       actualDamage *= ELEMENTAL_WEAKNESS_MULTIPLIER;
     }
 
+    // ================================================================
+    // ETAPA 3.5: RESOLUÇÃO DE TECH_CONDUCTIVE
+    // Se o target estiver marcado por TECH_CONDUCTIVE e este dano for
+    // de elemento LIGHTNING, amplifica em 1.5x e CONSOME a condição.
+    // Roda incondicionalmente (independe de bypassMysticCost) — vale
+    // para qualquer fonte de dano LIGHTNING, mística ou de Engenharia,
+    // pois a condição descreve uma vulnerabilidade do TARGET, não uma
+    // propriedade do disparo atual.
+    // ================================================================
+
+    actualDamage = StatusEngine.resolveIncomingDamage(target, actualDamage, resolvedElement);
+
+    // ================================================================
+    // ETAPA 4: MATRIZ DE EFEITOS DE STATUS TECNOLÓGICOS
+    // Só aplica a condição quando o disparo foi coberto pela carga
+    // física do kit (bypassMysticCost) — o efeito pertence ao
+    // armamento, não ao equivalente místico homônimo.
+    // ================================================================
+
+    let appliedStatus: TechStatusId | null = null;
+
+    if (bypassMysticCost) {
+      const mappedStatus = ENGINEERING_TECH_STATUS_BY_SKILL_ID[skill.id];
+
+      if (mappedStatus && StatusEngine.applyTechStatus(target, mappedStatus)) {
+        appliedStatus = mappedStatus;
+      }
+    }
+
     return {
       backlashDamage,
       actualDamage,
       success: true,
+      appliedStatus,
     };
   }
 }

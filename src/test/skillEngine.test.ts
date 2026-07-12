@@ -22,6 +22,11 @@ import {
   EngineeringManager,
   IEngineeringKit,
 } from '../modules/engineering/EngineeringManager';
+import {
+  SalvageManager,
+  ISalvageInventory,
+} from '../modules/engineering/SalvageManager';
+import { StatusEngine, TECH_STATUS_IDS } from '../modules/combat/StatusEngine';
 import { skillDatabase, SKILL_ID_THERMITE_GRENADE } from '../modules/skills/SkillRegistry';
 import { CharacterState } from '../core/CharacterState';
 import {
@@ -476,6 +481,128 @@ function runTestE(): void {
 }
 
 // ====================================================================
+// CENÁRIO F: FLUXO PONTA A PONTA — SUCATA → CARGA → DISPARO → TECH_BURN
+// ====================================================================
+
+function runTestF(): void {
+  printSection('CENÁRIO F — ENGENHEIRO HUMANO: SUCATA → craftCharge → THERMITE_GRENADE → TECH_BURN');
+
+  const thermiteGrenade = skillDatabase.get(SKILL_ID_THERMITE_GRENADE);
+
+  assert(thermiteGrenade !== undefined,
+    `THERMITE_GRENADE está cadastrada em skillDatabase: ${thermiteGrenade !== undefined}`);
+
+  if (!thermiteGrenade) {
+    return; // Guarda de tipo — o assert acima já reportou a falha
+  }
+
+  const initialHp = 1000;
+  const humanEngineer = createCharacter(Race.HUMAN, { currentHp: initialHp, maxHp: initialHp });
+  const target = createCharacter(null, { currentHp: initialHp, maxHp: initialHp });
+
+  // ------------------------------------------------------------------
+  // F.1 — Coleta de sucata e fabricação da carga de FIRE
+  // ------------------------------------------------------------------
+  printSubSection('F.1 — Coleta de sucata: fabricação de 1 carga de FIRE via SalvageManager');
+
+  const inventory: ISalvageInventory = { scrapCount: 25 };
+  const kit: IEngineeringKit = { charges: { FIRE: 0, ICE: 0, LIGHTNING: 0 } };
+
+  const crafted = SalvageManager.craftCharge(inventory, kit, 'FIRE');
+
+  assert(crafted === true, `craftCharge retorna true: ${crafted}`);
+  assert(inventory.scrapCount === 5, `Sucata deduzida (25 - 20 = 5): ${inventory.scrapCount}`);
+  assert(kit.charges.FIRE === 1, `Carga de FIRE fabricada: ${kit.charges.FIRE}`);
+
+  // ------------------------------------------------------------------
+  // F.2 — Disparo de THERMITE_GRENADE consumindo a carga produzida
+  // ------------------------------------------------------------------
+  printSubSection('F.2 — Disparo de THERMITE_GRENADE usando a carga recém-fabricada');
+
+  const result = SkillEngine.executeSkill(thermiteGrenade, humanEngineer, target, undefined, kit);
+
+  assert(result.success === true, `Disparo bem-sucedido: success === true: ${result.success}`);
+  assert(kit.charges.FIRE === 0, `Carga de FIRE consumida pelo disparo: ${kit.charges.FIRE}`);
+  assert(result.backlashDamage === 0, `Sem backlash (Engenharia cobriu o custo): ${result.backlashDamage}`);
+  assert(result.actualDamage === 80, `Dano aplicado ao target (baseDamage 80): ${result.actualDamage}`);
+  assert(humanEngineer.shortTermEstafa === 0,
+    `Estafa do engenheiro intocada: ${humanEngineer.shortTermEstafa} === 0`);
+  assert(humanEngineer.stats.currentHp === initialHp,
+    `HP do engenheiro intocado: ${humanEngineer.stats.currentHp} === ${initialHp}`);
+
+  // ------------------------------------------------------------------
+  // F.3 — TECH_BURN aplicado com sucesso no target
+  // ------------------------------------------------------------------
+  printSubSection('F.3 — TECH_BURN aplicado no target');
+
+  assert(result.appliedStatus === TECH_STATUS_IDS.TECH_BURN,
+    `appliedStatus === TECH_BURN: ${result.appliedStatus}`);
+  assert(target.hasStatusEffect(TECH_STATUS_IDS.TECH_BURN) === true,
+    'target.hasStatusEffect(TECH_BURN) === true — condição realmente aplicada, não só reportada');
+}
+
+// ====================================================================
+// CENÁRIO G: CONEXÃO DE TECH_CONDUCTIVE NO PIPELINE DE DANO DO SKILLENGINE
+// ====================================================================
+
+function runTestG(): void {
+  printSection('CENÁRIO G — TECH_CONDUCTIVE AMPLIFICA E É CONSUMIDO NO PRÓXIMO DANO DE LIGHTNING');
+
+  const caster = createCharacter(null);
+  const lightningSkill = createSkill(10, 40, { element: 'LIGHTNING' });
+  const fireSkill = createSkill(10, 40, { element: 'FIRE' });
+
+  // ------------------------------------------------------------------
+  // G.1 — Target marcado por TECH_CONDUCTIVE: primeiro hit de LIGHTNING
+  // amplifica em 1.5x e consome a condição
+  // ------------------------------------------------------------------
+  printSubSection('G.1 — Primeiro hit de LIGHTNING: amplificado e consumido');
+
+  const target1 = createCharacter(null);
+  StatusEngine.applyTechStatus(target1, TECH_STATUS_IDS.TECH_CONDUCTIVE);
+  assert(target1.hasStatusEffect(TECH_STATUS_IDS.TECH_CONDUCTIVE), 'TECH_CONDUCTIVE aplicado ao target');
+
+  const resultG1 = SkillEngine.executeSkill(lightningSkill, caster, target1);
+
+  assert(resultG1.actualDamage === 60, `Dano amplificado por TECH_CONDUCTIVE (40 * 1.5 = 60): ${resultG1.actualDamage}`);
+  assert(target1.hasStatusEffect(TECH_STATUS_IDS.TECH_CONDUCTIVE) === false,
+    'TECH_CONDUCTIVE consumido após o impacto de LIGHTNING (via SkillEngine, não chamada direta ao StatusEngine)');
+
+  // ------------------------------------------------------------------
+  // G.2 — Segundo hit de LIGHTNING no mesmo target: sem TECH_CONDUCTIVE,
+  // sem amplificação
+  // ------------------------------------------------------------------
+  printSubSection('G.2 — Segundo hit de LIGHTNING: já consumido, sem amplificação');
+
+  const resultG2 = SkillEngine.executeSkill(lightningSkill, caster, target1);
+
+  assert(resultG2.actualDamage === 40, `Dano sem amplificação (condição já consumida): ${resultG2.actualDamage}`);
+
+  // ------------------------------------------------------------------
+  // G.3 — Target marcado por TECH_CONDUCTIVE, mas atingido por FIRE:
+  // sem amplificação e condição preservada (só LIGHTNING consome)
+  // ------------------------------------------------------------------
+  printSubSection('G.3 — Hit de elemento diferente (FIRE) não amplifica nem consome TECH_CONDUCTIVE');
+
+  const target2 = createCharacter(null);
+  StatusEngine.applyTechStatus(target2, TECH_STATUS_IDS.TECH_CONDUCTIVE);
+
+  const resultG3Fire = SkillEngine.executeSkill(fireSkill, caster, target2);
+
+  assert(resultG3Fire.actualDamage === 40, `Dano de FIRE não amplificado: ${resultG3Fire.actualDamage}`);
+  assert(target2.hasStatusEffect(TECH_STATUS_IDS.TECH_CONDUCTIVE) === true,
+    'TECH_CONDUCTIVE preservado após hit de elemento diferente de LIGHTNING');
+
+  // Confirma que a condição preservada ainda amplifica um LIGHTNING subsequente
+  const resultG3Lightning = SkillEngine.executeSkill(lightningSkill, caster, target2);
+
+  assert(resultG3Lightning.actualDamage === 60,
+    `TECH_CONDUCTIVE preservado ainda amplifica o LIGHTNING seguinte: ${resultG3Lightning.actualDamage}`);
+  assert(target2.hasStatusEffect(TECH_STATUS_IDS.TECH_CONDUCTIVE) === false,
+    'TECH_CONDUCTIVE finalmente consumido pelo hit de LIGHTNING');
+}
+
+// ====================================================================
 // EXECUTOR PRINCIPAL
 // ====================================================================
 
@@ -490,6 +617,8 @@ function main(): void {
   runTestC();
   runTestD();
   runTestE();
+  runTestF();
+  runTestG();
 
   // ================================================================
   // RELATÓRIO FINAL
