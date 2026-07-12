@@ -23,6 +23,14 @@ import {
   Race,
   ElementType,
 } from '../../types/aetheris.types';
+import {
+  EngineeringManager,
+  IEngineeringKit,
+} from '../engineering/EngineeringManager';
+
+// Re-exportado por conveniência — quem consome SkillEngine.executeSkill
+// também costuma precisar tipar o kit de Engenharia Elemental.
+export type { IEngineeringKit };
 
 // Re-exportado por compatibilidade — a definição canônica de
 // ElementType agora vive em src/types/aetheris.types.ts.
@@ -119,12 +127,30 @@ export class SkillEngine {
   // ==================================================================
 
   /**
-   * executeSkill(skill, caster, target, element)
+   * executeSkill(skill, caster, target, element, kit)
    * ------------------------------------------------------------------
    * Executa uma ISkillOrSpell, aplicando o custo de estafa no caster
    * e resolvendo o efeito da skill sobre o target.
    *
-   * Regra do Retrocesso (Backlash):
+   * Gate de Engenharia Elemental (HUMAN/DWARF):
+   *   - Se `kit` for informado e `caster.race` for HUMAN ou DWARF,
+   *     consulta EngineeringManager.processEngineeringUsage ANTES de
+   *     qualquer cálculo de estafa.
+   *   - Se retornar false (sem carga física suficiente para
+   *     `skill.element`), a execução é interrompida imediatamente:
+   *     retorna `{ backlashDamage: 0, actualDamage: 0, success: false }`
+   *     sem tocar em shortTermEstafa, HP ou no efeito da skill —
+   *     falha por falta de suprimento.
+   *   - Se retornar true, a carga física já foi consumida pelo
+   *     EngineeringManager; a ETAPA 1 (custo místico de estafa e
+   *     checagem de Backlash) é inteiramente pulada para este disparo
+   *     — a carga substitui o custo por completo.
+   *   - Para qualquer outra raça (ou quando `kit` é omitido), o gate
+   *     não é consultado e o fluxo místico padrão abaixo se aplica
+   *     normalmente.
+   *
+   * Regra do Retrocesso (Backlash) — pulada quando a Engenharia
+   * Elemental é usada com sucesso:
    *   1. Calcula o custo potencial: caster.shortTermEstafa - skill.estafaCost
    *   2. Se o valor potencial ultrapassar o piso -100, o excedente
    *      (a distância entre -100 e o valor potencial) vira dano
@@ -135,7 +161,9 @@ export class SkillEngine {
    *      (enforceEstafaOntologicalLock) — este é o "método adequado
    *      de ajuste"; nenhum clamp manual é feito aqui.
    *
-   * Matriz de Fraqueza Elemental:
+   * Matriz de Fraqueza Elemental (sempre ativa, independente do gate
+   * de Engenharia — afeta apenas o dano no target, não o custo do
+   * caster):
    *   - Se `element` for informado e o `target` estiver vulnerável a
    *     ele (hasElementalWeakness), `actualDamage` é multiplicado
    *     por 1.5.
@@ -143,7 +171,8 @@ export class SkillEngine {
    *     vulnerável a ele, o `backlashDamage` sofrido pelo caster é
    *     multiplicado por 1.5 ANTES de ser aplicado ao HP — dano
    *     cruzado: o próprio elemento que o personagem conjura o fere
-   *     com mais força no retrocesso.
+   *     com mais força no retrocesso. (Não se aplica quando a
+   *     Engenharia Elemental pulou a ETAPA 1.)
    *   - Se `element` for omitido, o motor usa `skill.element` como
    *     fallback automático (ver SkillRegistry.ts, onde cada skill já
    *     carrega seu próprio elemento). Se nenhum dos dois estiver
@@ -154,43 +183,67 @@ export class SkillEngine {
    * @param target  - Personagem alvo do efeito
    * @param element - Elemento a usar na Matriz de Fraqueza Elemental
    *                  (opcional — se omitido, cai para `skill.element`)
-   * @returns { backlashDamage, actualDamage }
+   * @param kit     - Kit de Engenharia Elemental do caster (opcional
+   *                  — só é consultado para HUMAN/DWARF)
+   * @returns { backlashDamage, actualDamage, success }
    */
   public static executeSkill(
     skill: ISkillOrSpell,
     caster: CharacterState,
     target: CharacterState,
     element?: ElementType,
-  ): { backlashDamage: number; actualDamage: number } {
+    kit?: IEngineeringKit,
+  ): { backlashDamage: number; actualDamage: number; success: boolean } {
     // Fallback: se o chamador não informar `element`, usa o elemento
     // nativo da própria skill (ver ISkillOrSpell.element / SkillRegistry.ts)
     const resolvedElement = element ?? skill.element;
 
     // ================================================================
-    // ETAPA 1: REGRA DO RETROCESSO (BACKLASH)
+    // ETAPA 0: GATE DE ENGENHARIA ELEMENTAL (HUMAN/DWARF)
     // ================================================================
 
-    const potentialEstafa = caster.shortTermEstafa - skill.estafaCost;
+    let bypassMysticCost = false;
+
+    if (kit && (caster.race === Race.HUMAN || caster.race === Race.DWARF)) {
+      const engineeringSuccess = EngineeringManager.processEngineeringUsage(caster, skill, kit);
+
+      if (!engineeringSuccess) {
+        // Falha por falta de suprimento — interrompe a execução por
+        // completo, sem tocar em estafa, HP ou efeito da skill.
+        return { backlashDamage: 0, actualDamage: 0, success: false };
+      }
+
+      bypassMysticCost = true;
+    }
+
+    // ================================================================
+    // ETAPA 1: REGRA DO RETROCESSO (BACKLASH)
+    // Pulada inteiramente se a Engenharia Elemental já cobriu o custo.
+    // ================================================================
 
     let backlashDamage = 0;
 
-    if (potentialEstafa < CharacterState.ESTAFA_MIN) {
-      // Excedente que a Balança não comporta — vira dano direto no caster
-      backlashDamage = CharacterState.ESTAFA_MIN - potentialEstafa;
-    }
+    if (!bypassMysticCost) {
+      const potentialEstafa = caster.shortTermEstafa - skill.estafaCost;
 
-    // Aplica o deslocamento no medidor de estafa do caster.
-    // O setter já trava o valor em -100 via enforceEstafaOntologicalLock.
-    caster.shortTermEstafa = potentialEstafa;
-
-    if (backlashDamage > 0) {
-      // Dano cruzado: se o caster é vulnerável ao próprio elemento da
-      // skill, o retrocesso o fere com 1.5x de intensidade.
-      if (resolvedElement && SkillEngine.hasElementalWeakness(caster, resolvedElement)) {
-        backlashDamage *= ELEMENTAL_WEAKNESS_MULTIPLIER;
+      if (potentialEstafa < CharacterState.ESTAFA_MIN) {
+        // Excedente que a Balança não comporta — vira dano direto no caster
+        backlashDamage = CharacterState.ESTAFA_MIN - potentialEstafa;
       }
 
-      caster.applyDirectDamage(backlashDamage);
+      // Aplica o deslocamento no medidor de estafa do caster.
+      // O setter já trava o valor em -100 via enforceEstafaOntologicalLock.
+      caster.shortTermEstafa = potentialEstafa;
+
+      if (backlashDamage > 0) {
+        // Dano cruzado: se o caster é vulnerável ao próprio elemento da
+        // skill, o retrocesso o fere com 1.5x de intensidade.
+        if (resolvedElement && SkillEngine.hasElementalWeakness(caster, resolvedElement)) {
+          backlashDamage *= ELEMENTAL_WEAKNESS_MULTIPLIER;
+        }
+
+        caster.applyDirectDamage(backlashDamage);
+      }
     }
 
     // ================================================================
@@ -227,6 +280,7 @@ export class SkillEngine {
     return {
       backlashDamage,
       actualDamage,
+      success: true,
     };
   }
 }

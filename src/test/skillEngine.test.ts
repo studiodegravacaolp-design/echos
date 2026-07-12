@@ -18,10 +18,12 @@
  */
 
 import { SkillEngine } from '../modules/skills/SkillEngine';
+import { IEngineeringKit } from '../modules/engineering/EngineeringManager';
 import { CharacterState } from '../core/CharacterState';
 import {
   ICharacterStats,
   ISkillOrSpell,
+  ElementType,
   Race,
   LatentLineageAxis,
 } from '../types/aetheris.types';
@@ -124,6 +126,17 @@ function createSkill(
     effectType: 'DAMAGE',
     execute: () => fixedDamage,
     ...overrides,
+  };
+}
+
+/** Kit de Engenharia Elemental com cargas explícitas para os três elementos físicos */
+function createKit(fire: number, ice: number, lightning: number): IEngineeringKit {
+  return {
+    charges: {
+      FIRE: fire,
+      ICE: ice,
+      LIGHTNING: lightning,
+    },
   };
 }
 
@@ -268,6 +281,114 @@ function runTestC(): void {
 }
 
 // ====================================================================
+// CENÁRIO D: INTEGRAÇÃO DE ENGENHARIA ELEMENTAL NO SKILLENGINE
+// ====================================================================
+
+function runTestD(): void {
+  printSection('CENÁRIO D — INTEGRAÇÃO DE ENGENHARIA ELEMENTAL (PONTA A PONTA)');
+
+  const initialHp = 1000;
+
+  // ------------------------------------------------------------------
+  // D.1 — HUMAN com carga disponível: bypass total do custo místico,
+  // mesmo numa skill cujo estafaCost causaria Backlash amplificado
+  // (HUMAN é nativamente fraco a LIGHTNING — ver RACIAL_ELEMENTAL_WEAKNESS)
+  // ------------------------------------------------------------------
+  printSubSection('D.1 — HUMAN com carga de LIGHTNING: bypass do custo místico e do Backlash');
+
+  const humanCaster = createCharacter(Race.HUMAN, { currentHp: initialHp, maxHp: initialHp });
+  const humanTarget = createCharacter(null);
+  // estafaCost 150 → se processado misticamente, estouraria o piso em 50
+  // e, por HUMAN ser fraco a LIGHTNING, o backlash seria amplificado (75)
+  const lightningSkill = createSkill(150, 40, { element: 'LIGHTNING' });
+  const humanKit = createKit(0, 0, 2);
+
+  const humanResult = SkillEngine.executeSkill(lightningSkill, humanCaster, humanTarget, undefined, humanKit);
+
+  assert(humanResult.success === true, `D.1: success === true: ${humanResult.success}`);
+  assert(humanResult.backlashDamage === 0,
+    `D.1: backlashDamage bypassado (0, mesmo com estafaCost 150): ${humanResult.backlashDamage}`);
+  assert(humanCaster.shortTermEstafa === 0,
+    `D.1: shortTermEstafa do caster intocado: ${humanCaster.shortTermEstafa} === 0`);
+  assert(humanCaster.stats.currentHp === initialHp,
+    `D.1: HP do caster intocado (sem backlash): ${humanCaster.stats.currentHp} === ${initialHp}`);
+  assert(humanKit.charges.LIGHTNING === 1,
+    `D.1: carga de LIGHTNING decrementada de 2 para 1: ${humanKit.charges.LIGHTNING}`);
+  assert(humanResult.actualDamage === 40,
+    `D.1: actualDamage aplicado normalmente ao target: ${humanResult.actualDamage} === 40`);
+
+  // ------------------------------------------------------------------
+  // D.2 — DWARF sem carga do elemento da skill: falha por falta de
+  // suprimento, execução interrompida antes de qualquer efeito
+  // ------------------------------------------------------------------
+  printSubSection('D.2 — DWARF sem carga de ICE: falha por falta de suprimento');
+
+  const dwarfCaster = createCharacter(Race.DWARF, { currentHp: initialHp, maxHp: initialHp });
+  const dwarfTarget = createCharacter(null);
+  const iceSkill = createSkill(20, 40, { element: 'ICE' });
+  const emptyKit = createKit(0, 0, 0);
+
+  const dwarfResult = SkillEngine.executeSkill(iceSkill, dwarfCaster, dwarfTarget, undefined, emptyKit);
+
+  assert(dwarfResult.success === false, `D.2: success === false: ${dwarfResult.success}`);
+  assert(dwarfResult.backlashDamage === 0, `D.2: backlashDamage === 0: ${dwarfResult.backlashDamage}`);
+  assert(dwarfResult.actualDamage === 0, `D.2: actualDamage === 0 (skill.execute nunca rodou): ${dwarfResult.actualDamage}`);
+  assert(dwarfCaster.shortTermEstafa === 0,
+    `D.2: shortTermEstafa do caster intocado (execução interrompida antes da ETAPA 1): ${dwarfCaster.shortTermEstafa} === 0`);
+  assert(dwarfCaster.stats.currentHp === initialHp,
+    `D.2: HP do caster intocado: ${dwarfCaster.stats.currentHp} === ${initialHp}`);
+  assert(emptyKit.charges.ICE === 0, `D.2: carga de ICE permanece em 0: ${emptyKit.charges.ICE}`);
+
+  // ------------------------------------------------------------------
+  // D.3 — Bypass automático para raças místicas (ELF/FAERIE): o kit é
+  // ignorado por completo, e o fluxo místico padrão (com Backlash e
+  // fraqueza racial) continua operando normalmente
+  // ------------------------------------------------------------------
+  const mysticMatrix: Array<{ race: Race; weakElement: ElementType }> = [
+    { race: Race.ELF, weakElement: 'FIRE' },
+    { race: Race.FAERIE, weakElement: 'ICE' },
+  ];
+
+  for (const { race, weakElement } of mysticMatrix) {
+    printSubSection(`D.3.${race} — kit fornecido mas ignorado: fluxo místico padrão prevalece`);
+
+    const mysticCaster = createCharacter(race, { currentHp: initialHp, maxHp: initialHp });
+    mysticCaster.shortTermEstafa = -90;
+
+    const mysticTarget = createCharacter(null);
+    // estafaCost 30 → potentialEstafa = -90 - 30 = -120 (estoura o piso em 20)
+    const weaknessSkill = createSkill(30, 10, { element: weakElement });
+    // Kit generosamente abastecido — se fosse consultado, jamais falharia;
+    // o teste prova que ele nem é tocado para raças místicas.
+    const mysticKit = createKit(5, 5, 5);
+
+    const mysticResult = SkillEngine.executeSkill(
+      weaknessSkill,
+      mysticCaster,
+      mysticTarget,
+      undefined,
+      mysticKit,
+    );
+
+    assert(mysticResult.success === true, `D.3.${race}: success === true: ${mysticResult.success}`);
+    assert(mysticCaster.shortTermEstafa === -100,
+      `D.3.${race}: estafa travada em -100 (fluxo místico NÃO foi pulado): ${mysticCaster.shortTermEstafa}`);
+
+    // Excedente bruto 20 → amplificado por fraqueza racial: 20 * 1.5 = 30
+    const expectedBacklash = 20 * 1.5;
+    assertApprox(mysticResult.backlashDamage, expectedBacklash, 0.001,
+      `D.3.${race}: backlashDamage amplificado normalmente: ${mysticResult.backlashDamage}`);
+    assertApprox(mysticCaster.stats.currentHp, initialHp - expectedBacklash, 0.001,
+      `D.3.${race}: HP reduzido pelo backlash normal: ${mysticCaster.stats.currentHp}`);
+
+    assert(
+      mysticKit.charges.FIRE === 5 && mysticKit.charges.ICE === 5 && mysticKit.charges.LIGHTNING === 5,
+      `D.3.${race}: kit permanece 100% intocado (nunca consultado para raça mística)`,
+    );
+  }
+}
+
+// ====================================================================
 // EXECUTOR PRINCIPAL
 // ====================================================================
 
@@ -280,6 +401,7 @@ function main(): void {
   runTestA();
   runTestB();
   runTestC();
+  runTestD();
 
   // ================================================================
   // RELATÓRIO FINAL
