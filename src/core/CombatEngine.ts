@@ -25,6 +25,8 @@ import {
 } from '../types/aetheris.types';
 import { CharacterState } from './CharacterState';
 import { StatusEngine } from '../modules/combat/StatusEngine';
+import { LootEngine } from '../modules/combat/LootEngine';
+import { ISalvageInventory } from '../modules/engineering/SalvageManager';
 
 /**
  * Constantes calibradas do motor de dano.
@@ -323,8 +325,23 @@ export class CombatEngine {
    *
    *   3. Ordena a fila de forma decrescente (maior iniciativa age primeiro).
    *
+   *   4. Para cada personagem, dispara processTurnStartEffects — tick
+   *      de dano de TECH_BURN e decremento de duração de todas as
+   *      condições tecnológicas ativas. A velocidade/iniciativa deste
+   *      mesmo personagem já foi calculada ANTES deste passo, usando
+   *      o TECH_SLOW ainda com a duração pré-decremento (a condição
+   *      vale por completo até o fim do turno em que expira).
+   *
+   * ATENÇÃO — EFEITO COLATERAL: este método NÃO é mais uma função pura
+   * de ordenação. Cada chamada aplica dano de TECH_BURN e decrementa
+   * durações de status tecnológicos nos personagens recebidos. Chamar
+   * generateTurnQueue mais de uma vez para o MESMO início de rodada
+   * aplicará o tick múltiplas vezes — deve ser chamado exatamente uma
+   * vez por rodada de combate.
+   *
    * Fonte: ENG-MOTOR-COMBATE Seção 6 (Turn Queue)
    *        ENG-MATEMATICA-COMBATE Seção 7.4 (Dynamic Initiative)
+   *        Débito técnico — Automação do Processador de Turnos (Sprint 9)
    *
    * @param characters - Array de estados de personagem (CharacterState[])
    * @returns CharacterState[] — Array ordenado por iniciativa (decrescente)
@@ -394,6 +411,13 @@ export class CombatEngine {
 
       // Armazena no mapa
       initiativeMap.set(character, initiative);
+
+      // 2.8 Dispara os efeitos de início de turno da Matriz de Status
+      //     Tecnológicos (tick de TECH_BURN + decremento de duração).
+      //     Roda APÓS o cálculo de iniciativa acima, para que o
+      //     TECH_SLOW deste personagem ainda valha integralmente
+      //     nesta rodada antes de ter sua duração decrementada.
+      this.processTurnStartEffects(character);
     }
 
     // ================================================================
@@ -424,25 +448,64 @@ export class CombatEngine {
    * processTurnStartEffects(character)
    * ------------------------------------------------------------------
    * Processa os efeitos de início de turno da Matriz de Status
-   * Tecnológicos (StatusEngine) — hoje, exclusivamente o tick de dano
-   * de TECH_BURN.
+   * Tecnológicos (StatusEngine):
+   *   1. Aplica o tick de dano de TECH_BURN, se ativo.
+   *   2. Decrementa a duração de TODAS as condições tecnológicas
+   *      ativas (TECH_BURN, TECH_SLOW, TECH_CONDUCTIVE), removendo
+   *      automaticamente as que expiram neste tick.
    *
-   * ATENÇÃO — CONEXÃO PARCIAL: este motor ainda não possui um loop de
-   * turnos automático (não existe nenhuma rotina "runTurn" ou
-   * "simulateRound" em CombatEngine). Este método é o ponto de
-   * conexão correto para o tick de TECH_BURN, mas depende de um
-   * driver externo — ainda não implementado — que o chame uma vez por
-   * turno para cada personagem ativo. Sem esse driver, TECH_BURN
-   * continua aplicado ao personagem (via StatusEngine.applyTechStatus)
-   * mas não causa dano automaticamente.
+   * A ordem importa: o dano de TECH_BURN é aplicado ANTES do
+   * decremento de duração, para que a condição ainda cause dano no
+   * turno em que expira (ela vale pela duração completa, não uma a
+   * menos).
    *
-   * Fonte: StatusEngine.processBurnTick
+   * CONECTADO AUTOMATICAMENTE: chamado por generateTurnQueue para
+   * cada personagem, a cada geração de fila de turnos — não é
+   * necessário invocar manualmente em uso normal do motor.
+   *
+   * Fonte: StatusEngine.processBurnTick, StatusEngine.tickTechStatusDurations
    *
    * @param character - Personagem cujo turno está começando
    * @returns O dano de TECH_BURN aplicado neste tick (0 se inativo)
    */
   public processTurnStartEffects(character: CharacterState): number {
-    return StatusEngine.processBurnTick(character);
+    const burnDamage = StatusEngine.processBurnTick(character);
+    StatusEngine.tickTechStatusDurations(character);
+    return burnDamage;
+  }
+
+  // ==================================================================
+  // MÉTODO: resolveVictoryLoot
+  // ==================================================================
+
+  /**
+   * resolveVictoryLoot(enemyLevel, isMechanical, partyInventory)
+   * ------------------------------------------------------------------
+   * Encerramento de combate bem-sucedido: calcula a sucata do inimigo
+   * derrotado (LootEngine.calculateBattleLoot) e a concede ao
+   * inventário do grupo (LootEngine.awardSalvage).
+   *
+   * Deve ser chamado pelo chamador do motor exatamente uma vez, no
+   * momento em que a vitória do grupo já foi determinada — este
+   * método não verifica HP nem qualquer outra condição de derrota;
+   * apenas calcula e concede a recompensa.
+   *
+   * Fonte: LootEngine.calculateBattleLoot, LootEngine.awardSalvage
+   *
+   * @param enemyLevel     - Nível do inimigo derrotado
+   * @param isMechanical   - Se o inimigo derrotado era do tipo mecânico
+   * @param partyInventory - Inventário de sucata do grupo a premiar
+   * @returns A quantidade de sucata concedida
+   */
+  public resolveVictoryLoot(
+    enemyLevel: number,
+    isMechanical: boolean,
+    partyInventory: ISalvageInventory,
+  ): number {
+    const scrapAmount = LootEngine.calculateBattleLoot(enemyLevel, isMechanical);
+    LootEngine.awardSalvage(partyInventory, scrapAmount);
+
+    return scrapAmount;
   }
 
   // ==================================================================

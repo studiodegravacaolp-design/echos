@@ -616,6 +616,36 @@ export class CharacterState {
     return this._statusEffects.some((e) => e.id === effectId);
   }
 
+  /**
+   * decrementStatusEffectDuration(effectId)
+   * ------------------------------------------------------------------
+   * Decrementa em 1 a duração restante (remainingDuration) de um
+   * efeito de status ativo. Remove o efeito automaticamente
+   * (via removeStatusEffect) se a duração chegar a zero ou menos.
+   *
+   * Muta o efeito internamente — não passa pela cópia defensiva do
+   * getter `statusEffects`.
+   *
+   * @param effectId - ID do efeito a decrementar
+   * @returns true se o efeito estava ativo e foi decrementado, false
+   *          se o efeito não estava ativo
+   */
+  public decrementStatusEffectDuration(effectId: string): boolean {
+    const effect = this._statusEffects.find((e) => e.id === effectId);
+
+    if (!effect) {
+      return false;
+    }
+
+    effect.remainingDuration -= 1;
+
+    if (effect.remainingDuration <= 0) {
+      this.removeStatusEffect(effectId);
+    }
+
+    return true;
+  }
+
   // ==================================================================
   // MÉTODOS DE EVENTO E LOG
   // ==================================================================

@@ -18,12 +18,18 @@
 import { CombatEngine } from '../core/CombatEngine';
 import { CharacterState } from '../core/CharacterState';
 import { StatusEngine, TECH_STATUS_IDS } from '../modules/combat/StatusEngine';
+import { SkillEngine } from '../modules/skills/SkillEngine';
+import { IEngineeringKit } from '../modules/engineering/EngineeringManager';
+import { ISalvageInventory } from '../modules/engineering/SalvageManager';
+import { skillDatabase, SKILL_ID_THERMITE_GRENADE } from '../modules/skills/SkillRegistry';
 import {
   ICharacterStats,
   IEquipment,
   IStatusEffect,
   MaterialType,
   MATERIAL_COEFFICIENTS,
+  Race,
+  LatentLineageAxis,
 } from '../types/aetheris.types';
 
 // ====================================================================
@@ -513,6 +519,88 @@ function runTestC(engine: CombatEngine): void {
 }
 
 // ====================================================================
+// CENÁRIO D: LOOP DE PONTA A PONTA — TECH_BURN AUTOMÁTICO + LOOT PÓS-BATALHA
+// ====================================================================
+
+function runTestD(engine: CombatEngine): void {
+  printSection('CENÁRIO D — COMBATE COMPLETO: TECH_BURN AUTOMÁTICO ➔ DERROTA ➔ SUCATA');
+
+  const thermiteGrenade = skillDatabase.get(SKILL_ID_THERMITE_GRENADE);
+  assert(thermiteGrenade !== undefined, `THERMITE_GRENADE cadastrada: ${thermiteGrenade !== undefined}`);
+
+  if (!thermiteGrenade) {
+    return; // Guarda de tipo — o assert acima já reportou a falha
+  }
+
+  // ------------------------------------------------------------------
+  // D.1 — Engenheiro HUMAN aplica TECH_BURN no inimigo via THERMITE_GRENADE
+  // ------------------------------------------------------------------
+  printSubSection('D.1 — Engenheiro HUMAN dispara THERMITE_GRENADE e aplica TECH_BURN');
+
+  const engineer = new CharacterState(
+    createBaseStats({ movementSpeed: 100 }),
+    LatentLineageAxis.NEUTRO_ABSOLUTO,
+    undefined,
+    undefined,
+    Race.HUMAN,
+  );
+  const enemy = new CharacterState(createBaseStats({ currentHp: 100, maxHp: 100, movementSpeed: 80 }));
+
+  const kit: IEngineeringKit = { charges: { FIRE: 1, ICE: 0, LIGHTNING: 0 } };
+
+  const strikeResult = SkillEngine.executeSkill(thermiteGrenade, engineer, enemy, undefined, kit);
+
+  assert(strikeResult.success === true, `Disparo bem-sucedido: ${strikeResult.success}`);
+  assert(strikeResult.appliedStatus === TECH_STATUS_IDS.TECH_BURN,
+    `TECH_BURN aplicado: ${strikeResult.appliedStatus}`);
+  assert(enemy.hasStatusEffect(TECH_STATUS_IDS.TECH_BURN), 'Inimigo está queimando (TECH_BURN ativo)');
+
+  // O motor de skills apenas CALCULA actualDamage — quem aplica ao HP é
+  // o chamador (aqui, a simulação de combate), assim como
+  // calculateMitigatedDamage não aplica dano sozinho.
+  enemy.applyDirectDamage(strikeResult.actualDamage);
+
+  assert(enemy.stats.currentHp === 20,
+    `HP do inimigo após o impacto direto (100 - 80 = 20): ${enemy.stats.currentHp}`);
+
+  // ------------------------------------------------------------------
+  // D.2 — A rodada passa: generateTurnQueue aplica o tick de TECH_BURN
+  // automaticamente (sem qualquer chamada manual a processTurnStartEffects)
+  // ------------------------------------------------------------------
+  printSubSection('D.2 — Rodada 1: tick de TECH_BURN automático via generateTurnQueue');
+
+  engine.generateTurnQueue([engineer, enemy]);
+
+  assert(enemy.stats.currentHp === 5,
+    `HP do inimigo após tick automático de TECH_BURN (20 - 15 = 5): ${enemy.stats.currentHp}`);
+
+  // ------------------------------------------------------------------
+  // D.3 — O inimigo é derrotado por um segundo tick de TECH_BURN
+  // ------------------------------------------------------------------
+  printSubSection('D.3 — Rodada 2: segundo tick de TECH_BURN derrota o inimigo');
+
+  engine.generateTurnQueue([engineer, enemy]);
+
+  assert(enemy.stats.currentHp === 0,
+    `HP do inimigo zerado pelo segundo tick (5 - 15, travado em 0): ${enemy.stats.currentHp}`);
+  assert(enemy.stats.currentHp <= 0, 'Inimigo derrotado (HP <= 0)');
+
+  // ------------------------------------------------------------------
+  // D.4 — Encerramento de combate: o motor calcula e concede a sucata
+  // automaticamente ao inventário do grupo
+  // ------------------------------------------------------------------
+  printSubSection('D.4 — resolveVictoryLoot concede sucata ao inventário do grupo');
+
+  const partyInventory: ISalvageInventory = { scrapCount: 0 };
+
+  const scrapAwarded = engine.resolveVictoryLoot(5, true, partyInventory);
+
+  assert(scrapAwarded === 50, `Sucata calculada (nível 5, mecânico: 5 * 5 * 2 = 50): ${scrapAwarded}`);
+  assert(partyInventory.scrapCount === 50,
+    `Sucata concedida automaticamente ao inventário do grupo: ${partyInventory.scrapCount}`);
+}
+
+// ====================================================================
 // EXECUTOR PRINCIPAL
 // ====================================================================
 
@@ -533,6 +621,9 @@ function main(): void {
 
   // Executa Cenário C
   runTestC(engine);
+
+  // Executa Cenário D
+  runTestD(engine);
 
   // ================================================================
   // RELATÓRIO FINAL

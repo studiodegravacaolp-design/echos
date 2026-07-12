@@ -169,6 +169,31 @@ export class StatusEngine {
   }
 
   // ==================================================================
+  // MÉTODO: tickTechStatusDurations
+  // ==================================================================
+
+  /**
+   * tickTechStatusDurations(character)
+   * ------------------------------------------------------------------
+   * Decrementa em 1 a duração restante de TODAS as condições
+   * tecnológicas ativas no personagem (TECH_BURN, TECH_SLOW,
+   * TECH_CONDUCTIVE), via CharacterState.decrementStatusEffectDuration.
+   * Condições cuja duração chega a zero são removidas automaticamente.
+   *
+   * Escopo deliberadamente restrito aos três IDs de TECH_STATUS_IDS —
+   * NÃO afeta ESTAGNACAO_TATICA/FRATURA_FRENESI nem outros status
+   * effects, que têm seu próprio ciclo de vida (governado pela
+   * Balança de Estafa, não por contagem de turnos).
+   *
+   * @param character - Personagem a processar
+   */
+  public static tickTechStatusDurations(character: CharacterState): void {
+    for (const statusId of Object.values(TECH_STATUS_IDS)) {
+      character.decrementStatusEffectDuration(statusId);
+    }
+  }
+
+  // ==================================================================
   // MÉTODO: getSlowSpeedMultiplier
   // ==================================================================
 
