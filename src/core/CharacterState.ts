@@ -120,6 +120,12 @@ export class CharacterState {
   /** Raça nativa do personagem (fraquezas elementais permanentes) */
   private _race: Race | null;
 
+  /** Contagem de sucata acumulada (ISalvageInventory.scrapCount) */
+  private _scrapCount: number;
+
+  /** Cargas do kit de Engenharia Elemental por elemento */
+  private _engineeringCharges: Record<string, number>;
+
   // ==================================================================
   // CONSTRUTOR
   // ==================================================================
@@ -153,6 +159,8 @@ export class CharacterState {
     this._eventCallback = eventCallback ?? null;
     this._securityLogCallback = securityLogCallback ?? null;
     this._race = race;
+    this._scrapCount = 0;
+    this._engineeringCharges = {};
   }
 
   // ==================================================================
@@ -736,18 +744,55 @@ export class CharacterState {
     return null;
   }
 
+  // ==================================================================
+  // CAMPOS DE PERSISTÊNCIA DE ENGENHARIA — ISalvageInventory e IEngineeringKit
+  // ==================================================================
+
+  /**
+   * Obtém a contagem de sucata acumulada.
+   */
+  get scrapCount(): number {
+    return this._scrapCount;
+  }
+
+  /**
+   * Define a contagem de sucata acumulada.
+   * @param value - Novo valor de sucata (não pode ser negativo)
+   */
+  set scrapCount(value: number) {
+    this._scrapCount = value < 0 ? 0 : value;
+  }
+
+  /**
+   * Obtém uma cópia das cargas do kit de engenharia.
+   */
+  get engineeringCharges(): Record<string, number> {
+    return { ...this._engineeringCharges };
+  }
+
+  /**
+   * Define as cargas do kit de engenharia.
+   * @param charges - Mapa de elemento para quantidade de cargas
+   */
+  set engineeringCharges(charges: Record<string, number>) {
+    this._engineeringCharges = { ...charges };
+  }
+
   /**
    * Retorna uma representação serializável do estado do personagem
    * para persistência em save game.
    *
    * NOTA: O medidor shortTermEstafa NÃO persiste entre sessões.
    * Fonte: ENG-ESTRUTURA-DADOS Seção 2.1
+   * Sprint 10: Inclui scrapCount e engineeringCharges nativamente.
    */
   public toJSON(): Record<string, unknown> {
     return {
       level: this._currentLevel,
       stats: { ...this._stats },
       latentLineageAxis: this._latentLineageAxis,
+      scrapCount: this._scrapCount,
+      engineeringCharges: { ...this._engineeringCharges },
     };
   }
 
@@ -761,7 +806,7 @@ export class CharacterState {
    * @returns Nova instância de CharacterState
    */
   public static fromJSON(
-    data: { level?: number; latentLineageAxis?: LatentLineageAxis },
+    data: { level?: number; latentLineageAxis?: LatentLineageAxis; scrapCount?: number; engineeringCharges?: Record<string, number> },
     stats: ICharacterStats,
     eventCallback?: IStateEventCallback,
     securityLogCallback?: ISecurityLogCallback,
@@ -779,6 +824,10 @@ export class CharacterState {
         Math.min(CharacterState.LEVEL_MAX, data.level),
       );
     }
+
+    // Sprint 10: Restaura campos de engenharia salvos
+    state._scrapCount = Number.isFinite(data.scrapCount) && data.scrapCount! >= 0 ? Math.floor(data.scrapCount!) : 0;
+    state._engineeringCharges = data.engineeringCharges !== undefined ? { ...data.engineeringCharges } : {};
 
     return state;
   }

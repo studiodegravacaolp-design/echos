@@ -19,6 +19,7 @@ import {
   IAbility,
   IProcessResult,
   IEquipment,
+  ICharacterStats,
   AxisTag,
   PenetrationType,
   ErrorCodes,
@@ -506,6 +507,150 @@ export class CombatEngine {
     LootEngine.awardSalvage(partyInventory, scrapAmount);
 
     return scrapAmount;
+  }
+
+  // ==================================================================
+  // MÉTODO: createScaledEnemy
+  // ==================================================================
+
+  /**
+   * createScaledEnemy(enemyLevel, isMechanical)
+   * ------------------------------------------------------------------
+   * Cria um CharacterState representando um inimigo com atributos
+   * escalados exponencialmente pelo nível, usando o fator
+   * ATTRIBUTE_SCALE_EXPONENT do LootEngine.
+   *
+   * O inimigo gerado pode ser usado em simulações de combate para
+   * testar a escalabilidade de dificuldade (Sprint 10).
+   *
+   * @param enemyLevel   - Nível do inimigo (>= 1)
+   * @param isMechanical - Se o inimigo é do tipo mecânico (afeta loot)
+   * @returns Um objeto com { character: CharacterState, isMechanical: boolean, level: number }
+   */
+  public static createScaledEnemy(
+    enemyLevel: number,
+    isMechanical: boolean = false,
+  ): { character: CharacterState; isMechanical: boolean; level: number } {
+    const safeLevel = Number.isFinite(enemyLevel) && enemyLevel >= 1 ? Math.floor(enemyLevel) : 1;
+    const scaled = LootEngine.scaleEnemyStats(safeLevel);
+
+    const stats: ICharacterStats = {
+      maxHp: scaled.maxHp,
+      currentHp: scaled.maxHp,
+      damage: scaled.damage,
+      defense: scaled.defense,
+      resilience: scaled.resilience,
+      movementSpeed: scaled.movementSpeed,
+    };
+
+    const character = new CharacterState(stats);
+    character.currentLevel = safeLevel;
+
+    return { character, isMechanical, level: safeLevel };
+  }
+
+  // ==================================================================
+  // MÉTODO: simulateCombatRound
+  // ==================================================================
+
+  /**
+   * simulateCombatRound(hero, enemy, heroAbility, enemyAbility)
+   * ------------------------------------------------------------------
+   * Simula uma rodada completa de combate entre um herói e um inimigo:
+   *   1. Herói ataca com heroAbility (processAbilityDelta)
+   *   2. Inimigo ataca com enemyAbility (processAbilityDelta)
+   *   3. Calcula dano mitigado de ambos os lados
+   *   4. Aplica dano direto nos combatentes
+   *
+   * Retorna true se o inimigo foi derrotado (currentHp <= 0).
+   *
+   * @param hero         - Personagem do herói
+   * @param enemy        - Personagem do inimigo
+   * @param heroAbility  - Habilidade do herói
+   * @param enemyAbility - Habilidade do inimigo
+   * @returns true se o inimigo morreu, false caso contrário
+   */
+  public static simulateCombatRound(
+    hero: CharacterState,
+    enemy: CharacterState,
+    heroAbility: IAbility,
+    enemyAbility: IAbility,
+  ): boolean {
+    // Herói ataca
+    const heroResult = new CombatEngine().processAbilityDelta(hero, heroAbility);
+    if (heroResult.success) {
+      const heroDamage = new CombatEngine().calculateMitigatedDamage(
+        heroAbility.baseDamage,
+        enemy.stats.defense,
+        heroAbility.penetrationType,
+        enemy.hasStatusEffect('FRATURA_FRENESI'),
+      );
+      enemy.applyDirectDamage(Math.round(heroDamage));
+    }
+
+    // Inimigo ataca (se ainda estiver vivo)
+    if (enemy.stats.currentHp > 0) {
+      const enemyResult = new CombatEngine().processAbilityDelta(enemy, enemyAbility);
+      if (enemyResult.success) {
+        const enemyDamage = new CombatEngine().calculateMitigatedDamage(
+          enemyAbility.baseDamage,
+          hero.stats.defense,
+          enemyAbility.penetrationType,
+          hero.hasStatusEffect('FRATURA_FRENESI'),
+        );
+        hero.applyDirectDamage(Math.round(enemyDamage));
+      }
+    }
+
+    return enemy.stats.currentHp <= 0;
+  }
+
+  // ==================================================================
+  // MÉTODO: simulateFullCombat
+  // ==================================================================
+
+  /**
+   * simulateFullCombat(hero, enemy, heroAbility, enemyAbility, maxRounds)
+   * ------------------------------------------------------------------
+   * Simula um combate completo entre herói e inimigo até a morte de
+   * um dos lados ou o limite de rodadas.
+   *
+   * @param hero         - Personagem do herói
+   * @param enemy        - Personagem do inimigo
+   * @param heroAbility  - Habilidade do herói
+   * @param enemyAbility - Habilidade do inimigo
+   * @param maxRounds    - Número máximo de rodadas (padrão: 20)
+   * @returns Objeto com resultado da simulação
+   */
+  public static simulateFullCombat(
+    hero: CharacterState,
+    enemy: CharacterState,
+    heroAbility: IAbility,
+    enemyAbility: IAbility,
+    maxRounds: number = 20,
+  ): { heroWon: boolean; rounds: number; heroHpRemaining: number; enemyHpRemaining: number } {
+    let rounds = 0;
+
+    for (let i = 0; i < maxRounds; i++) {
+      rounds++;
+      const enemyDefeated = CombatEngine.simulateCombatRound(hero, enemy, heroAbility, enemyAbility);
+
+      if (enemyDefeated) {
+        return { heroWon: true, rounds, heroHpRemaining: hero.stats.currentHp, enemyHpRemaining: 0 };
+      }
+
+      if (hero.stats.currentHp <= 0) {
+        return { heroWon: false, rounds, heroHpRemaining: 0, enemyHpRemaining: enemy.stats.currentHp };
+      }
+    }
+
+    // Limite de rodadas atingido — decide por HP restante
+    return {
+      heroWon: hero.stats.currentHp > enemy.stats.currentHp,
+      rounds,
+      heroHpRemaining: hero.stats.currentHp,
+      enemyHpRemaining: enemy.stats.currentHp,
+    };
   }
 
   // ==================================================================
