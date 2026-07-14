@@ -246,6 +246,7 @@ export interface IFractureResult {
  */
 export interface IStatusEffect {
   id: string;
+  name: string;
   duration: number;
   remainingDuration: number;
   modifiers: Record<string, number>;
@@ -255,6 +256,9 @@ export interface IStatusEffect {
     blocksAbilityAxis: AxisTag | null;
     freezesEstafaBar: boolean;
   };
+  applyTick?(combatant: ICombatantState): { hpDelta: number; message?: string };
+  modifyAttack?(baseAttack: number): number;
+  modifyDefense?(baseDefense: number): number;
 }
 
 /**
@@ -299,6 +303,8 @@ export interface IItem {
   weight: number;
   /** Quantidade máxima empilhável por slot */
   maxStack: number;
+  /** Chave de textura para renderização (opcional — link com a Bíblia Visual) */
+  spriteKey?: string;
 }
 
 /**
@@ -398,3 +404,153 @@ export const EventIds = {
   EVT_UI_VULNERABILITY_WINDOW_OPEN: 'EVT_UI_VULNERABILITY_WINDOW_OPEN',
   EVT_UI_VULNERABILITY_WINDOW_CLOSE: 'EVT_UI_VULNERABILITY_WINDOW_CLOSE',
 } as const;
+
+// ==================================================================
+// EQUIPMENT ENGINE TYPES
+// ==================================================================
+
+/**
+ * Tipo de slot de equipamento.
+ * Fonte: EquipmentEngine.ts
+ */
+export type SlotType = 'WEAPON' | 'ARMOR' | 'CORE_MOD';
+
+/**
+ * Interface IEquipmentStats
+ * --------------------------------------------------------------------
+ * Modificadores de atributos fornecidos por um equipamento.
+ * Fonte: EquipmentEngine.ts
+ */
+export interface IEquipmentStats {
+    bonusMaxHp?: number;
+    bonusAttack?: number;
+    bonusDefense?: number;
+}
+
+/**
+ * Interface IEquipmentItem
+ * --------------------------------------------------------------------
+ * Extensão de IItem para equipamentos que podem ser montados em
+ * slots (WEAPON | ARMOR | CORE_MOD) e concedem bônus estatísticos.
+ * Inclui campo opcional para futura mecânica de manufatura.
+ *
+ * Fonte: EquipmentEngine.ts
+ */
+export interface IEquipmentItem extends IItem {
+    /** Slot onde o equipamento pode ser equipado */
+    slot: SlotType;
+    /** Modificadores de atributos concedidos pelo equipamento */
+    statsModifiers: IEquipmentStats;
+    /** Material necessário — reservado para futura mecânica de Manufatura */
+    requiredMaterial?: string;
+}
+
+// ==================================================================
+// ENEMY AI BEHAVIOR TYPES
+// ==================================================================
+
+/**
+ * Tipo AIArchetype
+ * --------------------------------------------------------------------
+ * Arquétipos de comportamento de IA para inimigos.
+ * Cada arquétipo define uma estratégia de combate distinta:
+ *   - ASSASSINO: Foca em eliminar alvos frágeis (baixo HP)
+ *   - PROTETOR: Neutraliza a maior ameaça ofensiva do grupo
+ *   - DRENADOR_ESTAFA: Manipula o medidor de estafa para provocar colapso
+ *
+ * Fonte: EnemyBehavior.ts
+ */
+export type AIArchetype = 'ASSASSINO' | 'PROTETOR' | 'DRENADOR_ESTAFA';
+
+/**
+ * Interface ICombatantState
+ * --------------------------------------------------------------------
+ * Visão estrutural mínima de um combatente para a IA de inimigos.
+ * Compatível com CharacterState, mas sem depender da classe concreta,
+ * evitando dependências circulares entre os módulos.
+ */
+export interface ICombatantState {
+  /** Identificador único do combatente */
+  id: string;
+  /** Estatísticas base (HP, dano, defesa, etc.) */
+  stats: {
+    maxHp: number;
+    currentHp: number;
+    damage: number;
+    defense: number;
+    resilience: number;
+    movementSpeed: number;
+  };
+  /** Valor atual do medidor de estafa de curto prazo */
+  shortTermEstafa: number;
+}
+
+/**
+ * Interface IStatusEffectEngine
+ * --------------------------------------------------------------------
+ * Interface mínima para o motor de efeitos de status, expondo apenas
+ * as operações necessárias para os perigos ambientais.
+ * Evita dependência circular com a classe concreta StatusEffectEngine.
+ *
+ * Fonte: ArenaHazardEngine.ts
+ */
+export interface IStatusEffectEngine {
+  applyEffect(combatantId: string, effect: IStatusEffect): void;
+}
+
+/**
+ * Interface IArenaHazard
+ * --------------------------------------------------------------------
+ * Contrato para perigos ambientais ativos em uma arena de combate.
+ * Cada perigo possui uma chance de ativação no início da rodada e
+ * executa um efeito lógico sobre os combatentes.
+ *
+ * Fonte: ArenaHazardEngine.ts
+ */
+export interface IArenaHazard {
+  /** Identificador único do perigo (ex: "hazard_gas_leak") */
+  hazardId: string;
+  /** Nome legível (ex: "Vazamento de Gás Combustível") */
+  name: string;
+  /** Probabilidade de ativação por rodada (0.0 a 1.0) */
+  triggerChance: number;
+  /**
+   * Efeito executado no início de cada rodada se o perigo for ativado.
+   * @param combatants   - Lista de todos os combatentes vivos na arena
+   * @param statusEngine - Instância do motor de efeitos de status
+   * @returns Objeto indicando se o perigo foi disparado e a descrição
+   */
+  onRoundStart(
+    combatants: ICombatantState[],
+    statusEngine: IStatusEffectEngine,
+  ): { triggered: boolean; description: string };
+}
+
+/**
+ * Interface IEnemyBehavior
+ * --------------------------------------------------------------------
+ * Contrato para comportamentos de IA de inimigos.
+ * Cada implementação deve ser capaz de avaliar o estado atual do
+ * combate e decidir qual ação tomar (alvo + habilidade).
+ *
+ * Fonte: EnemyBehavior.ts
+ */
+export interface IEnemyBehavior {
+  /** Identificador único do comportamento */
+  id: string;
+  /** Arquétipo de IA ao qual este comportamento pertence */
+  archetype: AIArchetype;
+  /**
+   * Avalia o estado atual do combate e retorna a ação decidida.
+   *
+   * @param enemies      - Lista de estados dos inimigos vivos
+   * @param party        - Lista de estados dos personagens do grupo
+   * @param estafaBalance - Saldo atual do medidor de estafa (curto prazo)
+   * @returns Objeto com targetId, skillId e descrição da ação
+   */
+  evaluateAction(
+    enemies: ICombatantState[],
+    party: ICombatantState[],
+    estafaBalance: number,
+  ): { targetId: string; skillId: string; actionDescription: string };
+}

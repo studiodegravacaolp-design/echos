@@ -123,6 +123,7 @@ function createEquipment(
 function createEstagnacaoEffect(): IStatusEffect {
   return {
     id: 'ESTAGNACAO_TATICA',
+    name: 'Estagnação Tática',
     duration: 10,
     remainingDuration: 10,
     modifiers: {},
@@ -141,6 +142,7 @@ function createEstagnacaoEffect(): IStatusEffect {
 function createFraturaFrenesiEffect(): IStatusEffect {
   return {
     id: 'FRATURA_FRENESI',
+    name: 'Fratura Frenesi',
     duration: 10,
     remainingDuration: 10,
     modifiers: {},
@@ -595,8 +597,9 @@ function runTestD(engine: CombatEngine): void {
 
   const scrapAwarded = engine.resolveVictoryLoot(5, true, partyInventory);
 
-  assert(scrapAwarded === 50, `Sucata calculada (nível 5, mecânico: 5 * 5 * 2 = 50): ${scrapAwarded}`);
-  assert(partyInventory.scrapCount === 50,
+  // Fórmula (Sprint 10): round(nível^1.15 * 5 * multiplicador) = round(5^1.15 * 5 * 2) = 64
+  assert(scrapAwarded === 64, `Sucata calculada (nível 5, mecânico, escalabilidade exponencial): 64: ${scrapAwarded}`);
+  assert(partyInventory.scrapCount === 64,
     `Sucata concedida automaticamente ao inventário do grupo: ${partyInventory.scrapCount}`);
 }
 

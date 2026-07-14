@@ -67,21 +67,22 @@ function createInventory(scrapCount: number): ISalvageInventory {
 function runTestA(): void {
   printSection('CENÁRIO A — calculateBattleLoot: PROPORCIONAL AO NÍVEL E TIPO DO INIMIGO');
 
-  printSubSection('A.1 — Inimigo não-mecânico (multiplicador 1.0x)');
+  printSubSection('A.1 — Inimigo não-mecânico (multiplicador 1.0x, escalabilidade exponencial)');
 
+  // Fórmula (Sprint 10): round(nível^1.15 * 5 * multiplicador)
   const lootLevel5 = LootEngine.calculateBattleLoot(5, false);
-  assert(lootLevel5 === 25, `Nível 5, não-mecânico: 5 * 5 * 1.0 = 25: ${lootLevel5}`);
+  assert(lootLevel5 === 32, `Nível 5, não-mecânico: round(5^1.15 * 5) = 32: ${lootLevel5}`);
 
   const lootLevel10 = LootEngine.calculateBattleLoot(10, false);
-  assert(lootLevel10 === 50, `Nível 10, não-mecânico: 10 * 5 * 1.0 = 50: ${lootLevel10}`);
+  assert(lootLevel10 === 71, `Nível 10, não-mecânico: round(10^1.15 * 5) = 71: ${lootLevel10}`);
 
-  printSubSection('A.2 — Inimigo mecânico (multiplicador 2.0x)');
+  printSubSection('A.2 — Inimigo mecânico (multiplicador 2.0x, escalabilidade exponencial)');
 
   const lootMechanicalLevel5 = LootEngine.calculateBattleLoot(5, true);
-  assert(lootMechanicalLevel5 === 50, `Nível 5, mecânico: 5 * 5 * 2.0 = 50: ${lootMechanicalLevel5}`);
+  assert(lootMechanicalLevel5 === 64, `Nível 5, mecânico: round(5^1.15 * 5 * 2) = 64: ${lootMechanicalLevel5}`);
 
   const lootMechanicalLevel10 = LootEngine.calculateBattleLoot(10, true);
-  assert(lootMechanicalLevel10 === 100, `Nível 10, mecânico: 10 * 5 * 2.0 = 100: ${lootMechanicalLevel10}`);
+  assert(lootMechanicalLevel10 === 141, `Nível 10, mecânico: round(10^1.15 * 5 * 2) = 141: ${lootMechanicalLevel10}`);
 
   printSubSection('A.3 — Inimigo mecânico concede exatamente o dobro do não-mecânico');
 
