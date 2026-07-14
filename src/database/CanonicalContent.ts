@@ -5,22 +5,18 @@
  * Catálogo canônico de conteúdo de manufatura: materiais, equipamentos,
  * receitas de forja e arquétipos de inimigos expandidos.
  *
- * Fonte: src/types/aetheris.types.ts (IEquipmentItem, AIArchetype)
+ * Fonte: src/types/aetheris.types.ts (IEquipmentItem, ICraftingRecipe, AIArchetype)
  *        src/core/CampaignManager.ts (IInventoryItem)
- *        src/core/CraftingEngine.ts (ICraftingRecipe)
  *
- * NOTA: 'recipe_bronze_armor' / 'eq_bronze_armor' / 'mat_bronze_plate'
- * já existem como receita padrão hardcoded dentro de
- * CraftingEngine.initializeDefaultRecipes(). Este catálogo os repete
- * deliberadamente (mesmo weight=1, para consistência) como a versão
- * canônica externa — CraftingEngine ainda não tem um loadRecipes()
- * que consuma este arquivo; a integração é um passo futuro.
+ * CONECTADO: CraftingEngine.ts carrega CANONICAL_RECIPES diretamente
+ * no construtor (via loadRecipes()) — não há mais receita hardcoded
+ * em CraftingEngine. GameLoop.ts consome CANONICAL_EQUIPMENT para o
+ * catálogo de equipáveis exibido no Arsenal.
  * ====================================================================
  */
 
-import { IEquipmentItem, AIArchetype } from '../types/aetheris.types';
+import { IEquipmentItem, AIArchetype, ICraftingRecipe } from '../types/aetheris.types';
 import { IInventoryItem } from '../core/CampaignManager';
-import { ICraftingRecipe } from '../core/CraftingEngine';
 
 // ====================================================================
 // 1. EXTENSÃO DOS MATERIAIS DE MANUFATURA (BÍBLIA VISUAL)

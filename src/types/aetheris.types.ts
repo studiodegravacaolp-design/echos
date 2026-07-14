@@ -445,6 +445,25 @@ export interface IEquipmentItem extends IItem {
     requiredMaterial?: string;
 }
 
+/**
+ * Interface ICraftingRecipe
+ * --------------------------------------------------------------------
+ * Define uma receita de manufatura, com materiais necessários e
+ * o equipamento resultante.
+ *
+ * Movida de CraftingEngine.ts para aqui para quebrar uma dependência
+ * circular: CanonicalContent.ts (catálogo de dados) referencia este
+ * tipo, e CraftingEngine.ts consome CanonicalContent.ts — nenhum dos
+ * dois pode depender do outro para o tipo.
+ * Fonte: CraftingEngine.ts
+ */
+export interface ICraftingRecipe {
+    recipeId: string;
+    resultItem: IEquipmentItem;
+    requiredMaterials: { materialId: string; quantity: number }[];
+    requiredScrap: number;
+}
+
 // ==================================================================
 // ENEMY AI BEHAVIOR TYPES
 // ==================================================================
