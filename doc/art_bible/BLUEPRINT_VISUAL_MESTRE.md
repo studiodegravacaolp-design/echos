@@ -1,148 +1,158 @@
-# BLUEPRINT VISUAL MESTRE
-## Consolidação Central da Bíblia de Arte
-### Projeto Aetheris — RPG de Sistemas Mecânico-Ontológicos Mobile
-**Status:** Documento-Índice — Consolidação de Cânone Existente
-**Versão:** 1.0.0
+# 📘 BLUEPRINT VISUAL MESTRE — PROJETO AETHERIS
+## O Guia Supremo de Identidade Visual, Direção de Arte e Produção de Assets (HD-2D JRPG)
 
 ---
 
-## 0. Propósito Deste Documento
+## 📜 INTRODUÇÃO E FILOSOFIA DE TRABALHO
+O Projeto **AETHERIS** é um JRPG tático de sobrevivência em estilo **HD-2D Pixel Art**, ambientado nas profundezas industriais de **Brenhold**. Esta documentação artística serve como o único referencial estético para todos os artistas conceituais, ilustradores, pixel artists, animadores, designers de interface e inteligências artificiais gerativas durante todo o ciclo de desenvolvimento do jogo.
 
-Este NÃO é um documento de cânone novo. É o **ponto de entrada único** para toda a Bíblia de Arte do projeto — consolida e cruza-referencia o que já está travado em `docs/05_arte/` e `docs/01_cenario/`, para que qualquer pessoa (artista, prompt engineer, revisor) encontre o contexto completo sem precisar abrir 5 arquivos separados.
-
-Sempre que houver conflito entre este documento e um documento-fonte, **o documento-fonte vence** — este arquivo é um resumo de navegação, não a autoridade final.
-
----
-
-## 1. A Regra R3 — O Eixo Central do Sistema Visual
-
-Todo o pipeline de arte do Aetheris gira em torno de uma trava chamada **Regra R3**: um bloqueio de negative-prompt que suprime qualquer elemento "mágico-fantasioso" (luz mística, runas, auras, cristais, brilho etéreo) nos Atos 1–3, e é **revogada** de propósito no Ato 4+ como o gatilho visual da virada narrativa.
-
-| Elemento | TIER 1 & 2 (R3 Ativa) | TIER 3 (R3 Revogada) |
-|----------|------------------------|------------------------|
-| Ember (`#FF4500`) | Bloqueado (peso -1.0) | **Liberado** — token do polo Paterno |
-| Dourado Prismathico (`#FFD700`) | Bloqueado (peso -1.0) | **Liberado** — token do polo Materno |
-| Runas / símbolos arcanos | Bloqueados (peso -1.5) | **Liberados** — runas de Veredito |
-| Auras brilhantes | Bloqueadas (peso -1.5) | **Liberadas** — halos de Veredito |
-| Luz mística/divina | Bloqueada (peso -1.5) | **Liberada** — luz de colapso ontológico |
-| Partículas mágicas | Bloqueadas (peso -1.5) | **Liberadas** — estática quadrada do Véu |
-| Cristais luminescentes | Bloqueados (peso -1.0) | **Liberados** — cristais de Veredito |
-| Neon / cyberpunk | Bloqueado (peso -1.5) | **Continua bloqueado em TODOS os tiers** |
-
-A lógica narrativa: o mundo é industrial e opressivamente material até que o **Veredito Ontológico** rompe essa contenção. Visualmente, isso significa literalmente "nenhuma cor viva ou luz sobrenatural até o momento em que a história permite."
-
-**Fonte completa:** `docs/05_arte/ART-PROMPTS-TIER3.md` Preâmbulo e Apêndice A.
+Nenhum asset visual deve ser integrado à build sem antes ser submetido aos parâmetros de design, limitações de materiais e grades de pixels definidos neste compêndio.
 
 ---
 
-## 2. Os Três Tiers — Linha do Tempo Visual
+## 🎨 CAPÍTULO 1: O NÚCLEO ESTÉTICO E ASSINATURA VISUAL
 
-| Elemento | TIER 1 — Vardhelm (Atos 1-2, níveis 1-25) | TIER 2 — Brenhold (Ato 3, níveis 26-35) | TIER 3 — Clímax (Atos 4-5, níveis 36-50) |
-|----------|---------------------------------------------|--------------------------------------------|----------------------------------------------|
-| Paleta dominante | Sépia / fuligem / ferrugem | Cinza-pedra / chumbo fosco / preto | Ember / Dourado Prismathico / roxo geométrico |
-| Material-chave | Ferro bruto, tijolo fuliginoso | Chumbo fosco, pedra cinzenta selada | Placas de realidade flutuantes, vácuo acromático |
-| Estética | Industrial bruto (fundições) | Isolamento acústico severo (câmaras herméticas) | Colapso ontológico / descalcificação |
-| Atmosfera | Calor de fundição, fumaça | Frio hermético, silêncio | Distorção térmica, estática quadrada, gravidade anômala |
-| Personagem-tipo | Sapador Humano (juntas mecânicas expostas) | Operativo de Contenção (vedado, sem tecido exposto) | Portador de Veredito (corpo como placas sobre luz) |
-| Estrutura anã correspondente | Artífice (bases trapezoidais, pedra bruta) | — | — |
-| Dispositivos | Ferramentas de manufatura | Diapasões, amortecedores, calibradores acústicos | Relíquias lendárias (REL-ONT-001/002/003) |
-| Luz | Lampiões a querosene, fogo industrial | Luz difusa morta, sem fonte visível | Luz de Veredito pulsante (Ember + Dourado) |
-| Regra R3 | ATIVA — bloqueio total | ATIVA — bloqueio total | **REVOGADA** |
+### 1. Objetivo do Capítulo
+Codificar o DNA visual de *Aetheris*. Este capítulo atua como a âncora conceitual para blindar o tom estético do jogo, garantindo coerência temática e impedindo o desvio para ficções científicas assépticas ou fantasias medievais tradicionais.
 
-**Fontes completas:** `docs/05_arte/ART-PROMPTS-TIER1.md`, `ART-PROMPTS-TIER2.md`, `ART-PROMPTS-TIER3.md` — cada um contém os Prompts Padrão Base (PPB) completos, decomposição estrutural por componente, tabelas de proporção de paleta e checklists de conformidade próprios. Este blueprint não repete os prompts — só a estrutura de decisão.
+### 2. Os Três Pilares Estéticos Canônicos
 
----
+Todo elemento artístico produzido para o jogo deve ser fundamentado sob a interseção de três princípios estéticos:
 
-## 3. Linguagem Visual de Interface (HUD e UI de Combate)
+#### Pilar 1: Fadiga Mental e Textura Bruta (Scrap-Tech / Diesel-Fantasy)
+*   **A Filosofia de Escassez:** A tecnologia em Brenhold não é fruto de manufatura automatizada limpa; é um arranjo de sobrevivência. Armas, armaduras, chassis e dispositivos de controle são representados em pixel art detalhado com marcas de solda, rebites e juntas metálicas grosseiras.
+*   **Tradução Prática em Texturas:** 
+    *   Metais devem exibir porosidade, fuligem incrustada, marcas de solda grosseira e oxidação ativa.
+    *   Peças de vestuário e vedações mecânicas devem ser representadas por panos de lona sujos de graxa, couro desgastado e fiação exposta.
+*   **A Expressão Física:** A fadiga tática (Estafa) deve ser impressa nas poses das sprites. Ombros arqueados sob o peso de chassis, olhos cansados protegidos por visores industriais e pernas plantadas de maneira pesada e exausta.
 
-Resumo do `ART-BIBLIA-INTERFACE.md` (Capítulo 4 — Cânone Travado v2.0.0):
+#### Pilar 2: Brilho Lurídeo e Contraste Químico-Técnico
+*   **A Filosofia da Luz Reativa:** O cenário cinzento e enfumaçado de Brenhold é quebrado apenas pelas fontes de energia térmica e química que mantêm a cidade pulsando.
+*   **Tradução Prática:**
+    *   Pistas visuais críticas (interfaces ativos, perigos, pontos fracos de inimigos, núcleos térmicos e botões) devem emitir um brilho vibrante, tóxico e concentrado.
+    *   Este brilho deve atuar como o ponto de fuga em silhuetas escuras, garantindo forte contraste visual (Value Contrast) no playfield.
 
-### 3.1 Medidor da Balança de Estafa
-- HUD central, arco/linha horizontal na base da tela (thumb zone mobile).
-- Ponteiro em movimento **exclusivamente analógico** — nunca transição digital suave.
-- **Paterno (+):** partículas de brasa seca (Ember) tremeluzindo — sem glow.
-- **Materno (−):** anéis concêntricos dourados pulsando — sem gradiente.
-- **Neutro (0):** totalmente fosco/acromático, sem sinalizador.
+#### Pilar 3: Densidade dos Dutos e Opressão Atmosférica
+*   **A Filosofia Claustrofóbica:** Brenhold é uma infraestrutura vertical e asfixiante. O ambiente atua como um opressor direto do jogador.
+*   **Tradução Prática:**
+    *   Cenários estruturados em múltiplas camadas de paralaxe em pixel art, exibindo tubulações que cruzam a tela em todos os eixos.
+    *   Presença constante de fumaça densa, partículas suspensas na atmosfera e jatos de vapor que cortam a iluminação para reduzir a visibilidade do horizonte.
 
-### 3.2 Estados de Colapso
-- **Fratura de Frenesi (+100):** moldura da UI vira metal líquido Ember + tremulação estática; cronômetro de 4s (Massa Abafadora) em contagem regressiva severa sobrepondo tudo.
-- **Estagnação Tática (−100):** paralisia visual total — opacidade cinza-chumbo fosca, ícones inertes ("ferramentas petrificadas"), zero brilho.
-
-### 3.3 Geometria e Paleta de UI
-- Botões usam exclusivamente **Geometria de Contraforte**: retângulos pesados, trapézios, ângulos retos. Proibido: cantos arredondados, ícones flutuantes, neon, glow difuso.
-- **Regra 70/30:** 70% tons de opressão dessaturados (cinza-chumbo, ferrugem, asfalto) / 30% sinalizadores de ativação (Ember, Dourado Prismathico). Em alerta (+100/−100), sinalizadores podem chegar a 60%, nunca ao fundo inteiro.
-
-**Fonte completa:** `docs/05_arte/ART-BIBLIA-INTERFACE.md` — inclui hierarquia de layout mobile, tabela de timing de animação e checklist de conformidade próprios.
+### 3. Limites e Restrições (O que Aetheris NÃO é)
+*   **PROIBIDO Cyberpunk / High-Sci-Fi:** Sem hologramas azuis limpos, placas de plástico polido, superfícies de fibra de carbono, luzes de neon puras (como ciano e rosa-choque) ou interfaces digitais minimalistas. A tecnologia é analógica, pesada, de manômetros físicos e tubos catódicos.
+*   **PROIBIDO High-Fantasy / Medieval Clássico:** Sem armaduras de cavaleiros reluzentes, espadas mágicas com entalhes rúnicos dourados, elfos de florestas intocadas ou feitiços mágicos arcanos de purpurina. 
+*   **PROIBIDO Steampunk Vitoriano Decorativo:** Sem engrenagens puramente estéticas coladas em chapéus ou roupas limpas de aristocratas. Se uma engrenagem existe, ela deve possuir dentes conectados a um sistema mecânico funcional.
 
 ---
 
-## 4. Glossário Cromático Central
+## ⚙️ CAPÍTULO 2: DIREÇÃO CROMÁTICA & ILUMINAÇÃO (COLOR & LIGHT RIG)
 
-| Token | Hex | Significado | Onde é permitido |
-|-------|-----|--------------|-------------------|
-| **Ember** | `#FF4500` | Incandescência de metal líquido — polo Paterno | Bloqueado no TIER 1-2; liberado no TIER 3; liberado na UI como sinalizador Paterno (Seção 3.1) |
-| **Dourado Prismathico** | `#FFD700` | Anéis rúnicos rígidos — polo Materno | Bloqueado no TIER 1-2; liberado no TIER 3; liberado na UI como sinalizador Materno (Seção 3.1) |
-| Roxo geométrico | — | Fendas do Véu, estática quadrada, fratura ontológica | Exclusivo do TIER 3 |
-| Acromático (preto/branco) | — | Vácuo, zona de aniquilação cromática | Exclusivo do TIER 3, obrigatório em todo efeito supremo |
+### 1. Objetivo do Capítulo
+Padronizar a aplicação de cores e a física das fontes de luz no jogo para garantir excelente leitura de silhuetas, foco dramático nas mecânicas de jogo e perfeita integração em monitores de exibição padrão.
 
-**Regra de ouro:** Ember e Dourado Prismathico são os ÚNICOS tokens de cor viva reservados às Marcas de Veredito. Nenhuma raça, item ou efeito fora do eixo Paterno/Materno pode usá-los — ver Seção 5.
+### 2. A Regra Proporcional Cromática: Sistema 70 - 20 - 10
 
----
+Toda composição visual (ilustrações, telas de UI, sprites e cenários) deve respeitar a distribuição de cores a fim de evitar confusão visual:
 
-## 5. Raças Fundadoras — Status de Cobertura Visual
+#### Os Valores de Amostragem de Cores (Paletas Hexadecimais Canônicas)
+*   **Tons Base (70%):**
+    *   `#121214` - Preto-Carbono (Sombras profundas e metais carbonizados)
+    *   `#1E222A` - Chumbo Oxidado (Base de armaduras e paredes de dutos)
+    *   `#2A2C30` - Cinza-Ferrugem (Chapas de metal gastas)
+*   **Tons de Transição / Accents (20%):**
+    *   `#4A7C7A` - Cobre Oxidado / Azul-Verdete (Tubulações frias e conexões)
+    *   `#8C633E` - Bronze Queimado (Engrenagens, fivelas e eixos de armas)
+    *   `#A68052` - Latão Industrial (Rebites, tampas de reator e detalhes de UI)
+*   **Tons Emissivos / Glow (10%):**
+    *   `#39FF14` - Verde-Químico Emissivo (Energia instável, radiação, núcleos químicos)
+    *   `#FF7900` - Laranja-Incandescente (Calor térmico, vapor superaquecido, forja)
+    *   `#00E5FF` - Azul-Centelha (Faíscas elétricas, curto-circuito e danos de sistema)
 
-O cânone mecânico (`src/types/aetheris.types.ts`, enum `Race`) define **seis raças fundadoras**: `HUMAN`, `DWARF`, `ELF`, `FAERIE`, `DRACONIAN`, `LURID`. A cobertura de Bíblia de Arte **não é uniforme** entre elas — registro honesto do que existe hoje:
+*Nota: As cores da marca de Veredito (Ember/Dourado) permanecem reservadas para o Clímax/Tier 3 do jogo, não colidindo com os tons de emissão ativa das raças e sistemas industriais.*
 
-| Raça | Codex de Arte dedicado? | Cobertura visual existente |
-|------|--------------------------|------------------------------|
-| HUMAN | ❌ Não existe | Apenas via arquétipo "Sapador" (`ART-PROMPTS-TIER1.md` Seção 2) — não é um codex racial completo, é um traje de classe |
-| DWARF | ❌ Não existe | Apenas via arquétipo "Artífice" (`ART-PROMPTS-TIER1.md` Seção 3) — mesma ressalva acima |
-| ELF | ❌ Não existe | Nenhuma menção visual dedicada encontrada |
-| FAERIE | ❌ Não existe | Nenhuma menção visual dedicada encontrada |
-| DRACONIAN | ❌ Não existe | Nenhuma menção visual dedicada encontrada |
-| LURID | ✅ **Completo** | `docs/01_cenario/BIBLE-LURID-RACE.md` — identidade, biologia, silhueta, paleta, movimento, checklist de revisão |
-
-**Gap identificado:** apenas 1 das 6 raças fundadoras (LURID) tem um Codex de Arte no mesmo padrão de profundidade. Os arquétipos de Sapador/Artífice cobrem *equipamento de classe* de HUMAN/DWARF, não a raça em si (anatomia, silhueta racial base, paleta de pele/textura). ELF, FAERIE e DRACONIAN não têm nenhuma diretriz visual registrada. Se a produção depender de consistência visual entre as seis raças, este é o próximo débito de conteúdo a fechar — **não preenchido aqui** para não inventar cânone que a equipe ainda não decidiu.
-
-### 5.1 Resumo do Codex Lurídeo (referência rápida)
-- **Identidade:** fluidez ontológica — sem esqueleto rígido, silhueta nunca fechada em ângulos de 90°.
-- **Fraqueza nativa:** FIRE (`RACIAL_ELEMENTAL_WEAKNESS` em `SkillEngine.ts`) — única exceção às regras de movimento contínuo (contração de pânico ao dano de fogo).
-- **Contraste de design:** sem Engenharia Elemental (exclusiva HUMAN/DWARF) — narrativamente redundante para um corpo já adaptável.
-- **Paleta:** tons translúcidos/refletivos (azul-profundo, verde-alga, cinza-tempestade) — **proibido** Ember/Dourado (reservados às Marcas de Veredito, Seção 4).
-
-**Fonte completa:** `docs/01_cenario/BIBLE-LURID-RACE.md`.
+### 3. Comportamento da Luz (Luminância)
+*   **A Iluminação Volumétrica de Topo:** A luz principal deve ser sempre projetada verticalmente de cima para baixo, simulando aberturas distantes nos tetos dos dutos de Brenhold. Esta luz é fraca, fria e poeirenta, criando sombras projetadas pesadas sob os olhos, peitorais e bases das entidades.
+*   **A Luz Emissiva Reativa (Luz de Baixo):** Qualquer vazamento químico ou reator no piso projeta luz de baixo para cima nas entidades com alta saturação (verde ou laranja). A luz nunca é plana; ela compete dramaticamente com o fundo escuro (estilo *Chiaroscuro*).
 
 ---
 
-## 6. Checklist Rápido de Conformidade (Uso Diário do Artista)
+## 🤖 CAPÍTULO 3: GUIA DE DESIGN DE ENTIDADES (HERÓIS, CRIATURAS E MÁQUINAS)
 
-Antes de considerar qualquer asset pronto, confirmar:
+### 1. Objetivo do Capítulo
+Codificar as regras anatômicas, proporções e marcas de design para todas as entidades vivas, autômatos e ciborgues do jogo no formato **HD-2D Pixel Art**. Este capítulo garante que a transição de um herói do estado lógico para o visual seja feita mantendo o peso tático e a coerência com o Lore de escassez industrial.
 
-- [ ] O tier correto foi identificado (1, 2 ou 3) e a Trava R3 correspondente foi aplicada ou revogada?
-- [ ] Nenhum Ember/Dourado apareceu fora do TIER 3 ou fora de um sinalizador de UI Paterno/Materno?
-- [ ] A paleta do ativo respeita as proporções da tabela do tier correspondente (ver documento-fonte)?
-- [ ] Personagens/equipamentos seguem a geometria proibida/permitida do tier (contraforte na UI; retangular-rígido para Sapador; trapezoidal-largo para Artífice; fluida-sem-ângulo-reto para Lurídeo)?
-- [ ] Se o ativo é de uma raça sem Codex dedicado (HUMAN/DWARF/ELF/FAERIE/DRACONIAN além de equipamento de classe), foi sinalizado à Direção de Arte em vez de inventado ad hoc?
-- [ ] Neon, cyberpunk, cantos arredondados suaves ou gradientes difusos foram evitados (proibição universal, todos os tiers)?
+### 2. O Chassi Biológico-Mecânico (HD-2D Sprites)
+Em *Aetheris*, os personagens não usam armaduras decorativas; eles se fundem a chassis de sobrevivência. A carne e o metal coexistem em uma simbiose bruta e dolorosa.
+*   **A Cabeça e a Expressão (Fadiga Ativa):** Olheiras profundas, pele pálida ou acinzentada pela falta de sol nos dutos, e marcas de queimaduras de vapor. Uso obrigatório de óculos de proteção de latão escuro (goggles), respiradores químicos ou máscaras de filtro acopladas diretamente à mandíbula.
+*   **O Tronco e as Articulações (O Acoplamento):** As armaduras devem parecer parafusadas diretamente no corpo do personagem. As articulações (ombros, cotovelos, joelhos) não usam placas de metal polido; são cobertas por panos sujos de graxa, couro desgastado ou fiações hidráulicas expostas.
+
+### 3. Diretrizes Visuais para Raças do Subsolo
+
+#### A. Humanos de Brenhold (Os Engenheiros de Sucata)
+*   **O Chassi:** Modificações utilitárias e focadas em ferramentas. Próteses pesadas feitas de ferro fundido, cintos de ferramentas volumosos e chassis de suporte de carga nas costas.
+*   **Paleta de Destaque:** 70% Preto-Carbono, 20% Latão Industrial e 10% Laranja-Incandescente nos visores e medidores analógicos.
+
+#### B. Os Ciborgues Scavengers (Os Modificados)
+*   **O Chassi:** Alto nível de assimetria. Metade do rosto preservando a pele humana pálida, enquanto a outra metade é integrada a órbitas mecânicas de bronze. Membros inteiros substituídos por pistões e fiações hidráulicas aparentes.
+*   **Paleta de Destaque:** 70% Chumbo Escurecido, 20% Cobre e 10% Laranja-Incandescente vibrando nos olhos ópticos artificiais.
+
+#### C. Os Elfos de Brenhold (Engenheiros de Precisão de Reator)
+*   **O Chassi:** Silhueta esguia, mas imponente (escala de 1,88m). Suas orelhas pontiagudas são marcadas por cicatrizes de fuligem. Braço mecânico altamente detalhado, projetado para micromanipulação mecânica e fiações finas de cobre.
+*   **Paleta de Destaque:** 70% Chumbo Escurecido, 20% Bronze e 10% Azul-Centelha pulsando nas pontas dos dedos e fiação exposta.
+
+#### D. As Faeries Industriais (Mecânicas Pneumáticas de Dutos)
+*   **O Chassi:** Silhueta compacta e ágil. As asas biológicas foram substituídas por estruturas de asas mecânicas pneumáticas feitas de chapas de bronze finas que emitem vapor para sustentação física (momentum).
+*   **Paleta de Destaque:** 70% Cinza-Ferrugem, 20% Latão e 10% Verde-Químico nos núcleos de pressão traseiros.
+
+#### E. Os Draconianos (Forjadores de Chapa de Alta Temperatura)
+*   **O Chassi:** Silhueta massiva, cauda reforçada com ponteiras mecânicas de impacto. Usam respiradores industriais pesados integrados ao focinho para filtrar gases nocivos e cinzas na boca da forja.
+*   **Paleta de Destaque:** 70% Preto-Carbono, 20% Bronze Queimado e 10% Laranja-Incandescente brilhando sob as fendas das escamas térmicas.
+
+#### F. Os Lurídeos (Fluidez e Adaptação Subaquática)
+*   **O Chassi:** Escamas e membranas em tons aquáticos azulados. Equipamento respiratório subaquático acoplado ao chassi e fendas de exaustão de resíduos químicos.
+*   **Paleta de Destaque:** 70% Chumbo Escurecido, 20% Azul-Verdete e 10% Verde-Químico emissivo nos visores de pressurização.
+
+### 4. Assinatura Visual dos Inimigos (A Linguagem Tática)
+*   **O "Assassino" (Ex: Catador de Dutos):** Silhueta esguia, curvada e angular. Garras longas de metal afiado. Um único visor óptico emitindo brilho Verde-Químico na cabeça.
+*   **O "Protetor" (Ex: Autômato Desgovernado):** Silhueta massiva, quadrada, ombros largos e sem pescoço. Grelhas de ventilação no peito emitindo brilho Laranja-Incandescente.
+*   **O "Drenador" (Ex: Engenheiro Desertor):** Silhueta assimétrica com tanques de gás combustível e bobinas de indução nas costas. Luzes pulsantes alternando entre Verde-Químico e Azul-Centelha.
 
 ---
 
-## 7. Índice de Referências Cruzadas
+## 🏗️ CAPÍTULO 4: CENÁRIOS, ARQUITETURA E TEXTURAS EM HD-2D
 
-| Documento-fonte | Conteúdo | Autoridade sobre |
-|-------------------|----------|---------------------|
-| `docs/05_arte/ART-BIBLIA-INTERFACE.md` | Linguagem visual de HUD/UI de combate | Cânone travado — Capítulo 4 |
-| `docs/05_arte/ART-PROMPTS-TIER1.md` | Prompts técnicos Early Game (Vardhelm, Sapador, Artífice) | Aprovado — conformidade R3 |
-| `docs/05_arte/ART-PROMPTS-TIER2.md` | Prompts técnicos Mid Game (Brenhold, Contenção, Calibração) | Aprovado — conformidade R3 |
-| `docs/05_arte/ART-PROMPTS-TIER3.md` | Prompts técnicos Clímax/Endgame — revogação da R3 | Aprovado — R3 revogada |
-| `docs/01_cenario/BIBLE-LURID-RACE.md` | Codex racial completo dos Lurídeos | Cânone travado v1.0.0 |
-| `DOCUMENTACAO/DOC-003_ART_BIBLE.md` | Placeholder de escopo/objetivo da Art Bible geral | Em construção (v0.1.0, sem conteúdo ainda) |
-| `src/types/aetheris.types.ts` (`Race`, `ElementType`) | Cânone mecânico das seis raças e elementos — base para qualquer diretriz visual futura | Código-fonte (não documental) |
+### 1. Objetivo do Capítulo
+Codificar a linguagem arquitetônica das seis raças fundadoras e os padrões de materiais e texturas que compõem o cenário do jogo em pixel art. Este capítulo orienta os artistas de cenário (environment pixel artists) a desenharem os blocos de cenário (tilesets) mantendo a clara diferenciação cultural e o peso visual de cada ambiente.
+
+### 2. Os Seis Materiais e Texturas Canônicos
+Toda estrutura física em *Aetheris* deve ser representada graficamente utilizando uma destas texturas em pixel art de alta definição, respeitando seu comportamento sob iluminação:
+*   **Aço (Industrial):** Apresenta ranhuras lineares rígidas, marcas de rebites e áreas de alto contraste metálico. Reflete luz fria e esbranquiçada.
+*   **Bronze (Engrenagens/Conexões):** Tons quentes e oxidados (verdetes nas dobras). Reflete luz âmbar e possui brilho especular suave.
+*   **Pedra (Estrutural):** Blocos rústicos e tijolos refratários envelhecidos. Textura áspera e sem reflexo de luz, com sombras densas nas fendas de encaixe.
+*   **Madeira (Suporte/Nostalgia):** Tábuas paralelas de fibra visível e tons terrosos escuros, utilizadas em pontes e estruturas de suporte iniciais.
+*   **Cristal (Emissão/Véu):** Superfícies facetadas e angulares com transparência simulada (dithering). Emite luz ativa própria (azul, roxa ou dourada).
+*   **Água (Fluidez):** Apresenta linhas de brilho sinuosas de animação cíclica e reflexos distorcidos das estruturas próximas na superfície.
+
+### 3. Arquitetura por Raça (Os Seis Estilos Visuais de Cenário)
+
+Para que o jogador identifique instantaneamente em qual território do mundo ele se encontra, as construções devem seguir estes perfis arquitetônicos rígidos:
+*   **Arquitetura dos Humanos (Adaptação e Engenharia):** Cidades e castelos medievais industriais fundindo tijolos de pedra bruta com reforços estruturais de aço escurecido. Torres cilíndricas, pontes de tábua de madeira suspensas, guindastes e dirigíveis nos céus com balões de lona.
+*   **Arquitetura dos Anões (Engenharia Pesada e Metalurgia):** Cidades escavadas na rocha profunda, dominadas por ligas metálicas pesadas de bronze e latão. Sistemas gigantescos de engrenagens expostas, pistões hidráulicos, forjas ativas e tubulações de vapor cruzando os corredores de pedra.
+*   **Arquitetura dos Elfos (Memória e História):** Estruturas góticas clássicas e elegantes, com linhas curvas suaves que dão sensação de antiguidade e reverência histórica. Arcos ogivais de pedra clara, janelas em mosaico, escadarias suspensas e ruínas preservadas integradas ao ambiente natural.
+*   **Arquitetura das Fadas (Magia e Conexão com o Véu):** Cidades místicas construídas no topo ou interior de árvores colossais bioluminescentes. Paletas púrpuras e azuladas profundas, névoa densa e brilhante flutuando entre as plataformas de madeira orgânica, e lanternas de cristal emissivo.
+*   **Arquitetura dos Draconianos (Poder Elemental Ancestral):** Fortalezas monolíticas cravadas em ambientes geotérmicos hostis, construídas em blocos de rocha vulcânica escura. Paredes reforçadas para suportar calor extremo, fendas estruturais revelando fluxos ativos de lava (Laranja-Incandescente), e grandes portões de ferro forjado.
+*   **Arquitetura dos Lurídeos (Fluidez e Adaptação):** Cúpulas de vidro e torres ornamentadas subaquáticas inspiradas em conchas e na fluidez da água. Estruturas em tons de azul-turquesa, aquedutos decorativos ativos correndo por fora dos prédios, e caminhos orgânicos iluminados por cristais subaquáticos verdes.
+
+### 4. Limites de Construção de Cenários em HD-2D
+*   **Proibido Elementos de Colagem Fotográfica:** O cenário não pode usar texturas fotorrealistas de verdade. Cada tijolo, viga ou gota d'água deve ser desenhada pixel por pixel na paleta clássica do jogo.
+*   **Proibido Perspectiva Inconsistente:** Todos os tilesets devem respeitar a projeção ortogonal ou isométrica de perspectiva do jogo de forma matemática rigorosa, garantindo que as sprites 2D dos personagens caminhem corretamente sobre o piso sem flutuar.
 
 ---
 
-## 8. Histórico de Versões
+### 📏 CAPÍTULO 5: REGRAS DE RENDERIZAÇÃO E ESTILO DE SPRITE
 
-| Versão | Data | Descrição |
-|--------|------|-----------|
-| 1.0.0 | 2026-07-15 | Criação do Blueprint Visual Mestre — consolidação da Regra R3, dos três tiers, da linguagem de interface e do status de cobertura racial (gap de 5/6 raças sem Codex sinalizado). |
+### 1. Diretrizes de Sprite em Pixel Art
+*   **Estilo de Render:** O jogo é estritamente em pixel art bidimensional de alta definição. Assets 3D ou pinturas digitais sem a textura de pixels individuais (pixel grid) são proibidos na build final.
+*   **Dithering Manual:** Sombras e transições de cor devem usar técnicas clássicas de pontilhado (dithering) para simular profundidade, evitando gradientes de cores modernos gerados por computador.
+*   **Contorno (Outline):** Todo sprite de personagem ou inimigo deve possuir um contorno nítido de 1 pixel de espessura de cor escura (Preto-Carbono ou Chumbo) para separar as entidades do cenário e garantir leitura instantânea em movimento.
+*   **FPS Canônico:** Todas as animações devem ser desenhadas visando uma taxa padrão de **12 quadros por segundo (12 FPS)** para manter a fluidez e a nostalgia clássica de herança retro.
