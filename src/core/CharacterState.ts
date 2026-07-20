@@ -21,10 +21,17 @@ import {
   ICharacterStats,
   IStatusEffect,
   IEquipment,
+  IEquipmentItem,
+  IEquipmentStats,
+  SlotType,
   ErrorCodes,
   EventIds,
   Race,
 } from '../types/aetheris.types';
+import {
+  EstafaCalculator,
+  EstafaModifiers,
+} from '../mechanics/EstafaCalculator';
 
 /**
  * Interface para callback de eventos disparados pelo CharacterState.
@@ -120,11 +127,20 @@ export class CharacterState {
   /** Raça nativa do personagem (fraquezas elementais permanentes) */
   private _race: Race | null;
 
+  /** Identificador único do personagem (usado para referência externa) */
+  private _id: string;
+
   /** Contagem de sucata acumulada (ISalvageInventory.scrapCount) */
   private _scrapCount: number;
 
   /** Cargas do kit de Engenharia Elemental por elemento */
   private _engineeringCharges: Record<string, number>;
+
+  /** Mapa de equipamentos ativos indexados por slot (WEAPON | ARMOR | CORE_MOD) */
+  private _equippedItems: Partial<Record<SlotType, IEquipmentItem>>;
+
+  /** Bônus cumulativos de atributos concedidos pelos equipamentos ativos */
+  private _equipmentBonusStats: IEquipmentStats;
 
   // ==================================================================
   // CONSTRUTOR
@@ -138,6 +154,7 @@ export class CharacterState {
    * @param eventCallback - Callback opcional para disparo de eventos
    * @param securityLogCallback - Callback opcional para log de segurança
    * @param race - Raça nativa do personagem (padrão: null — sem raça definida)
+   * @param id - Identificador único do personagem (gerado automaticamente se omitido)
    */
   constructor(
     stats: ICharacterStats,
@@ -145,6 +162,7 @@ export class CharacterState {
     eventCallback?: IStateEventCallback,
     securityLogCallback?: ISecurityLogCallback,
     race: Race | null = null,
+    id?: string,
   ) {
     this._shortTermEstafa = CharacterState.ESTAFA_DEFAULT;
     this._latentLineageAxis = latentLineageAxis;
@@ -159,8 +177,11 @@ export class CharacterState {
     this._eventCallback = eventCallback ?? null;
     this._securityLogCallback = securityLogCallback ?? null;
     this._race = race;
+    this._id = id ?? `char_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     this._scrapCount = 0;
     this._engineeringCharges = {};
+    this._equippedItems = {};
+    this._equipmentBonusStats = {};
   }
 
   // ==================================================================
@@ -745,6 +766,137 @@ export class CharacterState {
   }
 
   // ==================================================================
+  // GETTER — ID
+  // ==================================================================
+
+  /**
+   * Obtém o identificador único do personagem.
+   */
+  get id(): string {
+    return this._id;
+  }
+
+  // ==================================================================
+  // GETTERS CONVENIENTES — HP / MAX_HP
+  // ==================================================================
+
+  /**
+   * Obtém os pontos de vida atuais do personagem.
+   * Atalho para stats.currentHp.
+   */
+  get hp(): number {
+    return this._stats.currentHp;
+  }
+
+  /**
+   * Define os pontos de vida atuais do personagem.
+   * Atalho para stats.currentHp (clamp automático em [0, maxHp]).
+   * O clamp considera o maxHp expandido por equipamentos.
+   */
+  set hp(value: number) {
+    this._stats.currentHp = Math.max(0, Math.min(this.maxHp, value));
+  }
+
+  /**
+   * Obtém os pontos de vida máximos do personagem.
+   * Soma o valor base (stats.maxHp) com os bônus de equipamento.
+   * Usado pelo EquipmentEngine para expandir o limite tático.
+   */
+  get maxHp(): number {
+    return this._stats.maxHp + (this._equipmentBonusStats.bonusMaxHp ?? 0);
+  }
+
+  // ==================================================================
+  // ATRIBUTOS DINÂMICOS — MODULADOS PELA BALANÇA DE ESTAFA
+  // ==================================================================
+  // Delegam ao EstafaCalculator (src/mechanics/EstafaCalculator.ts) para
+  // aplicar os bônus/penalidades dinâmicos definidos na System Matrix
+  // (AETHERIS_MASTER_INDEX.md §2) sobre os atributos finais da unidade.
+  // Todos os métodos são consultas puras — não mutam o estado base.
+  // ==================================================================
+
+  /**
+   * getEstafaModifiers()
+   * ------------------------------------------------------------------
+   * Retorna os modificadores dinâmicos da Balança de Estafa para o
+   * valor atual do medidor de curto prazo.
+   */
+  public getEstafaModifiers(): EstafaModifiers {
+    return EstafaCalculator.calculateModifiers(this._shortTermEstafa);
+  }
+
+  /**
+   * getEffectivePhysicalDefense()
+   * ------------------------------------------------------------------
+   * Defesa física efetiva = (defesa base + bônus de equipamento) ajustada
+   * pela Estafa. O lado Paterno concede physicalDefBonus (rigidez); o
+   * lado Materno aplica armorPenalty (perda de eficiência de armadura).
+   * Apenas um dos lados está ativo por vez (ver EstafaCalculator).
+   */
+  public getEffectivePhysicalDefense(): number {
+    const baseDefense =
+      this._stats.defense + (this._equipmentBonusStats.bonusDefense ?? 0);
+    const mods = this.getEstafaModifiers();
+    const factor = 1 + mods.physicalDefBonus / 100 - mods.armorPenalty / 100;
+    return Math.max(0, baseDefense * factor);
+  }
+
+  /**
+   * getEpRegenBonusPercent()
+   * ------------------------------------------------------------------
+   * Bônus percentual de regeneração de EP por turno concedido pela
+   * Estafa (lado Materno). Zero fora do lado Materno.
+   */
+  public getEpRegenBonusPercent(): number {
+    return this.getEstafaModifiers().epRegenBonus;
+  }
+
+  /**
+   * getEffectiveEpCost(baseCost)
+   * ------------------------------------------------------------------
+   * Custo de EP efetivo de uma habilidade após o encarecimento imposto
+   * pelo lado Paterno (epCostIncrease). No extremo Paterno (+100) o custo
+   * de habilidades mágicas/complexas sobe +30%.
+   *
+   * @param baseCost - Custo base de EP da habilidade (deve ser > 0)
+   */
+  public getEffectiveEpCost(baseCost: number): number {
+    if (!Number.isFinite(baseCost) || baseCost <= 0) {
+      return 0;
+    }
+    const mods = this.getEstafaModifiers();
+    return baseCost * (1 + mods.epCostIncrease / 100);
+  }
+
+  // ==================================================================
+  // GETTERS — EQUIPMENT SLOTS & BONUS
+  // ==================================================================
+
+  /**
+   * Obtém o mapa de equipamentos ativos indexados por slot.
+   * Retorna o objeto interno diretamente — o EquipmentEngine precisa
+   * de acesso de mutação para operações de equipar/desequipar.
+   */
+  get equippedItems(): Partial<Record<SlotType, IEquipmentItem>> {
+    return this._equippedItems;
+  }
+
+  /**
+   * Obtém os bônus cumulativos de atributos concedidos pelos equipamentos ativos.
+   */
+  get equipmentBonusStats(): IEquipmentStats {
+    return { ...this._equipmentBonusStats };
+  }
+
+  /**
+   * Define os bônus cumulativos de atributos.
+   * Usado exclusivamente pelo EquipmentEngine.applyStatsModifiers().
+   */
+  set equipmentBonusStats(value: IEquipmentStats) {
+    this._equipmentBonusStats = { ...value };
+  }
+
+  // ==================================================================
   // CAMPOS DE PERSISTÊNCIA DE ENGENHARIA — ISalvageInventory e IEngineeringKit
   // ==================================================================
 
@@ -788,6 +940,7 @@ export class CharacterState {
    */
   public toJSON(): Record<string, unknown> {
     return {
+      id: this._id,
       level: this._currentLevel,
       stats: { ...this._stats },
       latentLineageAxis: this._latentLineageAxis,
@@ -806,7 +959,7 @@ export class CharacterState {
    * @returns Nova instância de CharacterState
    */
   public static fromJSON(
-    data: { level?: number; latentLineageAxis?: LatentLineageAxis; scrapCount?: number; engineeringCharges?: Record<string, number> },
+    data: { id?: string; level?: number; latentLineageAxis?: LatentLineageAxis; scrapCount?: number; engineeringCharges?: Record<string, number> },
     stats: ICharacterStats,
     eventCallback?: IStateEventCallback,
     securityLogCallback?: ISecurityLogCallback,
@@ -816,6 +969,8 @@ export class CharacterState {
       data.latentLineageAxis ?? LatentLineageAxis.NEUTRO_ABSOLUTO,
       eventCallback,
       securityLogCallback,
+      undefined,
+      data.id,
     );
 
     if (data.level !== undefined) {

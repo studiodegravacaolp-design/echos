@@ -86,9 +86,6 @@ export class EstafaCalculator {
   /** Limiar de entrada nos quadrantes extremos (magnitude). */
   private static readonly EXTREME_THRESHOLD = 60;
 
-  /** Limiar da zona neutra (magnitude). */
-  private static readonly NEUTRAL_THRESHOLD = 20;
-
   // Coeficientes das fórmulas canônicas (System Matrix).
   private static readonly EP_REGEN_COEFF = 0.5; // Materno: +(|estafa| * 0.5)%
   private static readonly PHYS_DEF_COEFF = 0.4; // Paterno: +(estafa * 0.4)%

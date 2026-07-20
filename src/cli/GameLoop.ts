@@ -40,6 +40,8 @@ import { CraftingEngine } from '../core/CraftingEngine';
 import { EquipmentEngine } from '../core/EquipmentEngine';
 import { QuestManager, QuestStatus } from '../core/QuestManager';
 import { SaveSystem } from '../core/SaveSystem';
+import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
+import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
 
@@ -652,6 +654,47 @@ export class CLIGameLoop {
     }
 
     // ==============================================================
+    // RESOLUÇÃO DE COMANDO DE COMBATE — BALANÇA DE ESTAFA
+    // ==============================================================
+
+    /**
+     * resolveCombatCommand(actor, actionType)
+     * ------------------------------------------------------------------
+     * Ponto de integração da Balança de Estafa no loop de comando: antes
+     * de despachar qualquer ação de combate de um personagem, o comando
+     * é submetido a CombatAIEngine.resolvePlayerCommand (que consulta
+     * EstafaCalculator.validateAction).
+     *
+     * Se a psique da unidade bloquear o comando (Insubordinação Tática),
+     * o aviso diegético é impresso na UI e a unidade executa a ação
+     * autônoma modificada em vez do comando original.
+     *
+     * Exposto publicamente para ser acionado pela futura camada de UI de
+     * combate por turnos e exercitado pelos testes de integração.
+     *
+     * @param actor      - Personagem que recebeu o comando
+     * @param actionType - Tipo da ação solicitada pelo jogador
+     * @returns ICommandResolution — desfecho do comando
+     */
+    public resolveCombatCommand(
+        actor: CharacterState,
+        actionType: EstafaActionType,
+    ): ICommandResolution {
+        const resolution = CombatAIEngine.resolvePlayerCommand(
+            actor,
+            actionType,
+            (code, message) => console.log(`⚠️  [${code}] ${message}`),
+        );
+
+        if (resolution.insubordination) {
+            console.log(`🧠 Insubordinação Tática: ${resolution.reason}`);
+            console.log(`➡️  Ação autônoma executada: ${resolution.autonomousAlternative}`);
+        }
+
+        return resolution;
+    }
+
+    // ==============================================================
     // HANDLER 5 — SALVAR E SAIR
     // ==============================================================
 
@@ -678,4 +721,14 @@ export class CLIGameLoop {
         this.rl.close();
         process.exit(0);
     }
+}
+
+// ==================================================================
+// PONTO DE ENTRADA
+// ==================================================================
+// Permite rodar este arquivo diretamente (ex: `npx tsx src/cli/GameLoop.ts`).
+// ==================================================================
+
+if (require.main === module) {
+    new CLIGameLoop().start();
 }
