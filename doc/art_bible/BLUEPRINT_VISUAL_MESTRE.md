@@ -88,6 +88,8 @@ Em *Aetheris*, os personagens não usam armaduras decorativas; eles se fundem a 
 
 ### 3. Diretrizes Visuais para Raças do Subsolo
 
+> **Status de Calibração (Blueprint v1.2):** os prompts HD-2D de **Anões (Metalurgia Pesada)**, **Fadas (Mecânicas Pneumáticas de Dutos)** e **Lurídeos (Adaptação Subaquática)** foram **calibrados e consolidados** ✅ — silhueta, chassi e paleta de destaque fechados e prontos para produção de sprites. Isso encerra a lacuna racial dos Anões identificada na consolidação anterior. Humanos, Ciborgues, Elfos e Draconianos permanecem no baseline v1.2.
+
 #### A. Humanos de Brenhold (Os Engenheiros de Sucata)
 *   **O Chassi:** Modificações utilitárias e focadas em ferramentas. Próteses pesadas feitas de ferro fundido, cintos de ferramentas volumosos e chassis de suporte de carga nas costas.
 *   **Paleta de Destaque:** 70% Preto-Carbono, 20% Latão Industrial e 10% Laranja-Incandescente nos visores e medidores analógicos.
@@ -100,17 +102,24 @@ Em *Aetheris*, os personagens não usam armaduras decorativas; eles se fundem a 
 *   **O Chassi:** Silhueta esguia, mas imponente (escala de 1,88m). Suas orelhas pontiagudas são marcadas por cicatrizes de fuligem. Braço mecânico altamente detalhado, projetado para micromanipulação mecânica e fiações finas de cobre.
 *   **Paleta de Destaque:** 70% Chumbo Escurecido, 20% Bronze e 10% Azul-Centelha pulsando nas pontas dos dedos e fiação exposta.
 
-#### D. As Faeries Industriais (Mecânicas Pneumáticas de Dutos)
+#### D. As Faeries Industriais (Mecânicas Pneumáticas de Dutos) — ✅ Calibrado & Consolidado (v1.2)
 *   **O Chassi:** Silhueta compacta e ágil. As asas biológicas foram substituídas por estruturas de asas mecânicas pneumáticas feitas de chapas de bronze finas que emitem vapor para sustentação física (momentum).
 *   **Paleta de Destaque:** 70% Cinza-Ferrugem, 20% Latão e 10% Verde-Químico nos núcleos de pressão traseiros.
+*   **Prompt HD-2D Consolidado:** *"HD-2D pixel art sprite, industrial duct-fairy mechanic, compact agile silhouette, thin bronze pneumatic wing-plates venting pressurized steam, grease-stained duct gear, glowing chemical-green (`#39FF14`) rear pressure cores, top-down cold volumetric light, crisp 1px carbon outline, 12 FPS, no neon, no high-fantasy."* Coerência tática: Materno = Névoa Química (cura em área); Paterno = Injeção Pneumática (repulsão).
 
 #### E. Os Draconianos (Forjadores de Chapa de Alta Temperatura)
 *   **O Chassi:** Silhueta massiva, cauda reforçada com ponteiras mecânicas de impacto. Usam respiradores industriais pesados integrados ao focinho para filtrar gases nocivos e cinzas na boca da forja.
 *   **Paleta de Destaque:** 70% Preto-Carbono, 20% Bronze Queimado e 10% Laranja-Incandescente brilhando sob as fendas das escamas térmicas.
 
-#### F. Os Lurídeos (Fluidez e Adaptação Subaquática)
+#### F. Os Lurídeos (Fluidez e Adaptação Subaquática) — ✅ Calibrado & Consolidado (v1.2)
 *   **O Chassi:** Escamas e membranas em tons aquáticos azulados. Equipamento respiratório subaquático acoplado ao chassi e fendas de exaustão de resíduos químicos.
 *   **Paleta de Destaque:** 70% Chumbo Escurecido, 20% Azul-Verdete e 10% Verde-Químico emissivo nos visores de pressurização.
+*   **Prompt HD-2D Consolidado:** *"HD-2D pixel art sprite, amphibious luridean survivor, fluid scaled body in aquatic blue-teal tones, membrane fins, bolted subaquatic rebreather rig, chemical waste exhaust vents, emissive chemical-green (`#39FF14`) pressurization visors over lead-grey (`#2A2C30`) chassis, chiaroscuro underlight, crisp 1px carbon outline, 12 FPS, no cyberpunk neon."* Coerência tática: Materno = Cápsula de Pressão (bolha protetora); Paterno = Siphon Químico (dreno + terreno tóxico).
+
+#### G. Os Anões (Metalurgia Pesada) — ✅ Calibrado & Consolidado (v1.2)
+*   **O Chassi:** Silhueta baixa, larga e inamovível — centro de gravidade pesado, ombros de placa e mãos superdimensionadas para prensa. Barba trançada com anilhas de latão e protetores auriculares de couro contra o estrondo das forjas. Braços e dorso reforçados com pistões hidráulicos funcionais e uma prensa hidráulica acoplável ao antebraço.
+*   **Paleta de Destaque:** 70% Cinza-Ferrugem, 20% Latão Industrial / Bronze Queimado e 10% Laranja-Incandescente vazando das fendas da forja portátil e dos manômetros de pressão.
+*   **Prompt HD-2D Consolidado:** *"HD-2D pixel art sprite, heavy-metallurgy dwarf, short broad immovable silhouette, oversized press-hands, brass-ringed braided beard, leather ear guards, functional hydraulic pistons on back and forearms, portable forge vents glowing incandescent-orange (`#FF7900`) over rust-grey (`#2A2C30`) and burnt-bronze (`#8C633E`) plating, top-down cold light with reactive forge underglow, crisp 1px carbon outline, 12 FPS, no steampunk decoration."* Coerência tática: Materno = Vapor de Arrefecimento (evasão/nuvem de vapor); Paterno = Prensa Hidráulica (postura defensiva inamovível +60%).
 
 ### 4. Assinatura Visual dos Inimigos (A Linguagem Tática)
 *   **O "Assassino" (Ex: Catador de Dutos):** Silhueta esguia, curvada e angular. Garras longas de metal afiado. Um único visor óptico emitindo brilho Verde-Químico na cabeça.

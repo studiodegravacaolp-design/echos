@@ -30,6 +30,9 @@ A Balança de Estafa oscila em um eixo dinâmico de **-100 (Materno)** a **+100 
 ---
 
 ## 3. AS SEIS RAÇAS FUNDADORAS E SUAS REAÇÕES TÁTICAS
+
+> **Status Visual HD-2D (Blueprint v1.2):** os prompts de arte HD-2D de **Anões**, **Fadas** e **Lurídeos** estão **calibrados e consolidados** ✅ (chassi, silhueta, paleta e prompt de geração fechados) — ver [`doc/art_bible/BLUEPRINT_VISUAL_MESTRE.md`](doc/art_bible/BLUEPRINT_VISUAL_MESTRE.md) §3. Isso fecha a lacuna racial dos Anões. Humanos, Elfos e Draconianos seguem no baseline v1.2.
+
 1. **Humanos (Engenheiros de Sucata):**
    - *Materno:* Solda de Sobrevivência (Reparo de chassi aliado).
    - *Paterno:* Sobrecarga de Pistão (Dano massivo com coice).
