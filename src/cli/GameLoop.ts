@@ -34,6 +34,8 @@ import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
 import { BestiaryEngine, IEnemyInstance, ENEMY_TO_COMBAT_ARCHETYPE } from '../core/BestiaryEngine';
 import { CombatLoopEngine, ICombatResult } from '../core/CombatLoopEngine';
 import { InteractiveCombatSession } from '../core/InteractiveCombatSession';
+import { CombatRewardEngine } from '../core/CombatRewardEngine';
+import { ProgressionManager } from '../core/ProgressionManager';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
@@ -80,6 +82,8 @@ export class CLIGameLoop {
     private questManager = new QuestManager();
     private bestiary = new BestiaryEngine();
     private combatLoop = new CombatLoopEngine();
+    private progression = new ProgressionManager();
+    private rewards = new CombatRewardEngine();
     private readonly saveSlots: SaveSlotEngine;
 
     /** Cursor de impressão do log de combate interativo. */
@@ -287,7 +291,29 @@ export class CLIGameLoop {
         session.start();
         this.combatLogCursor = 0;
         this.flushCombatLog(session);
-        this.combatTurnPrompt(session);
+        this.combatTurnPrompt(session, encounter);
+    }
+
+    /**
+     * grantVictoryRewards(encounter)
+     * ------------------------------------------------------------------
+     * Concede sucata e XP/nível ao grupo pela vitória e imprime o resumo.
+     */
+    private grantVictoryRewards(encounter: IGeneratedEncounter): void {
+        const survivors = this.campaign.getPartyState().filter((c) => c.hp > 0);
+        const reward = this.rewards.grantVictoryRewards(
+            this.campaign,
+            encounter.enemies,
+            survivors,
+            this.progression,
+        );
+        console.log(`\n🎁 Espólio: +${reward.scrapAwarded} sucata | +${reward.xpAwarded} XP por herói.`);
+        reward.levelUps.forEach((lu) => {
+            console.log(`   ⬆️ ${lu.characterId} subiu ${lu.levelsGained} nível(is) → Nv.${lu.newLevel}!`);
+        });
+        if (reward.overflowMarks > 0) {
+            console.log(`   ✨ +${reward.overflowMarks} Marca(s) de Aço (overflow no teto).`);
+        }
     }
 
     /** Imprime as novas linhas do log de combate desde o último flush. */
@@ -305,7 +331,7 @@ export class CLIGameLoop {
      * Exibe o turno atual (HP, Estafa, ações com bloqueios) e coleta a
      * escolha do jogador; encerra retornando ao menu de campanha.
      */
-    private combatTurnPrompt(session: InteractiveCombatSession): void {
+    private combatTurnPrompt(session: InteractiveCombatSession, encounter: IGeneratedEncounter): void {
         if (session.isOver()) {
             const outcome = session.getOutcome();
             // Feedback loop: as escolhas de combate deixam marca na Estafa do grupo.
@@ -316,6 +342,7 @@ export class CLIGameLoop {
             }
             if (outcome === 'VICTORY') {
                 console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
+                this.grantVictoryRewards(encounter);
                 this.autoSave();
             } else if (outcome === 'DEFEAT') {
                 console.log('\n☠️ Derrota! O grupo tomba nos dutos de Brenhold. Fim de jogo.');
@@ -338,12 +365,12 @@ export class CLIGameLoop {
             const idx = parseInt(answer, 10) - 1;
             if (isNaN(idx) || idx < 0 || idx >= turn.actions.length) {
                 console.log('⚠️ Opção inválida!');
-                return this.combatTurnPrompt(session);
+                return this.combatTurnPrompt(session, encounter);
             }
             // Ação travada é permitida escolher — dispara Insubordinação Tática.
             session.submitPlayerAction(turn.actions[idx].action);
             this.flushCombatLog(session);
-            this.combatTurnPrompt(session);
+            this.combatTurnPrompt(session, encounter);
         });
     }
 
