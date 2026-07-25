@@ -28,6 +28,7 @@ import type { IDurableEquipment } from './EquipmentEngine';
 import type { ITacticalStatus } from './StatusEngine';
 import type { ProgressionManager } from './ProgressionManager';
 import type { SkillTreeEngine } from './SkillTreeEngine';
+import type { QuestManager, IQuestSaveState } from './QuestManager';
 import { CANONICAL_ABILITIES, STARTER_ABILITY_IDS } from './CombatAbilities';
 
 // ==================================================================
@@ -83,6 +84,8 @@ export interface ISaveSlotPayload {
     globalInventory: IInventoryItem[];
     party: ISavedCharacter[];
     mapState: { currentNodeId: string; unlockedNodeIds: string[] };
+    /** Estado das missões (status + progresso de metas). */
+    quests: IQuestSaveState[];
 }
 
 /** Estrutura on-disk de um slot de save. */
@@ -121,6 +124,8 @@ export interface ISaveOptions {
     progression?: ProgressionManager;
     /** Árvore de talentos — captura os nós passivos desbloqueados, se fornecida. */
     skillTree?: SkillTreeEngine;
+    /** Gerenciador de missões — captura o estado das quests, se fornecido. */
+    questManager?: QuestManager;
 }
 
 // ==================================================================
@@ -227,6 +232,7 @@ export class SaveSlotEngine {
                     currentNodeId: progress.currentNodeId,
                     unlockedNodeIds: [...progress.unlockedNodeIds],
                 },
+                quests: options.questManager?.serializeState() ?? [],
             };
 
             const metadata: ISaveSlotMetadata = {
@@ -298,6 +304,7 @@ export class SaveSlotEngine {
         campaign?: CampaignManager,
         progression?: ProgressionManager,
         skillTree?: SkillTreeEngine,
+        questManager?: QuestManager,
     ): ILoadSlotResult {
         if (!this.isValidSlot(slotId)) {
             return { success: false, slotId: 'SLOT_1', error: `Slot inválido: ${slotId}` };
@@ -325,6 +332,10 @@ export class SaveSlotEngine {
         // Restaura o estado no CampaignManager fornecido.
         if (campaign) {
             this.applyPayloadToCampaign(campaign, data.payload, progression, skillTree);
+        }
+        // Reidrata o estado das missões nas quests já registradas.
+        if (questManager) {
+            questManager.restoreState(data.payload.quests);
         }
 
         return {
@@ -542,11 +553,16 @@ export class SaveSlotEngine {
         };
         if (p.mapState === undefined) migrated = true;
 
+        // Missões: saves legados começam sem estado (o catálogo re-registrado assume o padrão).
+        const migratedQuests = Array.isArray(p.quests) ? p.quests : [];
+        if (p.quests === undefined) migrated = true;
+
         const migratedPayload: ISaveSlotPayload = {
             progress: migratedProgress,
             globalInventory: migratedInventory,
             party: migratedParty,
             mapState: migratedMapState,
+            quests: migratedQuests,
         };
 
         // --- Metadados ---

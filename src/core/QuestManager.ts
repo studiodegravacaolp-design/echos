@@ -34,11 +34,21 @@ export enum QuestStatus {
  * Define uma meta progressiva dentro de uma missão.
  * current/required determinam o preenchimento da barra de progresso.
  */
+/** Classificação de uma missão. */
+export type QuestType = 'MAIN' | 'SIDE';
+
+/** Tipo de meta, usado pelos gatilhos de progresso. */
+export type QuestGoalType = 'REACH_NODE' | 'DEFEAT_ENEMIES' | 'KILL_BOSS' | 'TALK_NPC' | 'GENERIC';
+
 export interface IQuestGoal {
   id: string;
   description: string;
   current: number;
   required: number;
+  /** Tipo do gatilho que avança esta meta (padrão GENERIC). */
+  type?: QuestGoalType;
+  /** Alvo do gatilho (nodeId | templateId de inimigo/chefe | id do NPC/diálogo). */
+  target?: string;
 }
 
 /**
@@ -51,6 +61,17 @@ export interface IQuestGoal {
 export interface IQuestReward {
   scrap: number;
   items: Array<{ item: IItem; quantity: number }>;
+  /** XP concedido a cada sobrevivente do grupo (opcional). */
+  xp?: number;
+  /** Mantimentos concedidos ao grupo (opcional). */
+  supplies?: number;
+}
+
+/** Estado serializável de uma missão (para persistência). */
+export interface IQuestSaveState {
+  id: string;
+  status: QuestStatus;
+  goals: Array<{ id: string; current: number }>;
 }
 
 /**
@@ -65,6 +86,8 @@ export interface IQuest {
   status: QuestStatus;
   goals: IQuestGoal[];
   reward: IQuestReward;
+  /** Classificação (MAIN | SIDE). Padrão: SIDE. */
+  type?: QuestType;
 }
 
 /**
@@ -313,5 +336,169 @@ export class QuestManager {
    */
   public clear(): void {
     this.quests.clear();
+  }
+
+  // ==================================================================
+  // GATILHOS DE PROGRESSO E CONSULTAS DE ALTO NÍVEL
+  // ==================================================================
+
+  /** Retorna a Missão Principal ativa (primeira ACTIVE do tipo MAIN), se houver. */
+  public getActiveMainQuest(): IQuest | undefined {
+    for (const q of this.quests.values()) {
+      if (q.status === QuestStatus.ACTIVE && q.type === 'MAIN') {
+        return this.getQuest(q.id);
+      }
+    }
+    return undefined;
+  }
+
+  /** Primeira meta ainda incompleta de uma missão (para exibir a etapa atual). */
+  public getCurrentGoal(questId: string): IQuestGoal | undefined {
+    const quest = this.quests.get(questId);
+    if (!quest) return undefined;
+    const goal = quest.goals.find((g) => g.current < g.required);
+    return goal ? { ...goal } : undefined;
+  }
+
+  /**
+   * notifyNodeVisited(nodeId)
+   * ------------------------------------------------------------------
+   * Gatilho de travessia: avança metas REACH_NODE cujo alvo é o nó.
+   * @returns IDs das missões que ficaram totalmente satisfeitas.
+   */
+  public notifyNodeVisited(nodeId: string): string[] {
+    return this.advanceMatchingGoals(
+      (g) => g.type === 'REACH_NODE' && g.target === nodeId,
+      1,
+    );
+  }
+
+  /**
+   * notifyEnemiesDefeated(enemies)
+   * ------------------------------------------------------------------
+   * Gatilho de combate: avança DEFEAT_ENEMIES (por contagem) e KILL_BOSS
+   * (por templateId correspondente).
+   * @returns IDs das missões que ficaram totalmente satisfeitas.
+   */
+  public notifyEnemiesDefeated(enemies: Array<{ templateId: string }>): string[] {
+    const completed = new Set<string>();
+    for (const quest of this.quests.values()) {
+      if (quest.status !== QuestStatus.ACTIVE) continue;
+      const wasDone = this.allGoalsDone(quest);
+      let changed = false;
+      for (const g of quest.goals) {
+        if (g.type === 'DEFEAT_ENEMIES') {
+          const inc = enemies.filter((e) => !g.target || g.target === 'ANY' || g.target === e.templateId).length;
+          if (inc > 0) { g.current = Math.min(g.required, g.current + inc); changed = true; }
+        } else if (g.type === 'KILL_BOSS') {
+          const inc = enemies.filter((e) => e.templateId === g.target).length;
+          if (inc > 0) { g.current = Math.min(g.required, g.current + inc); changed = true; }
+        }
+      }
+      if (changed && !wasDone && this.allGoalsDone(quest)) {
+        completed.add(quest.id);
+      }
+    }
+    return [...completed];
+  }
+
+  /**
+   * notifyNpcTalked(npcId)
+   * ------------------------------------------------------------------
+   * Gatilho de diálogo: avança metas TALK_NPC cujo alvo é o NPC/diálogo.
+   */
+  public notifyNpcTalked(npcId: string): string[] {
+    return this.advanceMatchingGoals(
+      (g) => g.type === 'TALK_NPC' && g.target === npcId,
+      1,
+    );
+  }
+
+  /**
+   * claimQuestReward(questId)
+   * ------------------------------------------------------------------
+   * Se a missão está ativa e com todas as metas cumpridas, marca como
+   * COMPLETED e devolve a recompensa (para o grupo aplicar XP/Sucata/
+   * Mantimentos/itens). Não credita nada por si só.
+   *
+   * @returns A recompensa, ou null se ainda não elegível.
+   */
+  public claimQuestReward(questId: string): IQuestReward | null {
+    const quest = this.quests.get(questId);
+    if (!quest || quest.status !== QuestStatus.ACTIVE || !this.allGoalsDone(quest)) {
+      return null;
+    }
+    quest.status = QuestStatus.COMPLETED;
+    return {
+      ...quest.reward,
+      items: quest.reward.items.map((ri) => ({ item: { ...ri.item }, quantity: ri.quantity })),
+    };
+  }
+
+  // ==================================================================
+  // PERSISTÊNCIA
+  // ==================================================================
+
+  /** Serializa o estado (status + progresso de metas) de todas as missões. */
+  public serializeState(): IQuestSaveState[] {
+    return Array.from(this.quests.values()).map((q) => ({
+      id: q.id,
+      status: q.status,
+      goals: q.goals.map((g) => ({ id: g.id, current: g.current })),
+    }));
+  }
+
+  /**
+   * restoreState(states)
+   * ------------------------------------------------------------------
+   * Reidrata status e progresso de metas das missões JÁ REGISTRADAS.
+   * Missões ausentes no catálogo atual são ignoradas.
+   */
+  public restoreState(states: IQuestSaveState[]): void {
+    for (const saved of states) {
+      const quest = this.quests.get(saved.id);
+      if (!quest) continue;
+      quest.status = saved.status;
+      for (const savedGoal of saved.goals) {
+        const goal = quest.goals.find((g) => g.id === savedGoal.id);
+        if (goal) {
+          goal.current = Math.min(goal.required, Math.max(0, savedGoal.current));
+        }
+      }
+    }
+  }
+
+  // ==================================================================
+  // AUXILIARES INTERNOS
+  // ==================================================================
+
+  private allGoalsDone(quest: IQuest): boolean {
+    return quest.goals.every((g) => g.current >= g.required);
+  }
+
+  /**
+   * Avança as metas ativas que satisfazem o predicado (por `amount`) e
+   * retorna os IDs das missões que ficaram totalmente satisfeitas agora.
+   */
+  private advanceMatchingGoals(
+    predicate: (goal: IQuestGoal) => boolean,
+    amount: number,
+  ): string[] {
+    const completed: string[] = [];
+    for (const quest of this.quests.values()) {
+      if (quest.status !== QuestStatus.ACTIVE) continue;
+      const wasDone = this.allGoalsDone(quest);
+      let changed = false;
+      for (const g of quest.goals) {
+        if (predicate(g) && g.current < g.required) {
+          g.current = Math.min(g.required, g.current + amount);
+          changed = true;
+        }
+      }
+      if (changed && !wasDone && this.allGoalsDone(quest)) {
+        completed.push(quest.id);
+      }
+    }
+    return completed;
   }
 }

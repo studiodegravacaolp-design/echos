@@ -28,7 +28,8 @@ import { CampaignManager } from '../core/CampaignManager';
 import { CampaignMapEngine, ITraversalResult, ICampaignNode, NodeType } from '../core/CampaignMapEngine';
 import { CraftingEngine } from '../core/CraftingEngine';
 import { EquipmentEngine } from '../core/EquipmentEngine';
-import { QuestManager, QuestStatus } from '../core/QuestManager';
+import { QuestManager, QuestStatus, IQuestReward } from '../core/QuestManager';
+import { CANONICAL_QUEST_FACTORIES } from '../core/QuestContent';
 import { DialogueEngine } from '../core/DialogueEngine';
 import { SaveSlotEngine, SaveSlotId, ISaveSlotSummary } from '../core/SaveSlotEngine';
 import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
@@ -95,6 +96,9 @@ export class CLIGameLoop {
     /** Cursor de impressão do log de combate interativo. */
     private combatLogCursor = 0;
 
+    /** Id do diálogo ancorado em andamento (para o gatilho TALK_NPC). */
+    private activeDialogueId?: string;
+
     /** Marca de início da sessão para cálculo de playTime nos metadados. */
     private sessionStart = Date.now();
 
@@ -141,7 +145,68 @@ export class CLIGameLoop {
         this.skillTree.initializeTreeForCharacter(hero.id);
         this.skillTree.grantStarterAbilities(hero);
 
+        // Registra e ativa as missões canônicas.
+        this.registerCanonicalQuests();
+
         return this.campaign;
+    }
+
+    /** Registra (do zero) e inicia as missões canônicas do catálogo. */
+    private registerCanonicalQuests(): void {
+        this.questManager.clear();
+        for (const factory of CANONICAL_QUEST_FACTORIES) {
+            const quest = factory();
+            this.questManager.registerQuest(quest);
+            this.questManager.startQuest(quest.id);
+        }
+    }
+
+    /** Acesso ao gerenciador de missões (para triggers/testes). */
+    public getQuestManager(): QuestManager {
+        return this.questManager;
+    }
+
+    /**
+     * grantQuestReward(reward)
+     * ------------------------------------------------------------------
+     * Aplica a recompensa de uma missão ao grupo: Sucata + itens
+     * (consolidateLoot), Mantimentos (addSupplies) e XP (por sobrevivente).
+     */
+    private grantQuestReward(reward: IQuestReward): void {
+        const items = reward.items.map((ri) => ({
+            id: ri.item.id,
+            name: ri.item.name,
+            type: 'MATERIAL' as const,
+            quantity: ri.quantity,
+        }));
+        if (reward.scrap > 0 || items.length > 0) {
+            this.campaign.consolidateLoot(reward.scrap, items);
+        }
+        if (reward.supplies && reward.supplies > 0) {
+            this.campaign.addSupplies(reward.supplies);
+        }
+        if (reward.xp && reward.xp > 0) {
+            this.campaign.getPartyState().filter((c) => c.hp > 0).forEach((c) => this.progression.addExperience(c, reward.xp!));
+        }
+    }
+
+    /**
+     * processQuestCompletions(questIds)
+     * ------------------------------------------------------------------
+     * Reivindica a recompensa de cada missão recém-concluída e a concede
+     * ao grupo, imprimindo o desfecho. Retorna os IDs efetivamente pagos.
+     */
+    public processQuestCompletions(questIds: string[]): string[] {
+        const paid: string[] = [];
+        for (const id of questIds) {
+            const reward = this.questManager.claimQuestReward(id);
+            if (!reward) continue;
+            this.grantQuestReward(reward);
+            const quest = this.questManager.getQuest(id);
+            console.log(`\n📜 Missão concluída: ${quest?.name ?? id}! Recompensa: +${reward.scrap}💰 +${reward.xp ?? 0} XP +${reward.supplies ?? 0}🍞`);
+            paid.push(id);
+        }
+        return paid;
     }
 
     /**
@@ -192,8 +257,18 @@ export class CLIGameLoop {
             `⚖️ Estafa: ${progress.estafaBalance} ${this.estafaLabel(progress.estafaBalance)}`,
             `👤 ${hero.id} | HP: ${hero.hp}/${hero.maxHp} | Sucata: ${hero.scrapCount}💰`,
             `🛠️ Equipamentos: ${this.getEquipmentSummary()}`,
+            `🎯 Missão: ${this.getMainQuestHUD()}`,
         ];
         return lines.join('\n');
+    }
+
+    /** Linha de HUD da Missão Principal ativa (nome + etapa atual). */
+    public getMainQuestHUD(): string {
+        const main = this.questManager.getActiveMainQuest();
+        if (!main) return '(nenhuma missão principal ativa)';
+        const goal = this.questManager.getCurrentGoal(main.id);
+        const step = goal ? `${goal.description} (${goal.current}/${goal.required})` : 'todas as etapas cumpridas';
+        return `${main.name} — ${step}`;
     }
 
     /** Rótulo do polo da Estafa. */
@@ -255,6 +330,9 @@ export class CLIGameLoop {
 
         // Nós narrativos ancoram um diálogo ramificado por Estafa.
         const dialogueId = node?.dialogueId;
+
+        // Gatilho de missão: visita ao nó (REACH_NODE).
+        this.processQuestCompletions(this.questManager.notifyNodeVisited(targetNodeId));
 
         const autoSaved = this.autoSave();
         return { result, autoSaved, encounter, dialogueId };
@@ -388,6 +466,10 @@ export class CLIGameLoop {
             if (outcome === 'VICTORY') {
                 console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
                 this.grantVictoryRewards(encounter);
+                // Gatilho de missão: inimigos derrotados (DEFEAT_ENEMIES / KILL_BOSS).
+                this.processQuestCompletions(
+                    this.questManager.notifyEnemiesDefeated(encounter.enemies.map((e) => ({ templateId: e.templateId }))),
+                );
                 this.autoSave();
                 return this.showCampaignMenu();
             }
@@ -452,6 +534,7 @@ export class CLIGameLoop {
             currentAreaName: areaName,
             progression: this.progression,
             skillTree: this.skillTree,
+            questManager: this.questManager,
         });
     }
 
@@ -468,6 +551,7 @@ export class CLIGameLoop {
             currentAreaName: areaName,
             progression: this.progression,
             skillTree: this.skillTree,
+            questManager: this.questManager,
         });
     }
 
@@ -479,10 +563,10 @@ export class CLIGameLoop {
      * @returns true se carregado com sucesso.
      */
     public loadSlot(slotId: SaveSlotId): boolean {
-        this.startNewGame(); // esqueleto com o id de herói correto
+        this.startNewGame(); // esqueleto: registra quests, árvore e habilidades base
         this.progression.clear(); // limpa o XP da sessão antes de restaurar
-        // Habilidades e nós de talento são restaurados do save pelo SaveSlotEngine.
-        const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression, this.skillTree);
+        // Habilidades, nós de talento e estado das missões são restaurados do save.
+        const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression, this.skillTree, this.questManager);
         if (result.success) {
             // Reaplica a escala por nível ao estado restaurado.
             this.campaign.getPartyState().forEach((c) => this.applyLevelScaling(c));
@@ -695,7 +779,7 @@ export class CLIGameLoop {
         console.log('1. 🧭 Explorar (Travessia de Nó)');
         console.log('2. 🔨 Forja de Equipamentos');
         console.log('3. 🎒 Arsenal e Equipamentos');
-        console.log('4. 📜 Missões Ativas');
+        console.log('4. 📜 Ver Diário de Missões');
         console.log('5. 🏕️  Descansar (Salvar em Slot)');
         console.log('6. 🚪 Voltar ao Menu Principal');
         console.log('--------------------------------------');
@@ -812,11 +896,17 @@ export class CLIGameLoop {
         if (!node) {
             return this.showCampaignMenu();
         }
+        this.activeDialogueId = dialogueId;
         this.dialoguePrompt();
     }
 
-    /** Encerra o diálogo salvando o desfecho e volta ao menu. */
+    /** Encerra o diálogo: dispara o gatilho TALK_NPC, salva e volta ao menu. */
     private endDialogue(): void {
+        if (this.activeDialogueId) {
+            // Gatilho de missão: conversa concluída (TALK_NPC).
+            this.processQuestCompletions(this.questManager.notifyNpcTalked(this.activeDialogueId));
+            this.activeDialogueId = undefined;
+        }
         this.autoSave();
         this.showCampaignMenu();
     }
@@ -1164,21 +1254,34 @@ export class CLIGameLoop {
     // --------------------------------------------------------------
 
     private handleQuests(): void {
-        const activeQuests = this.questManager.getQuestsByStatus(QuestStatus.ACTIVE);
+        const active = this.questManager.getQuestsByStatus(QuestStatus.ACTIVE);
+        const completed = this.questManager.getQuestsByStatus(QuestStatus.COMPLETED);
+        const main = active.filter((q) => q.type === 'MAIN');
+        const side = active.filter((q) => q.type !== 'MAIN');
 
-        console.log('\n📜 Diário de Missões Ativas');
-        if (activeQuests.length === 0) {
-            console.log('(Nenhuma missão ativa no momento.)');
-        } else {
-            activeQuests.forEach((quest) => {
-                console.log(`\n📌 ${quest.name}\n   ${quest.description}`);
-                quest.goals.forEach((goal) => {
-                    const bar = this.makeProgressBar(goal.current, goal.required, 20);
-                    console.log(`   🎯 ${goal.description}: ${bar} ${goal.current}/${goal.required}`);
-                });
-                console.log(`   🏆 Recompensa: ${quest.reward.scrap}💰 + ${quest.reward.items.length} itens`);
+        console.log('\n📜 Diário de Missões');
+
+        const renderQuest = (quest: { name: string; description: string; goals: { description: string; current: number; required: number }[]; reward: { scrap: number; xp?: number; supplies?: number } }) => {
+            console.log(`\n📌 ${quest.name}\n   ${quest.description}`);
+            quest.goals.forEach((goal) => {
+                const bar = this.makeProgressBar(goal.current, goal.required, 20);
+                console.log(`   🎯 ${goal.description}: ${bar} ${goal.current}/${goal.required}`);
             });
-        }
+            console.log(`   🏆 Recompensa: ${quest.reward.scrap}💰 +${quest.reward.xp ?? 0} XP +${quest.reward.supplies ?? 0}🍞`);
+        };
+
+        console.log('\n── PRINCIPAL ──');
+        if (main.length === 0) console.log('(nenhuma)');
+        else main.forEach(renderQuest);
+
+        console.log('\n── SECUNDÁRIAS ──');
+        if (side.length === 0) console.log('(nenhuma)');
+        else side.forEach(renderQuest);
+
+        console.log('\n── CONCLUÍDAS ──');
+        if (completed.length === 0) console.log('(nenhuma)');
+        else completed.forEach((q) => console.log(`   ✅ ${q.name}`));
+
         console.log('\n   0. 🔙 Voltar');
         this.ask('Pressione Enter para voltar...', () => this.showCampaignMenu());
     }

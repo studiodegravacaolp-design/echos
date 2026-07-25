@@ -17,7 +17,8 @@
 - **Progressão & Recompensas:** Integrated (Sucata, Drops, XP, Level-Up, Stat Scaling DRF)
 - **Habilidades de Combate:** Integrated (EP, Cooldown, Status, Gating por Estafa)
 - **Mercadores & Economia:** Integrated (Comprar Mantimentos, Reparo, Itens por Sucata)
-- **Interface CLI:** GameLoop v2.0 (Menu, HUD, Combate, Habilidades, Diálogo, Mercador, Game Over)
+- **Sistema de Missões:** Integrated (Main/Side, Gatilhos de Nó/Combate/Diálogo, Recompensas, Persistência)
+- **Interface CLI:** GameLoop v2.0 (Menu, HUD+Missão, Combate, Habilidades, Diálogo, Mercador, Diário, Game Over)
 - **Conteúdo:** Ato 2 (Profundezas de Brenhold) + 9 templates de inimigos
 - **Assets & Visuais:** Git LFS (.gitattributes, Portraits, Spritesheets)
 
@@ -27,7 +28,13 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-07-25] — Persistência de Habilidades & Árvore de Talentos no SaveSlotEngine (HEAD)
+### [2026-07-25] — Integração de Missões: GameLoop, Gatilhos & Persistência (HEAD)
+- **QuestManager estendido:** tipos `MAIN`/`SIDE`, metas tipadas (`REACH_NODE`/`DEFEAT_ENEMIES`/`KILL_BOSS`/`TALK_NPC`), gatilhos `notifyNodeVisited`/`notifyEnemiesDefeated`/`notifyNpcTalked`, `getActiveMainQuest`/`getCurrentGoal`, `claimQuestReward` (XP/Sucata/Mantimentos) e `serializeState`/`restoreState`. Catálogo em `QuestContent.ts` (missão principal + secundária).
+- **GameLoop:** registra/ativa quests no novo jogo; HUD mostra a **Missão Principal** e a etapa atual; "Ver Diário de Missões" lista principal/secundárias/concluídas; gatilhos disparam na travessia (nó), na vitória de combate (inimigos) e no fim de diálogo (NPC); recompensas concedidas ao grupo automaticamente.
+- **Persistência:** `SaveSlotEngine` serializa/reidrata o estado das quests (`quests` no payload), com auto-migração para saves legados (checksum SHA-256 preservado).
+- **Testes:** `QuestIntegration` 22/22 (gatilhos → conclusão → recompensa → salvar/carregar). Type-check limpo; regressão verde.
+
+### [2026-07-25] — Persistência de Habilidades & Árvore de Talentos no SaveSlotEngine
 - **Schema de save expandido:** `ISavedCharacter` ganha `learnedAbilityIds` (habilidades ativas aprendidas) e `unlockedSkillNodes` (nós passivos da árvore). `saveToSlot` captura ambos via `ProgressionManager`/`SkillTreeEngine` (opções); checksum SHA-256 preservado.
 - **Reidratação na carga:** `applyPayloadToCampaign` reconstrói as habilidades do catálogo canônico (`CANONICAL_ABILITIES`) e reaplica os bônus passivos via `SkillTreeEngine.restoreUnlockedNodes` (novo). `GameLoop.loadSlot` passa o `skillTree`; `startNewGame` inicializa a árvore.
 - **Auto-migração:** saves legados recebem o **starter kit** de habilidades e árvore vazia, mantendo a integridade do checksum (validação antes da migração em memória).
