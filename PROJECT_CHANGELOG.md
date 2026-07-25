@@ -25,7 +25,11 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-07-25] — Ganchos de Nó: Diálogos Ancorados & Reabastecimento (HEAD)
+### [2026-07-25] — Diretriz de Documentação Contínua (HEAD)
+- **Implementado:** `CLAUDE.md` na raiz formaliza a regra de **commit atômico** (código + `PROJECT_CHANGELOG.md` sempre no mesmo commit). A partir daqui, toda entrega atualiza este changelog junto do código.
+
+### [2026-07-25] — Ganchos de Nó: Diálogos Ancorados & Reabastecimento
+- **Commit:** `708506c`
 - **Commit:** `708506c`
 - **Implementado:** nós do mapa ganham `dialogueId` e `supplyRestock`. `traverseToNode` reabastece mantimentos (limpando crise) e o CLI dispara o diálogo ancorado ao chegar (Condutos de Vapor → Autômato Preso; Refúgio → Engenheira Ferida).
 - **Testes:** +4 em `CampaignNavigationIntegration`, +7 na seção H de `GameLoopCLIIntegration`.
