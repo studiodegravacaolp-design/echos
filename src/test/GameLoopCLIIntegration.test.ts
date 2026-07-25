@@ -165,6 +165,37 @@ function runSlotListingTest(): void {
 }
 
 // ====================================================================
+// E) GERAÇÃO DE ENCONTRO AO ENTRAR EM NÓ HOSTIL
+// ====================================================================
+function runEncounterTest(): void {
+    printSection('E — Encontro de combate ao atravessar nó hostil');
+
+    const loop = newLoop();
+    loop.startNewGame();
+
+    // entrance → sector_01_combat (COMBAT_ARENA, hazard 2) → encontro de tamanho 2.
+    const combat = loop.performTraversal('sector_01_combat');
+    assert(combat.result.success === true, 'E.1: travessia bem-sucedida');
+    assert(combat.encounter !== undefined, 'E.2: nó de combate gera encontro');
+    assert(combat.encounter!.enemies.length === 2, `E.3: hazard 2 → 2 inimigos (obtido ${combat.encounter!.enemies.length})`);
+    assert(combat.encounter!.ais.length === combat.encounter!.enemies.length, 'E.4: uma IA de combate por inimigo');
+
+    // Arquétipos mapeados para o AIArchetype de combate legado.
+    const archetypes = combat.encounter!.ais.map((ai) => ai.archetype);
+    const validArchetypes = archetypes.every((a) => ['ASSASSINO', 'PROTETOR', 'DRENADOR_ESTAFA'].includes(a));
+    assert(validArchetypes, 'E.5: IAs usam AIArchetype de combate válido (via ENEMY_TO_COMBAT_ARCHETYPE)');
+
+    // Inimigos escalados têm HP/dano positivos.
+    const scaledOk = combat.encounter!.enemies.every((e) => e.stats.maxHp > 0 && e.stats.damage > 0 && e.level >= 1);
+    assert(scaledOk, 'E.6: inimigos possuem atributos escalados válidos');
+
+    // Nó não-hostil (SCRAP_TRADER) NÃO gera encontro.
+    const trade = loop.performTraversal('black_market_trader');
+    assert(trade.result.success === true, 'E.7: travessia ao mercador bem-sucedida');
+    assert(trade.encounter === undefined, 'E.8: nó de comércio não gera encontro');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -173,6 +204,7 @@ function main(): void {
         runHudTest();
         runManualSaveTest();
         runSlotListingTest();
+        runEncounterTest();
     } finally {
         cleanup();
     }

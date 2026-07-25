@@ -25,12 +25,13 @@
 import * as readline from 'readline';
 import { CharacterState } from '../core/CharacterState';
 import { CampaignManager } from '../core/CampaignManager';
-import { CampaignMapEngine, ITraversalResult } from '../core/CampaignMapEngine';
+import { CampaignMapEngine, ITraversalResult, ICampaignNode, NodeType } from '../core/CampaignMapEngine';
 import { CraftingEngine } from '../core/CraftingEngine';
 import { EquipmentEngine } from '../core/EquipmentEngine';
 import { QuestManager, QuestStatus } from '../core/QuestManager';
 import { SaveSlotEngine, SaveSlotId, ISaveSlotSummary } from '../core/SaveSlotEngine';
 import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
+import { BestiaryEngine, IEnemyInstance, ENEMY_TO_COMBAT_ARCHETYPE } from '../core/BestiaryEngine';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
@@ -51,6 +52,18 @@ const HERO_ID = 'hero_engineer_01';
 /** Slots manuais de save disponíveis no menu de descanso. */
 const MANUAL_SLOTS: SaveSlotId[] = ['SLOT_1', 'SLOT_2', 'SLOT_3'];
 
+/** Tipos de nó que disparam um encontro de combate ao serem atravessados. */
+const COMBAT_NODE_TYPES: ReadonlySet<NodeType> = new Set<NodeType>(['COMBAT_ARENA', 'AMBUSH']);
+
+/** Encontro de combate gerado ao entrar em um nó hostil. */
+export interface IGeneratedEncounter {
+    nodeId: string;
+    nodeType: NodeType;
+    enemies: IEnemyInstance[];
+    /** IAs de combate instanciadas (uma por inimigo). */
+    ais: CombatAIEngine[];
+}
+
 // ==================================================================
 // CLASSE PRINCIPAL — CLIGameLoop
 // ==================================================================
@@ -63,6 +76,7 @@ export class CLIGameLoop {
     private craftingEngine = new CraftingEngine();
     private eqEngine = new EquipmentEngine();
     private questManager = new QuestManager();
+    private bestiary = new BestiaryEngine();
     private readonly saveSlots: SaveSlotEngine;
 
     /** Marca de início da sessão para cálculo de playTime nos metadados. */
@@ -180,13 +194,63 @@ export class CLIGameLoop {
      * Executa a travessia (recursos + desgaste + estafa) e, em caso de
      * sucesso, dispara o salvamento automático no slot AUTOSAVE.
      */
-    public performTraversal(targetNodeId: string): { result: ITraversalResult; autoSaved: boolean } {
+    public performTraversal(
+        targetNodeId: string,
+    ): { result: ITraversalResult; autoSaved: boolean; encounter?: IGeneratedEncounter } {
         const result = this.mapEngine.traverseToNode(this.campaign, targetNodeId);
-        let autoSaved = false;
-        if (result.success) {
-            autoSaved = this.autoSave();
+        if (!result.success) {
+            return { result, autoSaved: false };
         }
-        return { result, autoSaved };
+
+        // Nós hostis disparam um encontro escalado pelo perigo do duto.
+        let encounter: IGeneratedEncounter | undefined;
+        const node = this.mapEngine.getNodeDetails(targetNodeId);
+        if (node && COMBAT_NODE_TYPES.has(node.type)) {
+            encounter = this.generateEncounterForNode(node);
+        }
+
+        const autoSaved = this.autoSave();
+        return { result, autoSaved, encounter };
+    }
+
+    /**
+     * getPartyAverageLevel()
+     * ------------------------------------------------------------------
+     * Nível médio (arredondado) da party — usado para escalar encontros.
+     */
+    public getPartyAverageLevel(): number {
+        const party = this.campaign.getPartyState();
+        if (party.length === 0) return 1;
+        const sum = party.reduce((acc, c) => acc + c.currentLevel, 0);
+        return Math.max(1, Math.round(sum / party.length));
+    }
+
+    /**
+     * generateEncounterForNode(node)
+     * ------------------------------------------------------------------
+     * Gera um encontro escalado para um nó hostil: instancia os inimigos
+     * (BestiaryEngine.generateEncounter), semeia RUST_LOCK ambiental em
+     * áreas oxidadas (perigo >= 3) e cria a IA de combate de cada inimigo
+     * mapeando o arquétipo do bestiário para o AIArchetype de combate.
+     */
+    public generateEncounterForNode(node: ICampaignNode): IGeneratedEncounter {
+        const hazard = Math.max(1, node.hazardLevel ?? 1);
+        const partyLevel = this.getPartyAverageLevel();
+        const estafaBalance = this.campaign.getProgress().estafaBalance;
+
+        const enemies = this.bestiary.generateEncounter(hazard, partyLevel, { estafaBalance });
+
+        // Dutos muito oxidados (perigo alto) podem travar autômatos por ferrugem.
+        const oxidationLevel = hazard >= 3 ? 0.5 : 0;
+        for (const enemy of enemies) {
+            this.bestiary.applyEncounterStatus(enemy, { oxidationLevel });
+        }
+
+        const ais = enemies.map(
+            (e) => new CombatAIEngine(e.instanceId, ENEMY_TO_COMBAT_ARCHETYPE[e.archetypeAI]),
+        );
+
+        return { nodeId: node.id, nodeType: node.type, enemies, ais };
     }
 
     /**
@@ -456,7 +520,7 @@ export class CLIGameLoop {
                     return this.showCampaignMenu();
                 }
 
-                const { result, autoSaved } = this.performTraversal(targetNodeId);
+                const { result, autoSaved, encounter } = this.performTraversal(targetNodeId);
                 if (!result.success) {
                     console.log(`\n❌ ${result.message ?? 'Não foi possível atravessar.'}`);
                     return this.showCampaignMenu();
@@ -468,6 +532,14 @@ export class CLIGameLoop {
                     console.log('   ⚠️ ESCASSEZ DE MANTIMENTOS — o grupo avança exausto!');
                 }
                 console.log(autoSaved ? '   💾 AutoSave concluído.' : '   ⚠️ Falha no AutoSave.');
+
+                if (encounter) {
+                    console.log(`\n⚔️ ENCONTRO (${encounter.nodeType})! ${encounter.enemies.length} inimigo(s) surgem dos dutos:`);
+                    encounter.enemies.forEach((e, i) => {
+                        const rusted = e.activeStatuses.some((s) => s.type === 'RUST_LOCK') ? ' 🟠(travado por ferrugem)' : '';
+                        console.log(`   ${i + 1}. ${e.name} [Nv.${e.level}] HP ${e.stats.maxHp} | DMG ${e.stats.damage} | DEF ${e.stats.defense} — IA ${e.archetypeAI}${rusted}`);
+                    });
+                }
                 this.showCampaignMenu();
             });
         });
