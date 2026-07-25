@@ -447,6 +447,22 @@ export class CharacterState {
     this._stats.currentHp = Math.max(0, this._stats.currentHp - amount);
   }
 
+  /**
+   * applyScaledCombatStats(scaled)
+   * ------------------------------------------------------------------
+   * Aplica atributos de combate escalados por nível (dano, defesa,
+   * resiliência) — normalmente calculados por
+   * ProgressionManager.scaleStatsWithDiminishingReturns. Preserva HP
+   * atual/máximo e velocidade de movimento (não escalados por design).
+   *
+   * @param scaled - Atributos escalados a aplicar
+   */
+  public applyScaledCombatStats(scaled: { damage: number; defense: number; resilience: number }): void {
+    if (Number.isFinite(scaled.damage)) this._stats.damage = scaled.damage;
+    if (Number.isFinite(scaled.defense)) this._stats.defense = scaled.defense;
+    if (Number.isFinite(scaled.resilience)) this._stats.resilience = scaled.resilience;
+  }
+
   // ==================================================================
   // MÉTODO DE SEGURANÇA RÍGIDO — enforceEstafaOntologicalLock
   // ==================================================================

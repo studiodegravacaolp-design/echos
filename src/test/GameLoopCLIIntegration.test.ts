@@ -215,6 +215,31 @@ function runGameOverTest(): void {
 }
 
 // ====================================================================
+// G) ESCALA DE ATRIBUTOS POR NÍVEL
+// ====================================================================
+function runLevelScalingTest(): void {
+    printSection('G — Atributos de herói escalam com o nível');
+
+    const loop = newLoop();
+    const campaign = loop.startNewGame();
+    const hero = campaign.getPartyState()[0];
+
+    // Base nível 1: damage 10, defense 5.
+    assert(hero.stats.damage === 10 && hero.stats.defense === 5, 'G.1: atributos-base no nível 1');
+
+    // Sobe para nível 10 e reaplica a escala (DRF = 10^0.7 ≈ 5.0119).
+    hero.currentLevel = 10;
+    loop.applyLevelScaling(hero);
+    assert(hero.stats.damage === 50, `G.2: dano escalado 10 → 50 (obtido ${hero.stats.damage})`);
+    assert(hero.stats.defense === 25, `G.3: defesa escalada 5 → 25 (obtido ${hero.stats.defense})`);
+    assert(hero.stats.maxHp === 100, 'G.4: maxHp não é escalado por nível (design)');
+
+    // Idempotente: reaplicar não recompõe sobre o valor já escalado.
+    loop.applyLevelScaling(hero);
+    assert(hero.stats.damage === 50, 'G.5: reaplicar a escala é idempotente');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -225,6 +250,7 @@ function main(): void {
         runSlotListingTest();
         runEncounterTest();
         runGameOverTest();
+        runLevelScalingTest();
     } finally {
         cleanup();
     }

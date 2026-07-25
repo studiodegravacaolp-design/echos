@@ -38,7 +38,7 @@ import { CombatRewardEngine } from '../core/CombatRewardEngine';
 import { ProgressionManager } from '../core/ProgressionManager';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
-import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
+import { LatentLineageAxis, SlotType, ICharacterStats } from '../types/aetheris.types';
 
 // ==================================================================
 // CONSTANTES
@@ -92,6 +92,9 @@ export class CLIGameLoop {
     /** Marca de início da sessão para cálculo de playTime nos metadados. */
     private sessionStart = Date.now();
 
+    /** Atributos-base (nível 1) por herói, para reaplicar a escala por nível. */
+    private heroBaseStats = new Map<string, ICharacterStats>();
+
     /**
      * @param saveSlots - Engine de saves multi-slot (injetável para testes herméticos).
      */
@@ -110,8 +113,9 @@ export class CLIGameLoop {
      * de entrada. Retorna a campanha criada.
      */
     public startNewGame(): CampaignManager {
+        const baseStats: ICharacterStats = { maxHp: 100, currentHp: 100, damage: 10, defense: 5, resilience: 5, movementSpeed: 10 };
         const hero = new CharacterState(
-            { maxHp: 100, currentHp: 100, damage: 10, defense: 5, resilience: 5, movementSpeed: 10 },
+            { ...baseStats },
             LatentLineageAxis.NEUTRO_ABSOLUTO,
             undefined,
             undefined,
@@ -122,7 +126,26 @@ export class CLIGameLoop {
         this.campaign = new CampaignManager([hero]);
         this.campaign.setCurrentNode('brenhold_entrance');
         this.sessionStart = Date.now();
+
+        // Registra os atributos-base para a escala de progressão por nível.
+        this.heroBaseStats.clear();
+        this.heroBaseStats.set(hero.id, { ...baseStats });
+
         return this.campaign;
+    }
+
+    /**
+     * applyLevelScaling(character)
+     * ------------------------------------------------------------------
+     * Recalcula os atributos de combate do personagem a partir de seus
+     * atributos-base e do nível atual (DRF do ProgressionManager) e os
+     * aplica. Idempotente — sempre escala a partir da base registrada.
+     */
+    public applyLevelScaling(character: CharacterState): void {
+        const base = this.heroBaseStats.get(character.id);
+        if (!base) return;
+        const scaled = this.progression.scaleStatsWithDiminishingReturns(base, character.currentLevel);
+        character.applyScaledCombatStats(scaled);
     }
 
     /** Retorna a campanha ativa. */
@@ -315,6 +338,10 @@ export class CLIGameLoop {
         reward.levelUps.forEach((lu) => {
             console.log(`   ⬆️ ${lu.characterId} subiu ${lu.levelsGained} nível(is) → Nv.${lu.newLevel}!`);
         });
+        // Aplica o crescimento de atributos aos que subiram de nível.
+        if (reward.levelUps.length > 0) {
+            survivors.forEach((c) => this.applyLevelScaling(c));
+        }
         if (reward.overflowMarks > 0) {
             console.log(`   ✨ +${reward.overflowMarks} Marca(s) de Aço (overflow no teto).`);
         }
@@ -420,6 +447,10 @@ export class CLIGameLoop {
         this.startNewGame(); // esqueleto com o id de herói correto
         this.progression.clear(); // limpa o XP da sessão antes de restaurar
         const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression);
+        if (result.success) {
+            // Reaplica a escala por nível ao estado restaurado.
+            this.campaign.getPartyState().forEach((c) => this.applyLevelScaling(c));
+        }
         return result.success;
     }
 
