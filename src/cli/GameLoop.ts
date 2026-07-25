@@ -3,43 +3,33 @@
  * GameLoop.ts
  * --------------------------------------------------------------------
  * CLI (Command-Line Interface) Game Loop para o Projeto Aetheris.
- * 
- * Implementa um loop de jogo interativo via terminal que conecta
- * todos os sistemas core:
- *   - CampaignManager (progresso narrativo)
- *   - CampaignMapEngine (navegação entre nós do mapa)
- *   - CraftingEngine (manufatura de equipamentos — receitas carregadas
- *     de CanonicalContent.ts, sem hardcode local)
- *   - EquipmentEngine (equipar/desequipar itens — catálogo também de
- *     CanonicalContent.ts)
- *   - QuestManager (missões ativas)
- *   - SaveSystem (persistência em disco com checksum SHA-256)
- *   - CharacterState (estado do herói)
  *
- * Fluxo principal:
- *   1. start() → exibe tela de boas-vindas e menu de boot
- *   2. showBootMenu() → Novo Jogo / Carregar Jogo Salvo / Sair
- *      - Novo Jogo → initializeNewGame() → showMainMenu()
- *      - Carregar  → handleLoadGame() (via SaveSystem.loadGame(),
- *        checksum validado) → showMainMenu()
- *   3. showMainMenu() → loop central com 5 opções
- *   4. Cada handler (handleTravel, handleCrafting, etc.) executa
- *      a lógica do sistema correspondente e retorna ao menu
- *   5. Opção 5 (Salvar e Sair) → handleSaveAndExit() → SaveSystem.saveGame()
+ * Conecta os sistemas core ao fluxo de jogo interativo via terminal:
+ *   - CampaignManager       (progresso, recursos, party)
+ *   - CampaignMapEngine     (navegação/travessia de nós com custo/perigo)
+ *   - SaveSlotEngine        (saves multi-slot + AUTOSAVE, checksum SHA-256)
+ *   - CraftingEngine / EquipmentEngine / QuestManager
+ *   - CombatAIEngine        (Insubordinação Tática)
  *
- * Versão: 1.1.0
- * Status: IMPLEMENTADO
+ * ARQUITETURA TESTÁVEL:
+ *   A lógica de fluxo vive em métodos "core" puros de I/O de terminal
+ *   (startNewGame, performTraversal, autoSave, saveToManualSlot,
+ *   loadSlot, listSlots, HUD). A camada readline apenas os orquestra.
+ *   Isso permite testar o ciclo Novo Jogo → Travessia → AutoSave →
+ *   Carregar sem depender de stdin/process.exit.
+ *
+ * Versão: 2.0.0
  * ====================================================================
  */
 
 import * as readline from 'readline';
 import { CharacterState } from '../core/CharacterState';
 import { CampaignManager } from '../core/CampaignManager';
-import { CampaignMapEngine } from '../core/CampaignMapEngine';
+import { CampaignMapEngine, ITraversalResult } from '../core/CampaignMapEngine';
 import { CraftingEngine } from '../core/CraftingEngine';
 import { EquipmentEngine } from '../core/EquipmentEngine';
 import { QuestManager, QuestStatus } from '../core/QuestManager';
-import { SaveSystem } from '../core/SaveSystem';
+import { SaveSlotEngine, SaveSlotId, ISaveSlotSummary } from '../core/SaveSlotEngine';
 import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
@@ -49,312 +39,441 @@ import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
 // CONSTANTES
 // ==================================================================
 
-/** Slots de equipamento disponíveis no jogo */
+/** Slots de equipamento disponíveis no jogo (modelo legado slot-based). */
 const EQUIPMENT_SLOTS: SlotType[] = ['WEAPON', 'ARMOR', 'CORE_MOD'];
 
-// ==================================================================
-// CATÁLOGO DE EQUIPAMENTOS CONHECIDOS
-// ==================================================================
-// Mapeia IDs de equipamentos para suas definições completas (IEquipmentItem).
-// Usado pelo fluxo de equipar para reconstruir o objeto a partir do
-// IInventoryItem armazenado no inventário global.
-//
-// CONECTADO: consome diretamente CANONICAL_EQUIPMENT do banco de
-// dados canônico (src/database/CanonicalContent.ts) — não há mais
-// catálogo hardcoded duplicado aqui.
-// ==================================================================
-
+/** Catálogo canônico de equipamentos. */
 const EQUIPMENT_CATALOG = CANONICAL_EQUIPMENT;
+
+/** Id fixo do herói inicial. */
+const HERO_ID = 'hero_engineer_01';
+
+/** Slots manuais de save disponíveis no menu de descanso. */
+const MANUAL_SLOTS: SaveSlotId[] = ['SLOT_1', 'SLOT_2', 'SLOT_3'];
 
 // ==================================================================
 // CLASSE PRINCIPAL — CLIGameLoop
 // ==================================================================
 
 export class CLIGameLoop {
-    private rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    /** Interface readline — criada preguiçosamente em start() (testes não abrem stdin). */
+    private rl!: readline.Interface;
     private campaign!: CampaignManager;
     private mapEngine = new CampaignMapEngine();
     private craftingEngine = new CraftingEngine();
     private eqEngine = new EquipmentEngine();
     private questManager = new QuestManager();
+    private readonly saveSlots: SaveSlotEngine;
+
+    /** Marca de início da sessão para cálculo de playTime nos metadados. */
+    private sessionStart = Date.now();
 
     /**
-     * Cria uma nova instância do CLIGameLoop.
-     *
-     * NÃO inicializa o jogo aqui — a escolha entre Novo Jogo e
-     * Carregar Jogo Salvo acontece no boot, via start() → showBootMenu().
+     * @param saveSlots - Engine de saves multi-slot (injetável para testes herméticos).
      */
-    constructor() {
-        // Intencionalmente vazio — ver showBootMenu().
+    constructor(saveSlots: SaveSlotEngine = new SaveSlotEngine()) {
+        this.saveSlots = saveSlots;
     }
 
     // ==============================================================
-    // INICIALIZAÇÃO
+    // NÚCLEO TESTÁVEL — SEM readline / process.exit
     // ==============================================================
 
     /**
-     * initializeNewGame()
+     * startNewGame()
      * ------------------------------------------------------------------
-     * Cria o herói padrão (Luis, O Engenheiro) com 50 de sucata inicial
-     * e posiciona a campanha no nó 'brenhold_entrance'.
-     *
-     * Também serve de base para o fluxo de Carregar Jogo Salvo: o save
-     * (CampaignManager.loadGameState) restaura dados casando pelo `id`
-     * do personagem, então a party-esqueleto precisa existir primeiro
-     * com o mesmo id ('hero_engineer_01').
-     *
-     * @returns Objeto com o ID do herói criado
+     * Cria a party-esqueleto (herói padrão) e uma nova campanha no nó
+     * de entrada. Retorna a campanha criada.
      */
-    private initializeNewGame(): { heroId: string } {
+    public startNewGame(): CampaignManager {
         const hero = new CharacterState(
-            {
-                maxHp: 100,
-                currentHp: 100,
-                damage: 10,
-                defense: 5,
-                resilience: 5,
-                movementSpeed: 10,
-            },
+            { maxHp: 100, currentHp: 100, damage: 10, defense: 5, resilience: 5, movementSpeed: 10 },
             LatentLineageAxis.NEUTRO_ABSOLUTO,
             undefined,
             undefined,
             null,
-            'hero_engineer_01',
+            HERO_ID,
         );
         hero.scrapCount = 50;
         this.campaign = new CampaignManager([hero]);
         this.campaign.setCurrentNode('brenhold_entrance');
-        return { heroId: hero.id };
+        this.sessionStart = Date.now();
+        return this.campaign;
+    }
+
+    /** Retorna a campanha ativa. */
+    public getCampaign(): CampaignManager {
+        return this.campaign;
+    }
+
+    /** Atalho para o herói principal. */
+    private getHero(): CharacterState {
+        return this.campaign.getPartyState()[0];
+    }
+
+    /** Segundos de jogo desde o início da sessão. */
+    private playTimeSeconds(): number {
+        return Math.floor((Date.now() - this.sessionStart) / 1000);
+    }
+
+    /**
+     * getPartyStatusHUD()
+     * ------------------------------------------------------------------
+     * Monta o HUD de status do grupo: Mantimentos, Estafa, posição e o
+     * estado dos equipamentos duráveis. Retorna string (testável).
+     */
+    public getPartyStatusHUD(): string {
+        const progress = this.campaign.getProgress();
+        const hero = this.getHero();
+        const node = this.mapEngine.getNodeDetails(progress.currentNodeId);
+        const areaName = node?.name ?? progress.currentNodeId;
+        const crisis = this.campaign.isSurvivalCrisis() ? ' ⚠️ ESCASSEZ' : '';
+
+        const lines = [
+            `📍 Área: ${areaName}`,
+            `🍞 Mantimentos: ${this.campaign.getSupplies()}${crisis}`,
+            `⚖️ Estafa: ${progress.estafaBalance} ${this.estafaLabel(progress.estafaBalance)}`,
+            `👤 ${hero.id} | HP: ${hero.hp}/${hero.maxHp} | Sucata: ${hero.scrapCount}💰`,
+            `🛠️ Equipamentos: ${this.getEquipmentSummary()}`,
+        ];
+        return lines.join('\n');
+    }
+
+    /** Rótulo do polo da Estafa. */
+    private estafaLabel(estafa: number): string {
+        if (estafa <= -60) return '(Materno Extremo)';
+        if (estafa >= 60) return '(Paterno Extremo)';
+        if (estafa < 0) return '(Materno)';
+        if (estafa > 0) return '(Paterno)';
+        return '(Equilíbrio)';
+    }
+
+    /**
+     * getEquipmentSummary()
+     * ------------------------------------------------------------------
+     * Resume o estado dos equipamentos duráveis do herói (durabilidade e
+     * oxidação). Retorna "(nenhum)" se não houver.
+     */
+    public getEquipmentSummary(): string {
+        const durable = this.getHero().durableEquipment;
+        if (durable.length === 0) return '(nenhum)';
+        return durable
+            .map((item) => {
+                const rusted = EquipmentEngine.isRusted(item) ? ' 🟠OXIDADO' : '';
+                return `${item.name} ${item.durability.current}/${item.durability.max}${rusted}`;
+            })
+            .join(', ');
+    }
+
+    /**
+     * previewTraversal(targetNodeId)
+     * ------------------------------------------------------------------
+     * Custo/perigo estimado de atravessar até um destino, para confirmação.
+     */
+    public previewTraversal(targetNodeId: string) {
+        return this.mapEngine.getTraversalPreview(targetNodeId);
+    }
+
+    /**
+     * performTraversal(targetNodeId)
+     * ------------------------------------------------------------------
+     * Executa a travessia (recursos + desgaste + estafa) e, em caso de
+     * sucesso, dispara o salvamento automático no slot AUTOSAVE.
+     */
+    public performTraversal(targetNodeId: string): { result: ITraversalResult; autoSaved: boolean } {
+        const result = this.mapEngine.traverseToNode(this.campaign, targetNodeId);
+        let autoSaved = false;
+        if (result.success) {
+            autoSaved = this.autoSave();
+        }
+        return { result, autoSaved };
+    }
+
+    /**
+     * autoSave()
+     * ------------------------------------------------------------------
+     * Salva o estado atual no slot AUTOSAVE.
+     */
+    public autoSave(): boolean {
+        const progress = this.campaign.getProgress();
+        const areaName = this.mapEngine.getNodeDetails(progress.currentNodeId)?.name ?? progress.currentNodeId;
+        return this.saveSlots.saveToSlot('AUTOSAVE', this.campaign, {
+            playTimeSeconds: this.playTimeSeconds(),
+            currentAreaName: areaName,
+        });
+    }
+
+    /**
+     * saveToManualSlot(slotId)
+     * ------------------------------------------------------------------
+     * Salva o estado atual em um slot manual (SLOT_1..SLOT_3).
+     */
+    public saveToManualSlot(slotId: SaveSlotId): boolean {
+        const progress = this.campaign.getProgress();
+        const areaName = this.mapEngine.getNodeDetails(progress.currentNodeId)?.name ?? progress.currentNodeId;
+        return this.saveSlots.saveToSlot(slotId, this.campaign, {
+            playTimeSeconds: this.playTimeSeconds(),
+            currentAreaName: areaName,
+        });
+    }
+
+    /**
+     * loadSlot(slotId)
+     * ------------------------------------------------------------------
+     * Cria uma party-esqueleto e restaura o estado do slot nela.
+     *
+     * @returns true se carregado com sucesso.
+     */
+    public loadSlot(slotId: SaveSlotId): boolean {
+        this.startNewGame(); // esqueleto com o id de herói correto
+        const result = this.saveSlots.loadFromSlot(slotId, this.campaign);
+        return result.success;
+    }
+
+    /** Lista o resumo dos slots de save. */
+    public listSlots(): ISaveSlotSummary[] {
+        return this.saveSlots.listSaveSlots();
     }
 
     // ==============================================================
-    // LOOP PRINCIPAL
+    // CAMADA INTERATIVA — readline
     // ==============================================================
 
     /**
      * start()
      * ------------------------------------------------------------------
-     * Ponto de entrada do jogo. Limpa o console, exibe o banner de
-     * boas-vindas e entra no menu de boot (Novo Jogo / Carregar / Sair).
+     * Ponto de entrada interativo. Cria a interface readline e exibe o
+     * Menu Principal.
      */
     public start(): void {
+        this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
         console.clear();
-        console.log("==================================================");
-        console.log("🛡️ BEM-VINDO AOS DUTOS DE BRENHOLD — AETHERIS BETA");
-        console.log("==================================================");
-        this.showBootMenu();
-    }
-
-    /**
-     * showBootMenu()
-     * ------------------------------------------------------------------
-     * Menu de entrada exibido antes de qualquer estado de campanha
-     * existir. Oferece três caminhos:
-     *   1. Iniciar Novo Jogo — chama initializeNewGame() e segue para
-     *      o menu principal.
-     *   2. Carregar Jogo Salvo — valida a existência do save via
-     *      SaveSystem.saveExists() e, se houver, restaura o estado
-     *      completo via handleLoadGame().
-     *   3. Sair — encerra o processo sem tocar em nenhum estado.
-     */
-    private showBootMenu(): void {
-        console.log("\n1. 🆕 Iniciar Novo Jogo");
-        console.log("2. 💾 Carregar Jogo Salvo");
-        console.log("3. 🚪 Sair");
-        console.log("----------------------------------");
-
-        this.rl.question("Escolha uma opção: ", (answer) => {
-            switch (answer.trim()) {
-                case '1':
-                    this.initializeNewGame();
-                    console.log("\n✅ Novo jogo iniciado. Bem-vindo, Engenheiro.");
-                    this.showMainMenu();
-                    break;
-                case '2':
-                    this.handleLoadGame();
-                    break;
-                case '3':
-                    console.log("\n🛑 Encerrando... Até a próxima, Engenheiro!");
-                    this.rl.close();
-                    process.exit(0);
-                default:
-                    console.log("⚠️ Opção inválida!");
-                    this.showBootMenu();
-            }
-        });
-    }
-
-    /**
-     * handleLoadGame()
-     * ------------------------------------------------------------------
-     * Restaura uma campanha salva anteriormente:
-     *   1. Verifica se existe um save em disco (SaveSystem.saveExists()).
-     *   2. Lê e valida o checksum de integridade SHA-256
-     *      (SaveSystem.loadGame()).
-     *   3. Recria a party-esqueleto (initializeNewGame()) para que os
-     *      IDs de personagem existam antes da restauração.
-     *   4. Sobrescreve o estado com os dados salvos
-     *      (CampaignManager.loadGameState()).
-     *
-     * Em qualquer falha (sem save, checksum inválido, JSON corrompido),
-     * retorna ao boot menu sem alterar nada.
-     */
-    private handleLoadGame(): void {
-        if (!SaveSystem.saveExists()) {
-            console.log("\n❌ Nenhum save encontrado em disco.");
-            this.showBootMenu();
-            return;
-        }
-
-        const result = SaveSystem.loadGame();
-
-        if (!result.success || !result.save) {
-            console.log(`\n❌ Falha ao carregar o save: ${result.error ?? 'erro desconhecido'}`);
-            this.showBootMenu();
-            return;
-        }
-
-        // Recria a party-esqueleto (mesmo id) para o loadGameState
-        // conseguir casar os dados salvos com o personagem.
-        this.initializeNewGame();
-
-        const restored = this.campaign.loadGameState(result.save.playerData);
-
-        if (!restored) {
-            console.log("\n❌ Falha ao restaurar o estado da campanha (dados corrompidos).");
-            this.showBootMenu();
-            return;
-        }
-
-        console.log("\n✅ Jogo carregado com sucesso! Bem-vindo de volta, Engenheiro.");
+        console.log('==================================================');
+        console.log('🛡️ BEM-VINDO AOS DUTOS DE BRENHOLD — AETHERIS');
+        console.log('==================================================');
         this.showMainMenu();
     }
 
-    /**
-     * getHero()
-     * ------------------------------------------------------------------
-     * Atalho para obter o primeiro (e único) personagem da party.
-     *
-     * @returns CharacterState do herói principal
-     */
-    private getHero(): CharacterState {
-        return this.campaign.getPartyState()[0];
+    /** Pergunta encapsulada (readline). */
+    private ask(query: string, cb: (answer: string) => void): void {
+        this.rl.question(query, (answer) => cb(answer.trim()));
     }
+
+    // --------------------------------------------------------------
+    // MENU PRINCIPAL (BOOT)
+    // --------------------------------------------------------------
 
     /**
      * showMainMenu()
      * ------------------------------------------------------------------
-     * Exibe o menu principal com o status atual do herói e 5 opções
-     * de navegação. Aguarda a escolha do usuário via readline.
+     * Novo Jogo / Carregar Jogo / Gerenciar Slots de Save / Sair.
      */
     private showMainMenu(): void {
-        const hero = this.getHero();
-        const progress = this.campaign.getProgress();
-        const currentNode = this.mapEngine.getNodeDetails(progress.currentNodeId);
-        const nodeName = currentNode ? currentNode.name : progress.currentNodeId;
+        console.log('\n===== MENU PRINCIPAL =====');
+        console.log('1. 🆕 Novo Jogo');
+        console.log('2. 📂 Carregar Jogo');
+        console.log('3. 🗂️  Gerenciar Slots de Save');
+        console.log('4. 🚪 Sair');
+        console.log('--------------------------');
 
-        console.log(`\n👤 [Status] ID: ${hero.id} | HP: ${hero.hp}/${hero.maxHp} | Sucata: ${hero.scrapCount}💰`);
-        console.log(`📍 Posição Atual: ${nodeName}`);
-        console.log("----------------------------------");
-        console.log("1. 🧭 Viajar (Exploração do Mapa)");
-        console.log("2. 🔨 Forja de Equipamentos (Manufatura)");
-        console.log("3. 🎒 Gerenciar Arsenal e Equipamentos");
-        console.log("4. 📜 Diário de Missões Ativas");
-        console.log("5. 💾 Salvar e Sair do Jogo");
-        console.log("----------------------------------");
-
-        this.rl.question("Escolha uma opção: ", (answer) => {
-            switch (answer.trim()) {
-                case '1': this.handleTravel(); break;
-                case '2': this.handleCrafting(); break;
-                case '3': this.handleArsenal(); break;
-                case '4': this.handleQuests(); break;
-                case '5': this.handleSaveAndExit(); break;
+        this.ask('Escolha uma opção: ', (answer) => {
+            switch (answer) {
+                case '1':
+                    this.startNewGame();
+                    console.log('\n✅ Novo jogo iniciado. Bem-vindo, Engenheiro.');
+                    this.showCampaignMenu();
+                    break;
+                case '2':
+                    this.showLoadMenu();
+                    break;
+                case '3':
+                    this.showSlotManager();
+                    break;
+                case '4':
+                    this.exit();
+                    break;
                 default:
-                    console.log("⚠️ Opção inválida!");
+                    console.log('⚠️ Opção inválida!');
                     this.showMainMenu();
             }
         });
     }
 
-    // ==============================================================
-    // HANDLER 1 — VIAJAR (MAPA)
-    // ==============================================================
+    /** Renderiza uma linha de resumo de slot. */
+    private formatSlotSummary(summary: ISaveSlotSummary): string {
+        if (summary.empty || !summary.metadata) {
+            return `${summary.slotId}: (vazio)`;
+        }
+        const m = summary.metadata;
+        const mins = Math.floor(m.playTimeSeconds / 60);
+        const secs = m.playTimeSeconds % 60;
+        return (
+            `${summary.slotId}: ${m.currentAreaName} | Líder: ${m.partyLeaderName} | ` +
+            `⏱️ ${mins}m${secs}s | 🍞 ${m.supplies} | ⚖️ ${m.estafaBalance}`
+        );
+    }
+
+    /**
+     * showLoadMenu()
+     * ------------------------------------------------------------------
+     * Lista os slots com seus resumos e permite carregar um deles.
+     */
+    private showLoadMenu(): void {
+        const slots = this.listSlots();
+        console.log('\n===== CARREGAR JOGO =====');
+        slots.forEach((s, i) => console.log(`${i + 1}. ${this.formatSlotSummary(s)}`));
+        console.log('0. 🔙 Voltar');
+
+        this.ask('\nEscolha o slot para carregar: ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.showMainMenu();
+            if (isNaN(choice) || choice < 1 || choice > slots.length) {
+                console.log('⚠️ Opção inválida!');
+                return this.showLoadMenu();
+            }
+            const target = slots[choice - 1];
+            if (target.empty) {
+                console.log('❌ Slot vazio — nada a carregar.');
+                return this.showLoadMenu();
+            }
+            const ok = this.loadSlot(target.slotId);
+            if (ok) {
+                console.log(`\n✅ ${target.slotId} carregado! Bem-vindo de volta, Engenheiro.`);
+                this.showCampaignMenu();
+            } else {
+                console.log('❌ Falha ao carregar o slot (corrompido ou inválido).');
+                this.showLoadMenu();
+            }
+        });
+    }
+
+    /**
+     * showSlotManager()
+     * ------------------------------------------------------------------
+     * Lista os slots e permite apagar um deles.
+     */
+    private showSlotManager(): void {
+        const slots = this.listSlots();
+        console.log('\n===== GERENCIAR SLOTS DE SAVE =====');
+        slots.forEach((s, i) => console.log(`${i + 1}. ${this.formatSlotSummary(s)}`));
+        console.log('0. 🔙 Voltar');
+
+        this.ask('\nEscolha um slot para APAGAR (ou 0): ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.showMainMenu();
+            if (isNaN(choice) || choice < 1 || choice > slots.length) {
+                console.log('⚠️ Opção inválida!');
+                return this.showSlotManager();
+            }
+            const target = slots[choice - 1];
+            const ok = this.saveSlots.deleteSlot(target.slotId);
+            console.log(ok ? `🗑️ ${target.slotId} apagado.` : '❌ Falha ao apagar.');
+            this.showSlotManager();
+        });
+    }
+
+    // --------------------------------------------------------------
+    // LOOP DE EXPLORAÇÃO DE CAMPANHA
+    // --------------------------------------------------------------
+
+    /**
+     * showCampaignMenu()
+     * ------------------------------------------------------------------
+     * HUD de status + opções de exploração/gestão e descanso (save manual).
+     */
+    private showCampaignMenu(): void {
+        console.log('\n──────────── HUD DO GRUPO ────────────');
+        console.log(this.getPartyStatusHUD());
+        console.log('──────────────────────────────────────');
+        console.log('1. 🧭 Explorar (Travessia de Nó)');
+        console.log('2. 🔨 Forja de Equipamentos');
+        console.log('3. 🎒 Arsenal e Equipamentos');
+        console.log('4. 📜 Missões Ativas');
+        console.log('5. 🏕️  Descansar (Salvar em Slot)');
+        console.log('6. 🚪 Voltar ao Menu Principal');
+        console.log('--------------------------------------');
+
+        this.ask('Escolha uma opção: ', (answer) => {
+            switch (answer) {
+                case '1': this.handleTravel(); break;
+                case '2': this.handleCrafting(); break;
+                case '3': this.handleArsenal(); break;
+                case '4': this.handleQuests(); break;
+                case '5': this.handleRest(); break;
+                case '6': this.showMainMenu(); break;
+                default:
+                    console.log('⚠️ Opção inválida!');
+                    this.showCampaignMenu();
+            }
+        });
+    }
 
     /**
      * handleTravel()
      * ------------------------------------------------------------------
-     * Exibe o nó atual e lista os destinos conectados disponíveis
-     * para travessia. O usuário escolhe um destino, e o
-     * CampaignMapEngine.travelToNode() processa a viagem (incluindo
-     * eventos aleatórios como emboscadas ou perigos ambientais).
+     * Lista destinos conectados com custo/perigo estimado, confirma a
+     * travessia e dispara o AUTOSAVE em caso de sucesso.
      */
     private handleTravel(): void {
         const progress = this.campaign.getProgress();
         const currentNode = this.mapEngine.getNodeDetails(progress.currentNodeId);
 
-        if (!currentNode) {
-            console.log("\n❌ Erro: Nó atual não encontrado no mapa.");
-            this.showMainMenu();
-            return;
+        if (!currentNode || currentNode.connectedTo.length === 0) {
+            console.log('\n❌ Nenhum destino disponível a partir daqui.');
+            return this.showCampaignMenu();
         }
 
-        console.log(`\n📍 Você está em: ${currentNode.name} (${currentNode.id})`);
-        console.log("🧭 Destinos Disponíveis para Travessia:");
-
-        if (currentNode.connectedTo.length === 0) {
-            console.log("   (Nenhum destino disponível — caminho bloqueado.)");
-            this.showMainMenu();
-            return;
-        }
-
-        currentNode.connectedTo.forEach((nodeId, index) => {
-            const node = this.mapEngine.getNodeDetails(nodeId);
-            if (node) {
-                const typeIcon = this.getNodeTypeIcon(node.type);
-                console.log(`   ${index + 1}. ${typeIcon} ${node.name} [${node.type}]`);
+        console.log(`\n📍 Você está em: ${currentNode.name}`);
+        console.log('🧭 Destinos (com custo estimado):');
+        currentNode.connectedTo.forEach((nodeId, i) => {
+            const preview = this.previewTraversal(nodeId);
+            if (preview) {
+                console.log(
+                    `   ${i + 1}. ${this.getNodeTypeIcon(preview.node.type)} ${preview.node.name} ` +
+                    `[perigo ${preview.hazardLevel} | 🍞 -${preview.supplyCost} | ⚖️ ${preview.estafaImpact >= 0 ? '+' : ''}${preview.estafaImpact}]`,
+                );
             }
         });
-        console.log("   0. 🔙 Voltar ao Menu Principal");
+        console.log('   0. 🔙 Voltar');
 
-        this.rl.question("\nEscolha um destino: ", (answer) => {
-            const choice = parseInt(answer.trim(), 10);
-            if (choice === 0) {
-                this.showMainMenu();
-                return;
-            }
+        this.ask('\nEscolha um destino: ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.showCampaignMenu();
             if (isNaN(choice) || choice < 1 || choice > currentNode.connectedTo.length) {
-                console.log("⚠️ Opção inválida!");
-                this.handleTravel();
-                return;
+                console.log('⚠️ Opção inválida!');
+                return this.handleTravel();
             }
 
             const targetNodeId = currentNode.connectedTo[choice - 1];
-            const result = this.mapEngine.travelToNode(this.campaign, targetNodeId);
+            const preview = this.previewTraversal(targetNodeId);
+            const costMsg = preview
+                ? `Custo: 🍞 ${preview.supplyCost} mantimentos, perigo ${preview.hazardLevel}. `
+                : '';
 
-            if (!result.success) {
-                console.log("\n❌ Não foi possível viajar para este destino.");
-                this.showMainMenu();
-                return;
-            }
+            this.ask(`${costMsg}Confirmar travessia? (s/n): `, (confirm) => {
+                if (confirm.toLowerCase() !== 's') {
+                    console.log('↩️ Travessia cancelada.');
+                    return this.showCampaignMenu();
+                }
 
-            const targetNode = this.mapEngine.getNodeDetails(targetNodeId);
-            console.log(`\n✅ Viagem concluída para: ${targetNode?.name ?? targetNodeId}`);
-            if (result.message) {
-                console.log(result.message);
-            }
-            this.showMainMenu();
+                const { result, autoSaved } = this.performTraversal(targetNodeId);
+                if (!result.success) {
+                    console.log(`\n❌ ${result.message ?? 'Não foi possível atravessar.'}`);
+                    return this.showCampaignMenu();
+                }
+
+                console.log(`\n✅ ${result.message}`);
+                console.log(`   🍞 -${result.suppliesConsumed} mantimentos (restam ${result.suppliesRemaining}) | ⚖️ ${result.estafaShift >= 0 ? '+' : ''}${result.estafaShift} | 🛠️ ${result.equipmentDegraded} item(ns) desgastado(s)`);
+                if (result.survivalCrisis) {
+                    console.log('   ⚠️ ESCASSEZ DE MANTIMENTOS — o grupo avança exausto!');
+                }
+                console.log(autoSaved ? '   💾 AutoSave concluído.' : '   ⚠️ Falha no AutoSave.');
+                this.showCampaignMenu();
+            });
         });
     }
 
-    /**
-     * getNodeTypeIcon(type)
-     * ------------------------------------------------------------------
-     * Retorna um ícone representativo para o tipo de nó do mapa.
-     *
-     * @param type - Tipo do nó (COMBAT_ARENA, SAFE_ZONE, etc.)
-     * @returns String com o ícone correspondente
-     */
+    /** Ícone por tipo de nó. */
     private getNodeTypeIcon(type: string): string {
         switch (type) {
             case 'COMBAT_ARENA': return '⚔️';
@@ -366,94 +485,92 @@ export class CLIGameLoop {
         }
     }
 
-    // ==============================================================
-    // HANDLER 2 — FORJA (MANUFATURA)
-    // ==============================================================
-
     /**
-     * handleCrafting()
+     * handleRest()
      * ------------------------------------------------------------------
-     * Lista todas as receitas de manufatura disponíveis no
-     * CraftingEngine, exibindo o custo em sucata e materiais
-     * necessários. O usuário escolhe uma receita para forjar.
+     * Menu de descanso: salva o jogo em um dos slots manuais (SLOT_1..3).
      */
+    private handleRest(): void {
+        console.log('\n🏕️ Descanso — Salvar Jogo');
+        MANUAL_SLOTS.forEach((slot, i) => {
+            const summary = this.listSlots().find((s) => s.slotId === slot);
+            console.log(`   ${i + 1}. ${summary ? this.formatSlotSummary(summary) : slot}`);
+        });
+        console.log('   0. 🔙 Voltar');
+
+        this.ask('\nSalvar em qual slot? ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.showCampaignMenu();
+            if (isNaN(choice) || choice < 1 || choice > MANUAL_SLOTS.length) {
+                console.log('⚠️ Opção inválida!');
+                return this.handleRest();
+            }
+            const slot = MANUAL_SLOTS[choice - 1];
+            const ok = this.saveToManualSlot(slot);
+            console.log(ok ? `\n💾 Jogo salvo em ${slot}.` : `\n❌ Falha ao salvar em ${slot}.`);
+            this.showCampaignMenu();
+        });
+    }
+
+    // --------------------------------------------------------------
+    // FORJA (MANUFATURA)
+    // --------------------------------------------------------------
+
     private handleCrafting(): void {
         const recipes = this.craftingEngine.getAvailableRecipes();
         const hero = this.getHero();
 
-        console.log("\n🔨 Forja de Equipamentos");
+        console.log('\n🔨 Forja de Equipamentos');
         console.log(`💰 Sucata disponível: ${hero.scrapCount}`);
-        console.log("----------------------------------");
 
         if (recipes.length === 0) {
-            console.log("(Nenhuma receita disponível no momento.)");
-            this.showMainMenu();
-            return;
+            console.log('(Nenhuma receita disponível.)');
+            return this.showCampaignMenu();
         }
 
         recipes.forEach((recipe, index) => {
-            const materials = recipe.requiredMaterials
-                .map(m => `${m.materialId} x${m.quantity}`)
-                .join(", ");
-            console.log(`   ${index + 1}. ${recipe.resultItem.name}`);
-            console.log(`      💰 Custo: ${recipe.requiredScrap} sucata | Materiais: ${materials}`);
+            const materials = recipe.requiredMaterials.map((m) => `${m.materialId} x${m.quantity}`).join(', ');
+            console.log(`   ${index + 1}. ${recipe.resultItem.name} — 💰 ${recipe.requiredScrap} | ${materials}`);
         });
-        console.log("   0. 🔙 Voltar ao Menu Principal");
+        console.log('   0. 🔙 Voltar');
 
-        this.rl.question("\nEscolha uma receita para forjar: ", (answer) => {
-            const choice = parseInt(answer.trim(), 10);
-            if (choice === 0) {
-                this.showMainMenu();
-                return;
-            }
+        this.ask('\nEscolha uma receita: ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.showCampaignMenu();
             if (isNaN(choice) || choice < 1 || choice > recipes.length) {
-                console.log("⚠️ Opção inválida!");
-                this.handleCrafting();
-                return;
+                console.log('⚠️ Opção inválida!');
+                return this.handleCrafting();
             }
-
             const recipe = recipes[choice - 1];
             const success = this.craftingEngine.craftItem(this.campaign, hero.id, recipe.recipeId);
-
-            if (success) {
-                console.log(`\n✅ ${recipe.resultItem.name} forjado com sucesso e adicionado ao inventário!`);
-            } else {
-                console.log("\n❌ Falha ao forjar: recursos insuficientes (sucata ou materiais).");
-            }
-            this.showMainMenu();
+            console.log(success
+                ? `\n✅ ${recipe.resultItem.name} forjado e adicionado ao inventário!`
+                : '\n❌ Falha ao forjar: recursos insuficientes.');
+            this.showCampaignMenu();
         });
     }
 
-    // ==============================================================
-    // HANDLER 3 — ARSENAL (EQUIPAR/DESEQUIPAR)
-    // ==============================================================
+    // --------------------------------------------------------------
+    // ARSENAL (EQUIPAR/DESEQUIPAR)
+    // --------------------------------------------------------------
 
-    /**
-     * handleArsenal()
-     * ------------------------------------------------------------------
-     * Exibe o inventário global da campanha e os equipamentos
-     * ativos do herói. Oferece opções para equipar um item do
-     * inventário ou remover um equipamento de um slot.
-     */
     private handleArsenal(): void {
         const hero = this.getHero();
         const inventory = this.campaign.getGlobalInventory();
 
-        console.log("\n🎒 Arsenal e Equipamentos");
-        console.log("----------------------------------");
-        console.log("📦 Inventário Global:");
-
+        console.log('\n🎒 Arsenal e Equipamentos');
+        console.log('📦 Inventário Global:');
         if (inventory.length === 0) {
-            console.log("   (Vazio)");
+            console.log('   (Vazio)');
         } else {
             inventory.forEach((item, index) => {
                 const typeIcon = item.type === 'EQUIPMENT' ? '🔧' : item.type === 'CONSUMABLE' ? '🧪' : '📦';
-                console.log(`   ${index + 1}. ${typeIcon} ${item.name} (${item.id}) x${item.quantity} [${item.type}]`);
+                console.log(`   ${index + 1}. ${typeIcon} ${item.name} (${item.id}) x${item.quantity}`);
             });
         }
 
-        console.log("\n⚔️ Equipamentos Ativos:");
-        EQUIPMENT_SLOTS.forEach(slot => {
+        console.log('\n⚔️ Equipamentos Ativos:');
+        EQUIPMENT_SLOTS.forEach((slot) => {
             const item = hero.equippedItems[slot];
             if (item) {
                 const mods = item.statsModifiers;
@@ -468,256 +585,147 @@ export class CLIGameLoop {
             }
         });
 
-        console.log("\nOpções:");
-        console.log("   1. 🔧 Equipar item do inventário");
-        console.log("   2. 🔄 Remover equipamento de um slot");
-        console.log("   0. 🔙 Voltar ao Menu Principal");
-
-        this.rl.question("\nEscolha uma opção: ", (answer) => {
-            const choice = answer.trim();
-            if (choice === '0') {
-                this.showMainMenu();
-            } else if (choice === '1') {
-                this.handleEquipItem();
-            } else if (choice === '2') {
-                this.handleUnequipItem();
-            } else {
-                console.log("⚠️ Opção inválida!");
+        console.log('\n   1. 🔧 Equipar item   2. 🔄 Remover   0. 🔙 Voltar');
+        this.ask('\nEscolha uma opção: ', (answer) => {
+            if (answer === '0') this.showCampaignMenu();
+            else if (answer === '1') this.handleEquipItem();
+            else if (answer === '2') this.handleUnequipItem();
+            else {
+                console.log('⚠️ Opção inválida!');
                 this.handleArsenal();
             }
         });
     }
 
-    /**
-     * handleEquipItem()
-     * ------------------------------------------------------------------
-     * Lista os equipamentos disponíveis no inventário global e
-     * permite que o usuário escolha um para equipar no herói.
-     * Consulta o EQUIPMENT_CATALOG para obter a definição completa
-     * do item (slot, statsModifiers) antes de chamar o EquipmentEngine.
-     */
     private handleEquipItem(): void {
         const hero = this.getHero();
-        const inventory = this.campaign.getGlobalInventory();
-        const equipmentItems = inventory.filter(
-            item => item.type === 'EQUIPMENT' && item.quantity > 0,
-        );
+        const equipmentItems = this.campaign
+            .getGlobalInventory()
+            .filter((item) => item.type === 'EQUIPMENT' && item.quantity > 0);
 
         if (equipmentItems.length === 0) {
-            console.log("\n❌ Nenhum equipamento disponível no inventário.");
-            this.showMainMenu();
-            return;
+            console.log('\n❌ Nenhum equipamento disponível no inventário.');
+            return this.showCampaignMenu();
         }
 
-        console.log("\n🔧 Itens disponíveis para equipar:");
+        console.log('\n🔧 Itens para equipar:');
         equipmentItems.forEach((item, index) => {
             const catalogEntry = EQUIPMENT_CATALOG[item.id];
             const slotInfo = catalogEntry ? `[${catalogEntry.slot}]` : '[slot desconhecido]';
             console.log(`   ${index + 1}. ${item.name} ${slotInfo} x${item.quantity}`);
         });
-        console.log("   0. 🔙 Voltar");
+        console.log('   0. 🔙 Voltar');
 
-        this.rl.question("\nEscolha um item para equipar: ", (answer) => {
-            const choice = parseInt(answer.trim(), 10);
-            if (choice === 0) {
-                this.handleArsenal();
-                return;
-            }
+        this.ask('\nEscolha um item: ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.handleArsenal();
             if (isNaN(choice) || choice < 1 || choice > equipmentItems.length) {
-                console.log("⚠️ Opção inválida!");
-                this.handleEquipItem();
-                return;
+                console.log('⚠️ Opção inválida!');
+                return this.handleEquipItem();
             }
-
-            const selectedItem = equipmentItems[choice - 1];
-            const equipmentDef = EQUIPMENT_CATALOG[selectedItem.id];
-
+            const equipmentDef = EQUIPMENT_CATALOG[equipmentItems[choice - 1].id];
             if (!equipmentDef) {
-                console.log(`\n❌ Definição do equipamento '${selectedItem.id}' não encontrada no catálogo.`);
-                this.showMainMenu();
-                return;
+                console.log('\n❌ Definição do equipamento não encontrada no catálogo.');
+                return this.showCampaignMenu();
             }
-
             const success = this.eqEngine.equipItem(this.campaign, hero.id, equipmentDef);
-
-            if (success) {
-                console.log(`\n✅ ${equipmentDef.name} equipado com sucesso no slot ${equipmentDef.slot}!`);
-            } else {
-                console.log("\n❌ Falha ao equipar item.");
-            }
-            this.showMainMenu();
+            console.log(success
+                ? `\n✅ ${equipmentDef.name} equipado no slot ${equipmentDef.slot}!`
+                : '\n❌ Falha ao equipar item.');
+            this.showCampaignMenu();
         });
     }
 
-    /**
-     * handleUnequipItem()
-     * ------------------------------------------------------------------
-     * Lista os slots ocupados do herói e permite que o usuário
-     * escolha um para remover o equipamento (devolvendo-o ao
-     * inventário global).
-     */
     private handleUnequipItem(): void {
         const hero = this.getHero();
-        const occupiedSlots = EQUIPMENT_SLOTS.filter(
-            slot => hero.equippedItems[slot] !== undefined,
-        );
+        const occupiedSlots = EQUIPMENT_SLOTS.filter((slot) => hero.equippedItems[slot] !== undefined);
 
         if (occupiedSlots.length === 0) {
-            console.log("\n❌ Nenhum equipamento equipado para remover.");
-            this.showMainMenu();
-            return;
+            console.log('\n❌ Nenhum equipamento equipado.');
+            return this.showCampaignMenu();
         }
 
-        console.log("\n🔄 Slots ocupados:");
+        console.log('\n🔄 Slots ocupados:');
         occupiedSlots.forEach((slot, index) => {
-            const item = hero.equippedItems[slot]!;
-            console.log(`   ${index + 1}. ${slot}: ${item.name}`);
+            console.log(`   ${index + 1}. ${slot}: ${hero.equippedItems[slot]!.name}`);
         });
-        console.log("   0. 🔙 Voltar");
+        console.log('   0. 🔙 Voltar');
 
-        this.rl.question("\nEscolha um slot para remover o equipamento: ", (answer) => {
-            const choice = parseInt(answer.trim(), 10);
-            if (choice === 0) {
-                this.handleArsenal();
-                return;
-            }
+        this.ask('\nEscolha um slot: ', (answer) => {
+            const choice = parseInt(answer, 10);
+            if (choice === 0) return this.handleArsenal();
             if (isNaN(choice) || choice < 1 || choice > occupiedSlots.length) {
-                console.log("⚠️ Opção inválida!");
-                this.handleUnequipItem();
-                return;
+                console.log('⚠️ Opção inválida!');
+                return this.handleUnequipItem();
             }
-
             const slot = occupiedSlots[choice - 1];
             const success = this.eqEngine.unequipItem(this.campaign, hero.id, slot);
-
-            if (success) {
-                console.log(`\n✅ Equipamento removido do slot ${slot} e devolvido ao inventário.`);
-            } else {
-                console.log("\n❌ Falha ao remover equipamento.");
-            }
-            this.showMainMenu();
+            console.log(success
+                ? `\n✅ Equipamento removido do slot ${slot}.`
+                : '\n❌ Falha ao remover equipamento.');
+            this.showCampaignMenu();
         });
     }
 
-    // ==============================================================
-    // HANDLER 4 — MISSÕES
-    // ==============================================================
+    // --------------------------------------------------------------
+    // MISSÕES
+    // --------------------------------------------------------------
 
-    /**
-     * handleQuests()
-     * ------------------------------------------------------------------
-     * Exibe todas as missões ativas registradas no QuestManager,
-     * com barras de progresso para cada meta e detalhes das
-     * recompensas.
-     */
     private handleQuests(): void {
         const activeQuests = this.questManager.getQuestsByStatus(QuestStatus.ACTIVE);
 
-        console.log("\n📜 Diário de Missões Ativas");
-        console.log("----------------------------------");
-
+        console.log('\n📜 Diário de Missões Ativas');
         if (activeQuests.length === 0) {
-            console.log("(Nenhuma missão ativa no momento.)");
+            console.log('(Nenhuma missão ativa no momento.)');
         } else {
-            activeQuests.forEach(quest => {
-                console.log(`\n📌 ${quest.name}`);
-                console.log(`   ${quest.description}`);
-                quest.goals.forEach(goal => {
+            activeQuests.forEach((quest) => {
+                console.log(`\n📌 ${quest.name}\n   ${quest.description}`);
+                quest.goals.forEach((goal) => {
                     const bar = this.makeProgressBar(goal.current, goal.required, 20);
                     console.log(`   🎯 ${goal.description}: ${bar} ${goal.current}/${goal.required}`);
                 });
                 console.log(`   🏆 Recompensa: ${quest.reward.scrap}💰 + ${quest.reward.items.length} itens`);
             });
         }
-
-        console.log("\n   0. 🔙 Voltar ao Menu Principal");
-        this.rl.question("Pressione Enter para voltar...", () => {
-            this.showMainMenu();
-        });
+        console.log('\n   0. 🔙 Voltar');
+        this.ask('Pressione Enter para voltar...', () => this.showCampaignMenu());
     }
 
-    /**
-     * makeProgressBar(current, required, length)
-     * ------------------------------------------------------------------
-     * Gera uma barra de progresso visual usando caracteres Unicode.
-     *
-     * @param current  - Valor atual do progresso
-     * @param required - Valor necessário para completar
-     * @param length   - Comprimento da barra em caracteres
-     * @returns String com a barra de progresso (ex: "███████░░░ 7/10")
-     */
     private makeProgressBar(current: number, required: number, length: number): string {
         const ratio = required > 0 ? Math.min(1, current / required) : 0;
         const filled = Math.round(ratio * length);
-        const empty = length - filled;
-        return '█'.repeat(filled) + '░'.repeat(empty);
+        return '█'.repeat(filled) + '░'.repeat(length - filled);
     }
 
-    // ==============================================================
+    // --------------------------------------------------------------
     // RESOLUÇÃO DE COMANDO DE COMBATE — BALANÇA DE ESTAFA
-    // ==============================================================
+    // --------------------------------------------------------------
 
     /**
      * resolveCombatCommand(actor, actionType)
      * ------------------------------------------------------------------
-     * Ponto de integração da Balança de Estafa no loop de comando: antes
-     * de despachar qualquer ação de combate de um personagem, o comando
-     * é submetido a CombatAIEngine.resolvePlayerCommand (que consulta
-     * EstafaCalculator.validateAction).
-     *
-     * Se a psique da unidade bloquear o comando (Insubordinação Tática),
-     * o aviso diegético é impresso na UI e a unidade executa a ação
-     * autônoma modificada em vez do comando original.
-     *
-     * Exposto publicamente para ser acionado pela futura camada de UI de
-     * combate por turnos e exercitado pelos testes de integração.
-     *
-     * @param actor      - Personagem que recebeu o comando
-     * @param actionType - Tipo da ação solicitada pelo jogador
-     * @returns ICommandResolution — desfecho do comando
+     * Submete um comando de combate à Insubordinação Tática antes de
+     * despachá-lo (ver CombatAIEngine.resolvePlayerCommand).
      */
-    public resolveCombatCommand(
-        actor: CharacterState,
-        actionType: EstafaActionType,
-    ): ICommandResolution {
+    public resolveCombatCommand(actor: CharacterState, actionType: EstafaActionType): ICommandResolution {
         const resolution = CombatAIEngine.resolvePlayerCommand(
             actor,
             actionType,
             (code, message) => console.log(`⚠️  [${code}] ${message}`),
         );
-
         if (resolution.insubordination) {
             console.log(`🧠 Insubordinação Tática: ${resolution.reason}`);
             console.log(`➡️  Ação autônoma executada: ${resolution.autonomousAlternative}`);
         }
-
         return resolution;
     }
 
-    // ==============================================================
-    // HANDLER 5 — SALVAR E SAIR
-    // ==============================================================
+    // --------------------------------------------------------------
+    // ENCERRAMENTO
+    // --------------------------------------------------------------
 
-    /**
-     * handleSaveAndExit()
-     * ------------------------------------------------------------------
-     * Persiste o estado completo da campanha via
-     * SaveSystem.saveGame() — que serializa através de
-     * CampaignManager.saveGameState() e grava em disco com checksum
-     * de integridade SHA-256 (CampaignStateManager), em vez de
-     * fs.writeFileSync bruto sem proteção. Em seguida, encerra o
-     * processo.
-     */
-    private handleSaveAndExit(): void {
-        const saved = SaveSystem.saveGame(this.campaign);
-
-        if (saved) {
-            console.log(`\n💾 Progresso salvo com integridade verificada em: ${SaveSystem.getSaveFilePath()}`);
-        } else {
-            console.log("\n❌ Falha ao salvar o progresso — verifique as permissões do diretório 'saves/'.");
-        }
-
-        console.log("🛑 Desligando chassi... Até a próxima, Engenheiro!");
+    private exit(): void {
+        console.log('\n🛑 Desligando chassi... Até a próxima, Engenheiro!');
         this.rl.close();
         process.exit(0);
     }
@@ -725,8 +733,6 @@ export class CLIGameLoop {
 
 // ==================================================================
 // PONTO DE ENTRADA
-// ==================================================================
-// Permite rodar este arquivo diretamente (ex: `npx tsx src/cli/GameLoop.ts`).
 // ==================================================================
 
 if (require.main === module) {

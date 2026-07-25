@@ -243,6 +243,29 @@ export class CampaignMapEngine {
     }
 
     /**
+     * getTraversalPreview(targetNodeId)
+     * ------------------------------------------------------------------
+     * Retorna o custo estimado de mantimentos, o nível de perigo e o
+     * impacto de Estafa de atravessar até um nó — para a UI confirmar
+     * antes da travessia. Usa as mesmas fórmulas de traverseToNode.
+     *
+     * @returns Preview do destino, ou null se o nó não existir.
+     */
+    public getTraversalPreview(
+        targetNodeId: string,
+    ): { node: ICampaignNode; hazardLevel: number; supplyCost: number; estafaImpact: number } | null {
+        const node = this.mapNodes.get(targetNodeId);
+        if (!node) return null;
+
+        const hazardLevel = Math.max(0, node.hazardLevel ?? 0);
+        const supplyCost =
+            node.traversalSupplyCost ?? BASE_SUPPLY_COST + hazardLevel * SUPPLY_COST_PER_HAZARD;
+        const estafaImpact = node.estafaImpact ?? hazardLevel * HAZARD_ESTAFA_UNIT;
+
+        return { node, hazardLevel, supplyCost, estafaImpact };
+    }
+
+    /**
      * registerNode(node)
      * ------------------------------------------------------------------
      * Registra (ou substitui) um nó do mapa. Útil para conteúdo dinâmico
