@@ -35,6 +35,9 @@ import {
 // Import apenas-de-tipo (erased em runtime) para evitar ciclo de importação
 // com EquipmentEngine, que por sua vez importa CharacterState/CampaignManager.
 import type { IDurableEquipment } from './EquipmentEngine';
+// StatusEngine importa CharacterState apenas como tipo (import type), então
+// a dependência é unidirecional (CharacterState → StatusEngine): sem ciclo.
+import { StatusEngine, ITacticalStatus } from './StatusEngine';
 
 /**
  * Interface para callback de eventos disparados pelo CharacterState.
@@ -148,6 +151,9 @@ export class CharacterState {
   /** Equipamentos duráveis ativos (modelo com durabilidade/oxidação) */
   private _durableEquipment: IDurableEquipment[];
 
+  /** Condições táticas ativas (Poison/Burn/Overcharge/Rust) — geridas pelo StatusEngine */
+  private _activeStatuses: ITacticalStatus[];
+
   // ==================================================================
   // CONSTRUTOR
   // ==================================================================
@@ -189,6 +195,7 @@ export class CharacterState {
     this._equippedItems = {};
     this._equipmentBonusStats = {};
     this._durableEquipment = [];
+    this._activeStatuses = [];
   }
 
   // ==================================================================
@@ -844,13 +851,55 @@ export class CharacterState {
    * Armaduras duráveis oxidadas (Rusted) contribuem apenas 50% da defesa.
    */
   public getEffectivePhysicalDefense(): number {
+    const statusMods = StatusEngine.calculateStatusModifiers(this._activeStatuses);
     const baseDefense =
       this._stats.defense +
       (this._equipmentBonusStats.bonusDefense ?? 0) +
-      this.getDurableDefenseBonus();
+      this.getDurableDefenseBonus() +
+      statusMods.defense; // penalidade de STEAM_BURN / RUST_LOCK (negativa)
     const mods = this.getEstafaModifiers();
     const factor = 1 + mods.physicalDefBonus / 100 - mods.armorPenalty / 100;
     return Math.max(0, baseDefense * factor);
+  }
+
+  // ==================================================================
+  // CONDIÇÕES TÁTICAS — ATRIBUTOS REFLETINDO STATUS ATIVOS
+  // ==================================================================
+
+  /**
+   * Obtém a lista de condições táticas ativas.
+   * Retorna a referência interna — o StatusEngine precisa de acesso de
+   * mutação para aplicar/decrementar/remover condições (mesmo padrão de
+   * `equippedItems`).
+   */
+  get activeStatuses(): ITacticalStatus[] {
+    return this._activeStatuses;
+  }
+
+  /**
+   * getEffectiveMovementSpeed()
+   * ------------------------------------------------------------------
+   * Velocidade de movimento efetiva = base + modificador de status
+   * (ex.: RUST_LOCK reduz a velocidade). Clamp mínimo em 0.
+   */
+  public getEffectiveMovementSpeed(): number {
+    const statusMods = StatusEngine.calculateStatusModifiers(this._activeStatuses);
+    return Math.max(0, this._stats.movementSpeed + statusMods.movementSpeed);
+  }
+
+  /**
+   * getEffectiveDamage()
+   * ------------------------------------------------------------------
+   * Dano ofensivo efetivo = base + bônus de equipamento + modificador de
+   * status (ex.: SPARK_OVERCHARGE aumenta o dano). Clamp mínimo em 0.
+   */
+  public getEffectiveDamage(): number {
+    const statusMods = StatusEngine.calculateStatusModifiers(this._activeStatuses);
+    const base =
+      this._stats.damage +
+      (this._equipmentBonusStats.bonusAttack ?? 0) +
+      statusMods.damage;
+    return Math.max(0, base);
   }
 
   // ==================================================================
