@@ -32,6 +32,7 @@ import { QuestManager, QuestStatus } from '../core/QuestManager';
 import { SaveSlotEngine, SaveSlotId, ISaveSlotSummary } from '../core/SaveSlotEngine';
 import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
 import { BestiaryEngine, IEnemyInstance, ENEMY_TO_COMBAT_ARCHETYPE } from '../core/BestiaryEngine';
+import { CombatLoopEngine, ICombatResult } from '../core/CombatLoopEngine';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
@@ -77,6 +78,7 @@ export class CLIGameLoop {
     private eqEngine = new EquipmentEngine();
     private questManager = new QuestManager();
     private bestiary = new BestiaryEngine();
+    private combatLoop = new CombatLoopEngine();
     private readonly saveSlots: SaveSlotEngine;
 
     /** Marca de início da sessão para cálculo de playTime nos metadados. */
@@ -251,6 +253,18 @@ export class CLIGameLoop {
         );
 
         return { nodeId: node.id, nodeType: node.type, enemies, ais };
+    }
+
+    /**
+     * runEncounterCombat(encounter)
+     * ------------------------------------------------------------------
+     * Resolve o combate de um encontro pela party atual, via
+     * CombatLoopEngine (turnos, dano mitigado e condições táticas).
+     */
+    public runEncounterCombat(encounter: IGeneratedEncounter): ICombatResult {
+        return this.combatLoop.runCombat(this.campaign.getPartyState(), encounter.enemies, {
+            estafaBalance: this.campaign.getProgress().estafaBalance,
+        });
     }
 
     /**
@@ -539,6 +553,18 @@ export class CLIGameLoop {
                         const rusted = e.activeStatuses.some((s) => s.type === 'RUST_LOCK') ? ' 🟠(travado por ferrugem)' : '';
                         console.log(`   ${i + 1}. ${e.name} [Nv.${e.level}] HP ${e.stats.maxHp} | DMG ${e.stats.damage} | DEF ${e.stats.defense} — IA ${e.archetypeAI}${rusted}`);
                     });
+
+                    // Auto-resolução do combate por turnos.
+                    const combat = this.runEncounterCombat(encounter);
+                    combat.log.forEach((line) => console.log(line));
+                    if (combat.outcome === 'VICTORY') {
+                        console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
+                        this.autoSave();
+                    } else if (combat.outcome === 'DEFEAT') {
+                        console.log('\n☠️ Derrota! O grupo tomba nos dutos de Brenhold. Fim de jogo.');
+                    } else {
+                        console.log('\n⏳ O confronto se arrasta sem vencedor claro.');
+                    }
                 }
                 this.showCampaignMenu();
             });
