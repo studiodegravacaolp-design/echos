@@ -196,6 +196,25 @@ function runEncounterTest(): void {
 }
 
 // ====================================================================
+// F) CONDIÇÃO DE GAME OVER
+// ====================================================================
+function runGameOverTest(): void {
+    printSection('F — Condição de Game Over (party dizimada)');
+
+    const loop = newLoop();
+    const campaign = loop.startNewGame();
+    assert(loop.isPartyWiped() === false, 'F.1: party viva no início não é Game Over');
+
+    // Derruba todos os membros da party.
+    campaign.getPartyState().forEach((c) => { c.hp = 0; });
+    assert(loop.isPartyWiped() === true, 'F.2: party toda com HP 0 → Game Over');
+
+    // Recuperar um membro cancela o Game Over.
+    campaign.getPartyState()[0].hp = 10;
+    assert(loop.isPartyWiped() === false, 'F.3: um sobrevivente cancela o Game Over');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -205,6 +224,7 @@ function main(): void {
         runManualSaveTest();
         runSlotListingTest();
         runEncounterTest();
+        runGameOverTest();
     } finally {
         cleanup();
     }

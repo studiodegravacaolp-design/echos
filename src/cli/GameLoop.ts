@@ -344,11 +344,12 @@ export class CLIGameLoop {
                 console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
                 this.grantVictoryRewards(encounter);
                 this.autoSave();
-            } else if (outcome === 'DEFEAT') {
-                console.log('\n☠️ Derrota! O grupo tomba nos dutos de Brenhold. Fim de jogo.');
-            } else {
-                console.log('\n⏳ O confronto se arrasta sem vencedor claro.');
+                return this.showCampaignMenu();
             }
+            if (outcome === 'DEFEAT') {
+                return this.showGameOver();
+            }
+            console.log('\n⏳ O confronto se arrasta sem vencedor claro.');
             return this.showCampaignMenu();
         }
 
@@ -421,6 +422,17 @@ export class CLIGameLoop {
     /** Lista o resumo dos slots de save. */
     public listSlots(): ISaveSlotSummary[] {
         return this.saveSlots.listSaveSlots();
+    }
+
+    /**
+     * isPartyWiped()
+     * ------------------------------------------------------------------
+     * true se todos os membros da party estão caídos (HP <= 0) — condição
+     * de Game Over.
+     */
+    public isPartyWiped(): boolean {
+        const party = this.campaign.getPartyState();
+        return party.length > 0 && party.every((c) => c.hp <= 0);
     }
 
     // ==============================================================
@@ -557,6 +569,42 @@ export class CLIGameLoop {
             const ok = this.saveSlots.deleteSlot(target.slotId);
             console.log(ok ? `🗑️ ${target.slotId} apagado.` : '❌ Falha ao apagar.');
             this.showSlotManager();
+        });
+    }
+
+    /**
+     * showGameOver()
+     * ------------------------------------------------------------------
+     * Tela de Game Over após a party tombar: permite recomeçar carregando
+     * um save, iniciando novo jogo ou saindo. NÃO retorna à campanha (a
+     * party está morta).
+     */
+    private showGameOver(): void {
+        console.log('\n' + '═'.repeat(46));
+        console.log('   ☠️  GAME OVER — o grupo tombou nos dutos de Brenhold');
+        console.log('═'.repeat(46));
+        console.log('1. 📂 Carregar Jogo');
+        console.log('2. 🆕 Novo Jogo');
+        console.log('3. 🚪 Sair');
+        console.log('----------------------------------------------');
+
+        this.ask('Escolha uma opção: ', (answer) => {
+            switch (answer) {
+                case '1':
+                    this.showLoadMenu();
+                    break;
+                case '2':
+                    this.startNewGame();
+                    console.log('\n✅ Novo jogo iniciado. Bem-vindo, Engenheiro.');
+                    this.showCampaignMenu();
+                    break;
+                case '3':
+                    this.exit();
+                    break;
+                default:
+                    console.log('⚠️ Opção inválida!');
+                    this.showGameOver();
+            }
         });
     }
 
