@@ -27,6 +27,8 @@ import type { CharacterState } from './CharacterState';
 import type { IDurableEquipment } from './EquipmentEngine';
 import type { ITacticalStatus } from './StatusEngine';
 import type { ProgressionManager } from './ProgressionManager';
+import type { SkillTreeEngine } from './SkillTreeEngine';
+import { CANONICAL_ABILITIES, STARTER_ABILITY_IDS } from './CombatAbilities';
 
 // ==================================================================
 // CONSTANTES
@@ -69,6 +71,10 @@ export interface ISavedCharacter {
     latentLineageAxis: LatentLineageAxis;
     durableEquipment: IDurableEquipment[];
     activeStatuses: ITacticalStatus[];
+    /** IDs das habilidades ativas aprendidas (dinâmicas + starter kit). */
+    learnedAbilityIds: string[];
+    /** IDs dos nós de atributo passivo desbloqueados na árvore de talentos. */
+    unlockedSkillNodes: string[];
 }
 
 /** Payload completo do save (entra no checksum de integridade). */
@@ -113,6 +119,8 @@ export interface ISaveOptions {
     currentAreaName?: string;
     /** Gerenciador de progressão — captura o XP por personagem, se fornecido. */
     progression?: ProgressionManager;
+    /** Árvore de talentos — captura os nós passivos desbloqueados, se fornecida. */
+    skillTree?: SkillTreeEngine;
 }
 
 // ==================================================================
@@ -214,7 +222,7 @@ export class SaveSlotEngine {
             const payload: ISaveSlotPayload = {
                 progress: this.clone(progress),
                 globalInventory: this.clone(campaign.getGlobalInventory()),
-                party: party.map((c) => this.serializeCharacter(c, options.progression)),
+                party: party.map((c) => this.serializeCharacter(c, options.progression, options.skillTree)),
                 mapState: {
                     currentNodeId: progress.currentNodeId,
                     unlockedNodeIds: [...progress.unlockedNodeIds],
@@ -247,7 +255,11 @@ export class SaveSlotEngine {
     }
 
     /** Serializa um CharacterState para o formato de save. */
-    private serializeCharacter(c: CharacterState, progression?: ProgressionManager): ISavedCharacter {
+    private serializeCharacter(
+        c: CharacterState,
+        progression?: ProgressionManager,
+        skillTree?: SkillTreeEngine,
+    ): ISavedCharacter {
         // toJSON() expõe o latentLineageAxis REAL (o getter mascara < nível 36).
         const rawLineage = (c.toJSON() as { latentLineageAxis?: LatentLineageAxis })
             .latentLineageAxis ?? LatentLineageAxis.NEUTRO_ABSOLUTO;
@@ -262,6 +274,8 @@ export class SaveSlotEngine {
             latentLineageAxis: rawLineage,
             durableEquipment: this.clone(c.durableEquipment),
             activeStatuses: this.clone(c.activeStatuses),
+            learnedAbilityIds: c.getCombatAbilities().map((a) => a.id),
+            unlockedSkillNodes: skillTree?.getUnlockedNodeIds(c.id) ?? [],
         };
     }
 
@@ -283,6 +297,7 @@ export class SaveSlotEngine {
         slotId: string,
         campaign?: CampaignManager,
         progression?: ProgressionManager,
+        skillTree?: SkillTreeEngine,
     ): ILoadSlotResult {
         if (!this.isValidSlot(slotId)) {
             return { success: false, slotId: 'SLOT_1', error: `Slot inválido: ${slotId}` };
@@ -309,7 +324,7 @@ export class SaveSlotEngine {
 
         // Restaura o estado no CampaignManager fornecido.
         if (campaign) {
-            this.applyPayloadToCampaign(campaign, data.payload, progression);
+            this.applyPayloadToCampaign(campaign, data.payload, progression, skillTree);
         }
 
         return {
@@ -333,6 +348,7 @@ export class SaveSlotEngine {
         campaign: CampaignManager,
         payload: ISaveSlotPayload,
         progression?: ProgressionManager,
+        skillTree?: SkillTreeEngine,
     ): void {
         // 1. Progresso + inventário + party básica via serialização legada.
         const legacySave = {
@@ -374,6 +390,19 @@ export class SaveSlotEngine {
             statuses.length = 0;
             for (const s of saved.activeStatuses) {
                 statuses.push(this.clone(s));
+            }
+
+            // Habilidades ativas aprendidas (reconstruídas do catálogo canônico).
+            for (const abilityId of saved.learnedAbilityIds) {
+                const ability = CANONICAL_ABILITIES[abilityId];
+                if (ability) {
+                    char.learnCombatAbility({ ...ability });
+                }
+            }
+
+            // Nós passivos da árvore de talentos (reaplica os bônus).
+            if (skillTree) {
+                skillTree.restoreUnlockedNodes(char, saved.unlockedSkillNodes);
             }
         }
     }
@@ -481,7 +510,9 @@ export class SaveSlotEngine {
                 sc.level === undefined ||
                 sc.xp === undefined ||
                 sc.latentLineageAxis === undefined ||
-                sc.engineeringCharges === undefined
+                sc.engineeringCharges === undefined ||
+                sc.learnedAbilityIds === undefined ||
+                sc.unlockedSkillNodes === undefined
             ) {
                 migrated = true;
             }
@@ -495,6 +526,9 @@ export class SaveSlotEngine {
                 latentLineageAxis: sc.latentLineageAxis ?? LatentLineageAxis.NEUTRO_ABSOLUTO,
                 durableEquipment: sc.durableEquipment ?? [],
                 activeStatuses: sc.activeStatuses ?? [],
+                // Saves legados: recebem o starter kit de habilidades e árvore vazia.
+                learnedAbilityIds: Array.isArray(sc.learnedAbilityIds) ? sc.learnedAbilityIds : [...STARTER_ABILITY_IDS],
+                unlockedSkillNodes: Array.isArray(sc.unlockedSkillNodes) ? sc.unlockedSkillNodes : [],
             };
         });
 

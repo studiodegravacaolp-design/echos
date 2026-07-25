@@ -165,6 +165,36 @@ export class SkillTreeEngine {
     }
 
     /**
+     * getUnlockedNodeIds(characterId)
+     * ------------------------------------------------------------------
+     * Retorna os IDs dos nós de atributo passivo já desbloqueados —
+     * usado pela persistência (SaveSlotEngine).
+     */
+    public getUnlockedNodeIds(characterId: string): string[] {
+        return (this.skills.get(characterId) || []).filter((n) => n.unlocked).map((n) => n.id);
+    }
+
+    /**
+     * restoreUnlockedNodes(character, nodeIds)
+     * ------------------------------------------------------------------
+     * Reidrata a árvore de um personagem no carregamento: reinicializa a
+     * árvore (defaults) e re-desbloqueia os nós salvos NA ORDEM da árvore
+     * (pré-requisitos primeiro), reaplicando cada efeito passivo. Ignora
+     * o custo de pontos de evolução (o estado já foi pago originalmente).
+     */
+    public restoreUnlockedNodes(character: CharacterState, nodeIds: string[]): void {
+        this.initializeTreeForCharacter(character.id);
+        const tree = this.skills.get(character.id)!;
+        const toRestore = new Set(nodeIds);
+        for (const node of tree) {
+            if (toRestore.has(node.id) && !node.unlocked) {
+                node.unlocked = true;
+                node.effect(character); // reaplica o bônus passivo permanente
+            }
+        }
+    }
+
+    /**
      * grantStarterAbilities(character)
      * ------------------------------------------------------------------
      * Concede ao personagem o kit inicial de HABILIDADES ATIVAS de

@@ -137,7 +137,8 @@ export class CLIGameLoop {
         this.heroBaseStats.clear();
         this.heroBaseStats.set(hero.id, { ...baseStats });
 
-        // Concede o kit inicial de habilidades ativas de combate.
+        // Inicializa a árvore de talentos e concede o kit inicial de habilidades.
+        this.skillTree.initializeTreeForCharacter(hero.id);
         this.skillTree.grantStarterAbilities(hero);
 
         return this.campaign;
@@ -450,6 +451,7 @@ export class CLIGameLoop {
             playTimeSeconds: this.playTimeSeconds(),
             currentAreaName: areaName,
             progression: this.progression,
+            skillTree: this.skillTree,
         });
     }
 
@@ -465,6 +467,7 @@ export class CLIGameLoop {
             playTimeSeconds: this.playTimeSeconds(),
             currentAreaName: areaName,
             progression: this.progression,
+            skillTree: this.skillTree,
         });
     }
 
@@ -478,13 +481,11 @@ export class CLIGameLoop {
     public loadSlot(slotId: SaveSlotId): boolean {
         this.startNewGame(); // esqueleto com o id de herói correto
         this.progression.clear(); // limpa o XP da sessão antes de restaurar
-        const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression);
+        // Habilidades e nós de talento são restaurados do save pelo SaveSlotEngine.
+        const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression, this.skillTree);
         if (result.success) {
-            // Reaplica a escala por nível e reconcede habilidades (não serializadas).
-            this.campaign.getPartyState().forEach((c) => {
-                this.applyLevelScaling(c);
-                this.skillTree.grantStarterAbilities(c);
-            });
+            // Reaplica a escala por nível ao estado restaurado.
+            this.campaign.getPartyState().forEach((c) => this.applyLevelScaling(c));
         }
         return result.success;
     }

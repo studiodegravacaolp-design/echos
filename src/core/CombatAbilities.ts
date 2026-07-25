@@ -84,6 +84,17 @@ export const CANONICAL_ABILITIES: Record<string, ICombatAbility> = {
         healMultiplier: 2.0,
         estafaShift: -10, // abranda rumo ao Materno
     },
+    // Técnica avançada — aprendida dinamicamente (fora do kit inicial).
+    pneumatic_burst: {
+        id: 'pneumatic_burst',
+        name: 'Rajada Pneumática',
+        category: 'AGGRESSIVE',
+        epCost: 50,
+        cooldown: 3,
+        damageMultiplier: 2.0,
+        healMultiplier: 0,
+        estafaShift: 10,
+    },
 };
 
 /** IDs do kit inicial concedido ao herói. */

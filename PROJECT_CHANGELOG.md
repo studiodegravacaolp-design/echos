@@ -10,7 +10,7 @@
 - **Equipamentos e Sucata:** Integrated (Durabilidade, Rusted, Repair)
 - **Navegação de Campanha:** Integrated (Recursos, Hazard, Crise, Reabastecimento)
 - **Status Engine Tático:** Integrated (Poison, Burn, Rust Lock, Spark)
-- **Gerenciador de Saves:** Integrated (4 Slots, Checksum SHA-256, AutoSave, XP persistido)
+- **Gerenciador de Saves:** Integrated (4 Slots, Checksum SHA-256, AutoSave, XP + Habilidades + Árvore persistidos)
 - **Bestiário e Inimigos:** Integrated (Encontros por Hazard, IA Tática, Drop Tables)
 - **Combat Loop Engine:** Integrated (Turn-Based, Status, Speed Order)
 - **Combate Interativo:** Integrated (Ações gated pela Estafa + feedback loop)
@@ -27,7 +27,13 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-07-25] — Sprint Dupla: Habilidades no Combate & Economia de Mercador (HEAD)
+### [2026-07-25] — Persistência de Habilidades & Árvore de Talentos no SaveSlotEngine (HEAD)
+- **Schema de save expandido:** `ISavedCharacter` ganha `learnedAbilityIds` (habilidades ativas aprendidas) e `unlockedSkillNodes` (nós passivos da árvore). `saveToSlot` captura ambos via `ProgressionManager`/`SkillTreeEngine` (opções); checksum SHA-256 preservado.
+- **Reidratação na carga:** `applyPayloadToCampaign` reconstrói as habilidades do catálogo canônico (`CANONICAL_ABILITIES`) e reaplica os bônus passivos via `SkillTreeEngine.restoreUnlockedNodes` (novo). `GameLoop.loadSlot` passa o `skillTree`; `startNewGame` inicializa a árvore.
+- **Auto-migração:** saves legados recebem o **starter kit** de habilidades e árvore vazia, mantendo a integridade do checksum (validação antes da migração em memória).
+- **Testes:** `SkillTreeSaveIntegration` 19/19 (ciclo aprender→salvar→carregar→validar + migração legada). Type-check limpo; regressão verde.
+
+### [2026-07-25] — Sprint Dupla: Habilidades no Combate & Economia de Mercador
 - **Opção 1 — Habilidades ativas no combate:** `CombatAbilities.ts` (kit canônico: Golpe de Forja, Descarga de Ferrugem, Solda de Sobrevivência); `CharacterState` aprende habilidades; `SkillTreeEngine.grantStarterAbilities` faz a ponte. `InteractiveCombatSession` ganha **pool de EP** (regen modulado pelo bônus Materno), **cooldowns**, opções de habilidade e `submitAbility` — com **gating pela Estafa** (agressivas travadas no Materno; suporte no Paterno), custo de EP efetivo (encarecido no Paterno), aplicação de status via `StatusEngine` e feedback loop de Estafa.
 - **Opção 2 — Mercador & economia de sucata:** `TraderManager` ganha `buySupplies` (sucata → mantimentos), `repairEquipment` (reparo via `EquipmentEngine`) e estoque de equipamento; `GameLoop` abre a interface de mercador ao chegar em nós `SCRAP_TRADER`, persistindo no AutoSave.
 - **Testes:** `CombatSkillsIntegration` 19/19 e `TraderIntegration` 18/18. Type-check limpo; regressão verde.
