@@ -33,6 +33,7 @@ import { SaveSlotEngine, SaveSlotId, ISaveSlotSummary } from '../core/SaveSlotEn
 import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
 import { BestiaryEngine, IEnemyInstance, ENEMY_TO_COMBAT_ARCHETYPE } from '../core/BestiaryEngine';
 import { CombatLoopEngine, ICombatResult } from '../core/CombatLoopEngine';
+import { InteractiveCombatSession } from '../core/InteractiveCombatSession';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType } from '../types/aetheris.types';
@@ -80,6 +81,9 @@ export class CLIGameLoop {
     private bestiary = new BestiaryEngine();
     private combatLoop = new CombatLoopEngine();
     private readonly saveSlots: SaveSlotEngine;
+
+    /** Cursor de impressão do log de combate interativo. */
+    private combatLogCursor = 0;
 
     /** Marca de início da sessão para cálculo de playTime nos metadados. */
     private sessionStart = Date.now();
@@ -264,6 +268,76 @@ export class CLIGameLoop {
     public runEncounterCombat(encounter: IGeneratedEncounter): ICombatResult {
         return this.combatLoop.runCombat(this.campaign.getPartyState(), encounter.enemies, {
             estafaBalance: this.campaign.getProgress().estafaBalance,
+        });
+    }
+
+    /**
+     * handleCombat(encounter)
+     * ------------------------------------------------------------------
+     * Inicia o combate INTERATIVO por turnos: o jogador escolhe a ação de
+     * cada herói (passando pelos bloqueios da Balança de Estafa), e os
+     * turnos de inimigos/DoT são resolvidos automaticamente entre decisões.
+     */
+    private handleCombat(encounter: IGeneratedEncounter): void {
+        const session = new InteractiveCombatSession(
+            this.campaign.getPartyState(),
+            encounter.enemies,
+            { estafaBalance: this.campaign.getProgress().estafaBalance },
+        );
+        session.start();
+        this.combatLogCursor = 0;
+        this.flushCombatLog(session);
+        this.combatTurnPrompt(session);
+    }
+
+    /** Imprime as novas linhas do log de combate desde o último flush. */
+    private flushCombatLog(session: InteractiveCombatSession): void {
+        const log = session.getFullLog();
+        for (let i = this.combatLogCursor; i < log.length; i++) {
+            console.log(log[i]);
+        }
+        this.combatLogCursor = log.length;
+    }
+
+    /**
+     * combatTurnPrompt(session)
+     * ------------------------------------------------------------------
+     * Exibe o turno atual (HP, Estafa, ações com bloqueios) e coleta a
+     * escolha do jogador; encerra retornando ao menu de campanha.
+     */
+    private combatTurnPrompt(session: InteractiveCombatSession): void {
+        if (session.isOver()) {
+            const outcome = session.getOutcome();
+            if (outcome === 'VICTORY') {
+                console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
+                this.autoSave();
+            } else if (outcome === 'DEFEAT') {
+                console.log('\n☠️ Derrota! O grupo tomba nos dutos de Brenhold. Fim de jogo.');
+            } else {
+                console.log('\n⏳ O confronto se arrasta sem vencedor claro.');
+            }
+            return this.showCampaignMenu();
+        }
+
+        const turn = session.getCurrentTurn()!;
+        console.log(`\n🎯 Turno de ${turn.actorName} | ⚖️ Estafa ${turn.actorEstafa}`);
+        console.log(`   👾 Inimigos: ${turn.enemies.map((e) => `${e.name} ${e.hp}/${e.maxHp}`).join(', ')}`);
+        console.log(`   🛠️ Aliados: ${turn.allies.map((a) => `${a.name} ${a.hp}/${a.maxHp}`).join(', ')}`);
+        turn.actions.forEach((a, i) => {
+            const lock = a.locked ? ` 🔒 (${a.lockReason})` : '';
+            console.log(`   ${i + 1}. ${a.label}${lock}`);
+        });
+
+        this.ask('Escolha a ação: ', (answer) => {
+            const idx = parseInt(answer, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= turn.actions.length) {
+                console.log('⚠️ Opção inválida!');
+                return this.combatTurnPrompt(session);
+            }
+            // Ação travada é permitida escolher — dispara Insubordinação Tática.
+            session.submitPlayerAction(turn.actions[idx].action);
+            this.flushCombatLog(session);
+            this.combatTurnPrompt(session);
         });
     }
 
@@ -553,18 +627,8 @@ export class CLIGameLoop {
                         const rusted = e.activeStatuses.some((s) => s.type === 'RUST_LOCK') ? ' 🟠(travado por ferrugem)' : '';
                         console.log(`   ${i + 1}. ${e.name} [Nv.${e.level}] HP ${e.stats.maxHp} | DMG ${e.stats.damage} | DEF ${e.stats.defense} — IA ${e.archetypeAI}${rusted}`);
                     });
-
-                    // Auto-resolução do combate por turnos.
-                    const combat = this.runEncounterCombat(encounter);
-                    combat.log.forEach((line) => console.log(line));
-                    if (combat.outcome === 'VICTORY') {
-                        console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
-                        this.autoSave();
-                    } else if (combat.outcome === 'DEFEAT') {
-                        console.log('\n☠️ Derrota! O grupo tomba nos dutos de Brenhold. Fim de jogo.');
-                    } else {
-                        console.log('\n⏳ O confronto se arrasta sem vencedor claro.');
-                    }
+                    // Combate interativo por turnos (retorna ao menu ao terminar).
+                    return this.handleCombat(encounter);
                 }
                 this.showCampaignMenu();
             });
