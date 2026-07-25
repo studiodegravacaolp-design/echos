@@ -69,3 +69,7 @@ A Balança de Estafa oscila em um eixo dinâmico de **-100 (Materno)** a **+100 
 - **70% Tons Base:** `#121214` (Preto-Carbono), `#1E222A` (Chumbo), `#2A2C30` (Cinza-Ferrugem).
 - **20% Accents:** `#4A7C7A` (Cobre/Verdete), `#8C633E` (Bronze), `#A68052` (Latão).
 - **10% Glow Emissivo:** `#39FF14` (Verde-Químico), `#FF7900` (Laranja-Incandescente), `#00E5FF` (Azul-Centelha).
+
+### Padrão de Portraits — "Card de UI com Caixa de Diálogo Integrada"
+- Todo **Portrait** do Aetheris agora é gerado como um **Card de UI diegético**: retrato emoldurado por **moldura de ferro industrial** com **runas gravadas** (glifos de fundição — não-mágicos, não-emissivos) e uma **caixa de texto de pergaminho integrada na base** (nome + diálogo).
+- Substitui o antigo padrão de "retrato solto". Prompt mestre e reconciliação canônica das runas (mantendo o R3 LOCK contra runas mágicas/emissivas) em [`doc/art_bible/PROMPTS_MESTRES_ARTE.md`](doc/art_bible/PROMPTS_MESTRES_ARTE.md) §1.
