@@ -116,9 +116,51 @@ HD-2D pixel art character portrait rendered as a diegetic UI card,
 (photorealistic:-1.5), (3D render:-1.5)
 ```
 
+### 1.7 Exemplo Migrado — Operativo de Contenção Mid Game (UI Card)
+
+> **Migração:** o antigo prompt `[PPB-CONTENCAO-MID]` (retrato solto, em `docs/05_arte/ART-PROMPTS-TIER2.md`) foi **depreciado e migrado** para o padrão UI Card abaixo. É um retrato de personagem de meio de jogo (Tier 2), portanto reside aqui.
+
+```
+[UICARD-CONTENCAO-MID]:
+HD-2D pixel art character portrait rendered as a diegetic UI card,
+(mid game heavy containment operative bust centered:1.4),
+(trapezoidal reinforced silhouette:1.5), (severe right angle shoulder lines:1.4),
+(deep environment insulated armor:1.5), (asphyxiating environment suit:1.4),
+(massive block pauldrons:1.5), (joints sealed with oxidized dark gray lead blankets:1.4),
+(heavy matte iron industrial buckles:1.3), (thick lead-lined collar:1.4),
+(sealed helmet with narrow vision slit:1.3), (oxygen hose couplings:1.2),
+(industrial rivet clusters:1.3), (no fabric exposed:1.3), (hunched protective posture:1.2),
+(chiaroscuro top-down volumetric light:1.3),
+
+--- FRAME ---
+(thick cast-iron ornamental frame:1.6), (oxidized rusted iron border:1.4),
+(corner rivets and reinforced bracket plates:1.3),
+(engraved stamped foundry runes on the iron frame:1.4),
+(non-glowing etched industrial glyphs:1.2),
+
+--- DIALOGUE BOX ---
+(integrated aged parchment text box at the bottom base:1.5),
+(weathered grease-stained parchment banner:1.3), (empty engraved nameplate strip:1.2),
+
+--- STYLE ---
+(70-20-10 palette lead-grey base, matte brass accents, single emissive glow:1.2),
+[medium bust shot], [eye-level], [hard gray directional light], [1px carbon outline], [12 FPS pixel art]
+
+--NEGATIVE PROMPT (R3 LOCK)--
+(glowing runes:-1.5), (magical arcane runes:-1.5), (golden runes:-1.5),
+(glowing auras:-1.5), (ethereal glow:-1.5), (magic particles:-1.5),
+(neon:-1.5), (cyberpunk:-1.5), (sleek armor:-1.0), (polished metal:-1.0),
+(heroic pose:-1.0), (flowing fabric:-1.0), (organic curves:-1.0),
+(clean minimalist UI:-1.5), (floating HUD overlay:-1.2),
+(photorealistic:-1.5), (3D render:-1.5)
+```
+
+> **Nota de Tier:** os retratos **Verdict Bearer do TIER 3** (Ember/Dourado do Clímax) **não** seguem este padrão — a moldura UI Card industrial padrão não se aplica ao Veredito, que permanece em `docs/05_arte/ART-PROMPTS-TIER3.md` com sua exceção cromática reservada.
+
 ---
 
 ## 2. HISTÓRICO DE MUDANÇAS
 
 - **Blueprint v1.2 — Portraits:** substituição do padrão de "retrato solto" pelo padrão diegético **"Card de UI com Caixa de Diálogo Integrada"** (moldura de ferro + runas gravadas + caixa de pergaminho na base). Mantido o R3 LOCK contra runas mágicas/emissivas.
 - **Consolidação de Portraits:** migração do `[PPB-SAPADOR]` (retrato solto) do `ART-PROMPTS-TIER1.md` para `[UICARD-SAPADOR-HUMANO]` (§1.6); tabela de injeção de chassi por raça (§1.5). O `ART-PROMPTS-TIER1.md` passa a tratar apenas cenários/arquitetura/itens e aponta para cá quanto a portraits.
+- **Consolidação de Portraits (Tier 2):** migração do `[PPB-CONTENCAO-MID]` do `ART-PROMPTS-TIER2.md` para `[UICARD-CONTENCAO-MID]` (§1.7). Os retratos **Verdict Bearer (Tier 3)** foram **preservados** intactos por conta da exceção cromática Ember/Dourado do Clímax.

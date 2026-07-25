@@ -5,7 +5,7 @@
 ---
 
 **ID do Documento:** ART-PROMPTS-TIER2
-**Versão:** 1.0.0
+**Versão:** 1.1.0
 **Status:** APROVADO — Conformidade R3
 **Classificação:** Técnico / Pipeline de Arte / Engenharia de Prompts
 **Auditoria:** Dola IA — Gerenciamento de Conformidade
@@ -138,75 +138,11 @@ illustration of Brenhold resonance chamber interior,
 
 ---
 
-## Seção 2: Equipamentos Avançados e Proteções de Chumbo (Tarefa 2.1)
+## Seção 2: Portraits de Personagens — ⚠️ MIGRADO
 
-### 2.1 Prompt Padrão de Equipamento — Contenção Mid Game
-
-```
-[PPB-CONTENCAO-MID]:
-portrait of mid game heavy containment operative,
-(trapezoidal reinforced silhouette:1.5),
-(severe right angle shoulder lines:1.4),
-(deep environment insulated armor:1.5),
-(asphyxiating environment suit:1.4),
-(massive block pauldrons:1.5),
-(joints sealed with oxidized dark gray lead blankets:1.4),
-(heavy matte iron industrial buckles:1.3),
-(thick lead-lined collar:1.4),
-(sealed helmet with narrow vision slit:1.3),
-(oxygen hose couplings:1.2),
-(industrial rivet clusters:1.3),
-(no fabric exposed:1.3),
-(hunched protective posture:1.2),
-[medium shot], [eye-level perspective], [hard gray directional light]
-
---NEGATIVE PROMPT (R3 LOCK)--
-(mystical lights:-1.5), (glowing auras:-1.5), (lit runes:-1.5),
-(ember color:-1.0), (golden prismatic color:-1.0),
-(active crystals:-1.5), (luminous effects:-1.5),
-(floating runes:-1.5), (arcane symbols:-1.5), (smooth gradients:-1.0),
-(bright highlights:-1.0), (ethereal glow:-1.5), (magic particles:-1.5),
-(crystal formations:-1.0), (fantasy glow:-1.5), (divine light:-1.5),
-(neon:-1.5), (cyberpunk:-1.5), (sleek armor:-1.0), (polished metal:-1.0),
-(heroic pose:-1.0), (flowing fabric:-1.0), (organic curves:-1.0)
-```
-
-### 2.2 Anatomia do Prompt — Contenção (Decomposição Estrutural)
-
-| Componente Visual              | Palavras-Chave Obrigatórias                            | Peso |
-|--------------------------------|--------------------------------------------------------|------|
-| Silhueta base                  | `trapezoidal reinforced silhouette`                    | 1.5  |
-| Linhas de ombro                | `severe right angle shoulder lines`                    | 1.4  |
-| Classe de armadura             | `deep environment insulated armor`                     | 1.5  |
-| Função ambiental               | `asphyxiating environment suit`                        | 1.4  |
-| Ombreiras                      | `massive block pauldrons`                              | 1.5  |
-| Vedação de juntas              | `joints sealed with oxidized dark gray lead blankets`  | 1.4  |
-| Fivelas                        | `heavy matte iron industrial buckles`                  | 1.3  |
-| Colar protetor                 | `thick lead-lined collar`                              | 1.4  |
-| Capacete                       | `sealed helmet with narrow vision slit`                | 1.3  |
-| Acoplamentos                   | `oxygen hose couplings`                                | 1.2  |
-| Fixação                        | `industrial rivet clusters`                            | 1.3  |
-| Postura                        | `hunched protective posture`                           | 1.2  |
-
-### 2.3 Paleta de Cores — Contenção Mid Game
-
-| Cor                  | Proporção | Aplicação                                   |
-|----------------------|-----------|---------------------------------------------|
-| Cinza-chumbo oxidado | 40%       | Mantas de vedação, juntas, blindagem        |
-| Ferro escurecido     | 25%       | Fivelas, rebites, estrutura do traje        |
-| Preto opaco          | 15%       | Fendas de visão, sombras internas           |
-| Cinza-ardósia        | 12%       | Ombreiras, placas de armadura               |
-| Latão fosco          | 8%        | Válvulas, conectores, engates               |
-
-### 2.4 Proibições Específicas — Contenção Mid Game
-
-- **Proibido** armaduras elegantes, polidas ou ornamentais
-- **Proibido** posturas heroicas idealizadas (poses de super-herói)
-- **Proibido** tecidos fluidos, capas ou vestes soltas
-- **Proibido** qualquer superfície refletiva ou brilhante
-- **Proibido** curvas orgânicas — silhueta deve ser dominantemente trapezoidal e angular
-- **Proibido** cores quentes (vermelho, laranja, amarelo) — exceto ferrugem mínima
-- **Obrigatório** sensação de peso, isolamento, vedação hermética
+> **DEPRECIADO / MOVIDO.** O prompt de retrato `[PPB-CONTENCAO-MID]` (Operativo de Contenção Mid Game, retrato solto) foi **migrado** para o padrão **"Card de UI com Caixa de Diálogo Integrada"** em [`doc/art_bible/PROMPTS_MESTRES_ARTE.md`](../../doc/art_bible/PROMPTS_MESTRES_ARTE.md) §1.7 (`[UICARD-CONTENCAO-MID]`), preservando silhueta, paleta de chumbo e proibições originais.
+>
+> **Este arquivo (ART-PROMPTS-TIER2) trata apenas de cenários, arquitetura e itens.** Todo portrait de personagem deve ser gerado a partir do `PROMPTS_MESTRES_ARTE.md`.
 
 ---
 
@@ -338,7 +274,7 @@ illustration of Brenhold acoustic calibration devices and isolation systems,
 - [ ] Nenhum prompt do TIER 2 contém as cores Ember (#FF4500) ou Dourado Prismático (#FFD700) como elemento positivo
 - [ ] Nenhum prompt do TIER 2 referencia runas acesas, auras brilhantes, luz mística ou cristais ativos
 - [ ] Cenários de Brenhold usam exclusivamente paleta cinza-pedra / chumbo fosco / preto absoluto
-- [ ] Equipamentos de contenção usam exclusivamente silhueta trapezoidal reforçada, juntas vedadas com chumbo, sem tecido exposto
+- [ ] Portraits de personagens (ex.: Operativo de Contenção) seguem o padrão UI Card em `PROMPTS_MESTRES_ARTE.md` (não gerar retrato solto aqui)
 - [ ] Dispositivos de calibração usam exclusivamente função mecânica pesada, sem ornamentos, sem eletrônica
 - [ ] Nenhum prompt contém referências a tecnologia elétrica, digital ou cyberpunk
 - [ ] Proporções de cor por ativo respeitam as tabelas de paleta definidas
@@ -352,6 +288,7 @@ illustration of Brenhold acoustic calibration devices and isolation systems,
 | Versão | Data       | Autor                  | Descrição                                      |
 |--------|------------|------------------------|------------------------------------------------|
 | 1.0.0  | 2026-07-11 | Núcleo de Arte Técnica | Criação do repositório de prompts TIER 2 (Mid Game — Brenhold) — conformidade R3 |
+| 1.1.0  | 2026-07-24 | Núcleo de Arte Técnica | Migração do portrait `[PPB-CONTENCAO-MID]` para o padrão UI Card em `PROMPTS_MESTRES_ARTE.md`; escopo deste arquivo reduzido a cenários/arquitetura/itens |
 
 ---
 
