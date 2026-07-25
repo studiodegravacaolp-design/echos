@@ -15,6 +15,7 @@
  */
 
 import { CharacterState } from './CharacterState';
+import { CANONICAL_ABILITIES, STARTER_ABILITY_IDS } from './CombatAbilities';
 
 /**
  * Interface ISkillNode
@@ -161,5 +162,26 @@ export class SkillTreeEngine {
      */
     public getTree(characterId: string): ISkillNode[] {
         return this.skills.get(characterId) || [];
+    }
+
+    /**
+     * grantStarterAbilities(character)
+     * ------------------------------------------------------------------
+     * Concede ao personagem o kit inicial de HABILIDADES ATIVAS de
+     * combate (CombatAbilities). Ponte entre a árvore de perícias e as
+     * técnicas usáveis no combate interativo. Idempotente.
+     *
+     * @returns IDs das habilidades efetivamente concedidas.
+     */
+    public grantStarterAbilities(character: CharacterState): string[] {
+        const granted: string[] = [];
+        for (const id of STARTER_ABILITY_IDS) {
+            const ability = CANONICAL_ABILITIES[id];
+            if (ability && !character.hasCombatAbility(id)) {
+                character.learnCombatAbility({ ...ability });
+                granted.push(id);
+            }
+        }
+        return granted;
     }
 }

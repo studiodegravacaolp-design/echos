@@ -38,6 +38,8 @@ import type { IDurableEquipment } from './EquipmentEngine';
 // StatusEngine importa CharacterState apenas como tipo (import type), então
 // a dependência é unidirecional (CharacterState → StatusEngine): sem ciclo.
 import { StatusEngine, ITacticalStatus } from './StatusEngine';
+// Habilidades ativas aprendidas — import apenas-de-tipo (módulo-folha).
+import type { ICombatAbility } from './CombatAbilities';
 
 /**
  * Interface para callback de eventos disparados pelo CharacterState.
@@ -154,6 +156,9 @@ export class CharacterState {
   /** Condições táticas ativas (Poison/Burn/Overcharge/Rust) — geridas pelo StatusEngine */
   private _activeStatuses: ITacticalStatus[];
 
+  /** Habilidades ativas de combate aprendidas pelo personagem */
+  private _combatAbilities: ICombatAbility[];
+
   // ==================================================================
   // CONSTRUTOR
   // ==================================================================
@@ -196,6 +201,7 @@ export class CharacterState {
     this._equipmentBonusStats = {};
     this._durableEquipment = [];
     this._activeStatuses = [];
+    this._combatAbilities = [];
   }
 
   // ==================================================================
@@ -890,6 +896,33 @@ export class CharacterState {
    */
   get activeStatuses(): ITacticalStatus[] {
     return this._activeStatuses;
+  }
+
+  // ==================================================================
+  // HABILIDADES ATIVAS DE COMBATE
+  // ==================================================================
+
+  /**
+   * Aprende uma habilidade ativa (idempotente por id).
+   */
+  public learnCombatAbility(ability: ICombatAbility): void {
+    if (!this._combatAbilities.some((a) => a.id === ability.id)) {
+      this._combatAbilities.push(ability);
+    }
+  }
+
+  /**
+   * Retorna as habilidades ativas aprendidas (cópia defensiva).
+   */
+  public getCombatAbilities(): ICombatAbility[] {
+    return this._combatAbilities.map((a) => ({ ...a }));
+  }
+
+  /**
+   * Verifica se o personagem conhece uma habilidade.
+   */
+  public hasCombatAbility(abilityId: string): boolean {
+    return this._combatAbilities.some((a) => a.id === abilityId);
   }
 
   /**

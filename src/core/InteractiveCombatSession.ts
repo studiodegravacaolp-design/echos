@@ -26,6 +26,7 @@ import { EstafaCalculator, EstafaActionType } from '../mechanics/EstafaCalculato
 import { IEnemyInstance, ENEMY_TO_COMBAT_ARCHETYPE } from './BestiaryEngine';
 import { PenetrationType } from '../types/aetheris.types';
 import { CombatOutcome } from './CombatLoopEngine';
+import { AbilityCategory } from './CombatAbilities';
 
 // ==================================================================
 // TIPAGENS
@@ -51,13 +52,29 @@ export interface ICombatantView {
     maxHp: number;
 }
 
+/** Opção de habilidade ativa renderizável (com EP e bloqueio). */
+export interface ICombatAbilityOption {
+    id: string;
+    name: string;
+    category: AbilityCategory;
+    /** Custo de EP efetivo (já ajustado pela Estafa). */
+    epCost: number;
+    /** Recarga restante em turnos (0 = pronta). */
+    cooldownRemaining: number;
+    locked: boolean;
+    lockReason?: string;
+}
+
 /** Contexto do turno atual (decisão de um herói). */
 export interface ITurnContext {
     round: number;
     actorId: string;
     actorName: string;
     actorEstafa: number;
+    /** EP do herói neste turno. */
+    ep: { current: number; max: number };
     actions: ICombatActionOption[];
+    abilities: ICombatAbilityOption[];
     enemies: ICombatantView[];
     allies: ICombatantView[];
 }
@@ -96,8 +113,19 @@ export interface ICombatSessionOptions {
 // ==================================================================
 
 const DEFAULT_MAX_ROUNDS = 50;
+/** EP máximo de um herói em combate. */
+const EP_MAX = 100;
+/** EP regenerado por turno (antes do bônus Materno). */
+const EP_REGEN_BASE = 25;
 /** Multiplicador de dano da Execução Fria. */
 const EXECUTE_DAMAGE_MULTIPLIER = 1.6;
+
+/** Mapa de categoria de habilidade → tipo de ação da Estafa (gating). */
+const ABILITY_TO_ESTAFA: Record<AbilityCategory, EstafaActionType> = {
+    AGGRESSIVE: 'COLD_EXECUTION', // travada no extremo Materno
+    SUPPORT: 'COMPASSIONATE_HEAL', // travada no extremo Paterno
+    NEUTRAL: 'STANDARD',
+};
 /** Fator de cura da Cura Compassiva (sobre o dano efetivo do curador). */
 const MERCY_HEAL_FACTOR = 1.5;
 
@@ -145,6 +173,10 @@ export class InteractiveCombatSession {
     private readonly fullLog: string[] = [];
     /** Soma dos deslocamentos de Estafa das ações do jogador no combate. */
     private netEstafaShift = 0;
+    /** Pool de EP por herói (id → {current, max}). */
+    private readonly ep = new Map<string, { current: number; max: number }>();
+    /** Recargas de habilidade por herói (id → abilityId → turnos restantes). */
+    private readonly cooldowns = new Map<string, Map<string, number>>();
 
     constructor(
         party: CharacterState[],
@@ -161,6 +193,8 @@ export class InteractiveCombatSession {
         for (const state of party) {
             state.shortTermEstafa = seededEstafa;
             this.combatants.push({ state, side: 'PARTY', name: state.id });
+            this.ep.set(state.id, { current: EP_MAX, max: EP_MAX });
+            this.cooldowns.set(state.id, new Map<string, number>());
         }
         for (const inst of enemyInstances) {
             this.combatants.push(this.buildEnemyCombatant(inst));
@@ -182,12 +216,15 @@ export class InteractiveCombatSession {
     public getCurrentTurn(): ITurnContext | null {
         if (this.over || !this.pendingActor) return null;
         const actor = this.pendingActor;
+        const pool = this.ep.get(actor.state.id) ?? { current: 0, max: EP_MAX };
         return {
             round: this.round,
             actorId: actor.state.id,
             actorName: actor.name,
             actorEstafa: actor.state.shortTermEstafa,
+            ep: { ...pool },
             actions: this.availableActions(actor),
+            abilities: this.availableAbilities(actor),
             enemies: this.viewOf('ENEMY'),
             allies: this.viewOf('PARTY'),
         };
@@ -299,6 +336,154 @@ export class InteractiveCombatSession {
         return this.netEstafaShift;
     }
 
+    /**
+     * submitAbility(abilityId, targetId?)
+     * ------------------------------------------------------------------
+     * Executa uma habilidade ativa do herói corrente. Valida EP, recarga
+     * e a gating da Estafa (habilidades agressivas travadas no extremo
+     * Materno; de suporte no extremo Paterno). Só consome o turno se a
+     * habilidade for efetivamente executada.
+     *
+     * @returns Resolução da ação (ok=false com motivo quando bloqueada).
+     */
+    public submitAbility(abilityId: string, targetId?: string): IActionResolution {
+        const noop = (reason: string): IActionResolution => ({
+            requestedAction: 'ATTACK',
+            executedAction: 'ATTACK',
+            insubordination: false,
+            estafaShift: 0,
+            log: [`   ⛔ ${reason}`],
+            over: this.over,
+            outcome: this.outcome ?? undefined,
+        });
+
+        if (this.over || !this.pendingActor) return noop('Combate encerrado.');
+
+        const actor = this.pendingActor;
+        const ability = actor.state.getCombatAbilities().find((a) => a.id === abilityId);
+        if (!ability) return noop('Habilidade desconhecida.');
+
+        // Gating pela Balança de Estafa.
+        const validation = EstafaCalculator.validateAction(
+            actor.state.shortTermEstafa,
+            ABILITY_TO_ESTAFA[ability.category],
+        );
+        if (!validation.allowed) {
+            return noop(`Bloqueada pela Estafa: ${validation.reason}`);
+        }
+
+        // Recurso de EP (custo efetivo sobe no lado Paterno).
+        const pool = this.ep.get(actor.state.id)!;
+        const cost = Math.round(actor.state.getEffectiveEpCost(ability.epCost));
+        if (pool.current < cost) {
+            return noop(`EP insuficiente (${pool.current}/${cost}).`);
+        }
+
+        // Recarga.
+        const cdMap = this.cooldowns.get(actor.state.id)!;
+        if ((cdMap.get(ability.id) ?? 0) > 0) {
+            return noop(`${ability.name} em recarga (${cdMap.get(ability.id)}).`);
+        }
+
+        // --- Execução ---
+        const localLog: string[] = [];
+        pool.current -= cost;
+        cdMap.set(ability.id, ability.cooldown);
+        localLog.push(`   ✨ ${actor.name} usa ${ability.name} (−${cost} EP).`);
+
+        if (ability.damageMultiplier > 0) {
+            const target = this.applyAttack(actor, targetId, localLog, {
+                multiplier: ability.damageMultiplier,
+            });
+            // Inflige a condição no alvo atingido, se houver.
+            if (ability.inflictStatus && target && this.alive(target)) {
+                StatusEngine.applyStatus(target.state, {
+                    id: `${ability.id}_${target.state.id}`,
+                    type: ability.inflictStatus.type,
+                    duration: ability.inflictStatus.duration,
+                    stacks: ability.inflictStatus.stacks,
+                    valuePerTurn: ability.inflictStatus.valuePerTurn,
+                    sourceId: actor.state.id,
+                });
+                localLog.push(`   🧪 ${target.name} sofre ${ability.inflictStatus.type}.`);
+            }
+        }
+        if (ability.healMultiplier > 0) {
+            this.applyHeal(actor, localLog, ability.healMultiplier);
+        }
+
+        // Feedback loop de Estafa.
+        if (ability.estafaShift !== 0) {
+            actor.state.shortTermEstafa = actor.state.shortTermEstafa + ability.estafaShift;
+            this.netEstafaShift += ability.estafaShift;
+            localLog.push(
+                `   ⚖️ ${ability.name} desloca a Estafa de ${actor.name} em ${ability.estafaShift >= 0 ? '+' : ''}${ability.estafaShift} (agora ${actor.state.shortTermEstafa}).`,
+            );
+        }
+
+        this.pendingActor = null;
+        this.checkOutcome();
+        if (!this.over) {
+            this.advanceToNextDecision();
+        }
+        this.fullLog.push(...localLog);
+
+        return {
+            requestedAction: 'ATTACK',
+            executedAction: 'ATTACK',
+            insubordination: false,
+            estafaShift: ability.estafaShift,
+            log: localLog,
+            over: this.over,
+            outcome: this.outcome ?? undefined,
+        };
+    }
+
+    /** Regenera EP e reduz as recargas de habilidade no início do turno do herói. */
+    private onHeroTurnStart(actor: ICombatant): void {
+        const pool = this.ep.get(actor.state.id);
+        if (pool) {
+            const regen = Math.round(EP_REGEN_BASE * (1 + actor.state.getEpRegenBonusPercent() / 100));
+            pool.current = Math.min(pool.max, pool.current + regen);
+        }
+        const cdMap = this.cooldowns.get(actor.state.id);
+        if (cdMap) {
+            for (const [id, remaining] of cdMap) {
+                if (remaining > 0) cdMap.set(id, remaining - 1);
+            }
+        }
+    }
+
+    /** Avalia as habilidades do herói (EP, recarga e gating da Estafa). */
+    private availableAbilities(actor: ICombatant): ICombatAbilityOption[] {
+        const pool = this.ep.get(actor.state.id) ?? { current: 0, max: EP_MAX };
+        const cdMap = this.cooldowns.get(actor.state.id) ?? new Map<string, number>();
+        return actor.state.getCombatAbilities().map((a) => {
+            const cost = Math.round(actor.state.getEffectiveEpCost(a.epCost));
+            const cd = cdMap.get(a.id) ?? 0;
+            const validation = EstafaCalculator.validateAction(actor.state.shortTermEstafa, ABILITY_TO_ESTAFA[a.category]);
+            let locked = false;
+            let lockReason: string | undefined;
+            if (!validation.allowed) {
+                locked = true;
+                lockReason = validation.reason;
+            } else if (cd > 0) {
+                locked = true;
+                lockReason = `Em recarga (${cd}).`;
+            } else if (pool.current < cost) {
+                locked = true;
+                lockReason = `EP insuficiente (${pool.current}/${cost}).`;
+            }
+            return { id: a.id, name: a.name, category: a.category, epCost: cost, cooldownRemaining: cd, locked, lockReason };
+        });
+    }
+
+    /** EP atual de um herói (para inspeção externa/testes). */
+    public getEp(characterId: string): { current: number; max: number } | undefined {
+        const pool = this.ep.get(characterId);
+        return pool ? { ...pool } : undefined;
+    }
+
     // --------------------------------------------------------------
     // STEPPING INTERNO
     // --------------------------------------------------------------
@@ -359,7 +544,8 @@ export class InteractiveCombatSession {
                 continue;
             }
 
-            // Herói vivo → ponto de decisão.
+            // Herói vivo → regenera EP, reduz recargas e abre ponto de decisão.
+            this.onHeroTurnStart(actor);
             this.pendingActor = actor;
             return;
         }
@@ -392,11 +578,11 @@ export class InteractiveCombatSession {
         log: string[],
         opts: { multiplier?: number; nonLethal?: boolean } = {},
         pool: ICombatant[] = this.combatants,
-    ): void {
+    ): ICombatant | null {
         const enemiesOfAttacker = pool.filter(
             (c) => c.side !== attacker.side && this.alive(c),
         );
-        if (enemiesOfAttacker.length === 0) return;
+        if (enemiesOfAttacker.length === 0) return null;
 
         const target =
             enemiesOfAttacker.find((c) => c.state.id === targetId) ??
@@ -427,16 +613,17 @@ export class InteractiveCombatSession {
         if (!this.alive(target)) {
             log.push(`   💥 ${target.name} foi derrotado!`);
         }
+        return target;
     }
 
-    private applyHeal(healer: ICombatant, log: string[]): void {
+    private applyHeal(healer: ICombatant, log: string[], factor: number = MERCY_HEAL_FACTOR): void {
         const allies = this.living('PARTY');
         if (allies.length === 0) return;
         // Alvo: aliado vivo mais ferido (menor razão de HP).
         const target = allies.reduce((worst, c) =>
             c.state.hp / c.state.maxHp < worst.state.hp / worst.state.maxHp ? c : worst,
         );
-        const healAmount = Math.round(healer.state.getEffectiveDamage() * MERCY_HEAL_FACTOR);
+        const healAmount = Math.round(healer.state.getEffectiveDamage() * factor);
         const before = target.state.hp;
         target.state.hp = target.state.hp + healAmount;
         const restored = target.state.hp - before;

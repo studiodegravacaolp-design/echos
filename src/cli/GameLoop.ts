@@ -37,6 +37,8 @@ import { CombatLoopEngine, ICombatResult } from '../core/CombatLoopEngine';
 import { InteractiveCombatSession } from '../core/InteractiveCombatSession';
 import { CombatRewardEngine } from '../core/CombatRewardEngine';
 import { ProgressionManager } from '../core/ProgressionManager';
+import { SkillTreeEngine } from '../core/SkillTreeEngine';
+import { TraderManager } from '../core/TraderManager';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType, ICharacterStats } from '../types/aetheris.types';
@@ -86,6 +88,8 @@ export class CLIGameLoop {
     private combatLoop = new CombatLoopEngine();
     private progression = new ProgressionManager();
     private rewards = new CombatRewardEngine();
+    private skillTree = new SkillTreeEngine();
+    private trader = new TraderManager();
     private readonly saveSlots: SaveSlotEngine;
 
     /** Cursor de impressão do log de combate interativo. */
@@ -132,6 +136,9 @@ export class CLIGameLoop {
         // Registra os atributos-base para a escala de progressão por nível.
         this.heroBaseStats.clear();
         this.heroBaseStats.set(hero.id, { ...baseStats });
+
+        // Concede o kit inicial de habilidades ativas de combate.
+        this.skillTree.grantStarterAbilities(hero);
 
         return this.campaign;
     }
@@ -391,22 +398,41 @@ export class CLIGameLoop {
         }
 
         const turn = session.getCurrentTurn()!;
-        console.log(`\n🎯 Turno de ${turn.actorName} | ⚖️ Estafa ${turn.actorEstafa}`);
+        console.log(`\n🎯 Turno de ${turn.actorName} | ⚖️ Estafa ${turn.actorEstafa} | ⚡ EP ${turn.ep.current}/${turn.ep.max}`);
         console.log(`   👾 Inimigos: ${turn.enemies.map((e) => `${e.name} ${e.hp}/${e.maxHp}`).join(', ')}`);
         console.log(`   🛠️ Aliados: ${turn.allies.map((a) => `${a.name} ${a.hp}/${a.maxHp}`).join(', ')}`);
+
+        // Opções básicas seguidas das habilidades ativas (numeração contínua).
         turn.actions.forEach((a, i) => {
             const lock = a.locked ? ` 🔒 (${a.lockReason})` : '';
             console.log(`   ${i + 1}. ${a.label}${lock}`);
         });
+        const abilityOffset = turn.actions.length;
+        turn.abilities.forEach((ab, i) => {
+            const lock = ab.locked ? ` 🔒 (${ab.lockReason})` : '';
+            console.log(`   ${abilityOffset + i + 1}. ✨ ${ab.name} [${ab.epCost} EP]${lock}`);
+        });
 
+        const totalOptions = turn.actions.length + turn.abilities.length;
         this.ask('Escolha a ação: ', (answer) => {
             const idx = parseInt(answer, 10) - 1;
-            if (isNaN(idx) || idx < 0 || idx >= turn.actions.length) {
+            if (isNaN(idx) || idx < 0 || idx >= totalOptions) {
                 console.log('⚠️ Opção inválida!');
                 return this.combatTurnPrompt(session, encounter);
             }
-            // Ação travada é permitida escolher — dispara Insubordinação Tática.
-            session.submitPlayerAction(turn.actions[idx].action);
+            if (idx < abilityOffset) {
+                // Ação básica travada é permitida — dispara Insubordinação Tática.
+                session.submitPlayerAction(turn.actions[idx].action);
+            } else {
+                const ability = turn.abilities[idx - abilityOffset];
+                const res = session.submitAbility(ability.id);
+                // Habilidade bloqueada (EP/recarga/Estafa) não consome o turno.
+                if (res.log.some((l) => l.includes('⛔'))) {
+                    this.flushCombatLog(session);
+                    console.log(res.log.join('\n'));
+                    return this.combatTurnPrompt(session, encounter);
+                }
+            }
             this.flushCombatLog(session);
             this.combatTurnPrompt(session, encounter);
         });
@@ -454,8 +480,11 @@ export class CLIGameLoop {
         this.progression.clear(); // limpa o XP da sessão antes de restaurar
         const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression);
         if (result.success) {
-            // Reaplica a escala por nível ao estado restaurado.
-            this.campaign.getPartyState().forEach((c) => this.applyLevelScaling(c));
+            // Reaplica a escala por nível e reconcede habilidades (não serializadas).
+            this.campaign.getPartyState().forEach((c) => {
+                this.applyLevelScaling(c);
+                this.skillTree.grantStarterAbilities(c);
+            });
         }
         return result.success;
     }
@@ -759,6 +788,10 @@ export class CLIGameLoop {
                     // Encontro narrativo ancorado ao nó (retorna ao menu ao terminar).
                     return this.handleDialogue(dialogueId);
                 }
+                const arrived = this.mapEngine.getNodeDetails(targetNodeId);
+                if (arrived && arrived.type === 'SCRAP_TRADER') {
+                    return this.handleTrader();
+                }
                 this.showCampaignMenu();
             });
         });
@@ -868,6 +901,105 @@ export class CLIGameLoop {
             const ok = this.saveToManualSlot(slot);
             console.log(ok ? `\n💾 Jogo salvo em ${slot}.` : `\n❌ Falha ao salvar em ${slot}.`);
             this.showCampaignMenu();
+        });
+    }
+
+    // --------------------------------------------------------------
+    // MERCADOR (ECONOMIA DE SUCATA)
+    // --------------------------------------------------------------
+
+    /**
+     * handleTrader()
+     * ------------------------------------------------------------------
+     * Interface de mercador em nós SCRAP_TRADER: comprar mantimentos,
+     * reparar equipamentos duráveis e comprar itens/upgrades — tudo
+     * gastando sucata. Ao sair, salva no AUTOSAVE (persistência).
+     */
+    private handleTrader(): void {
+        const hero = this.getHero();
+        console.log('\n🏪 Mercado de Sucata');
+        console.log(`   💰 Sucata: ${hero.scrapCount} | 🍞 Mantimentos: ${this.campaign.getSupplies()}`);
+        console.log('   1. 🍞 Comprar Mantimentos');
+        console.log('   2. 🛠️  Reparar Equipamento');
+        console.log('   3. 📦 Comprar Itens');
+        console.log('   0. 🚪 Sair do mercado');
+
+        this.ask('Escolha: ', (answer) => {
+            switch (answer) {
+                case '1': this.handleBuySupplies(); break;
+                case '2': this.handleRepair(); break;
+                case '3': this.handleBuyItems(); break;
+                case '0':
+                    this.autoSave(); // persiste a economia atualizada
+                    this.showCampaignMenu();
+                    break;
+                default:
+                    console.log('⚠️ Opção inválida!');
+                    this.handleTrader();
+            }
+        });
+    }
+
+    private handleBuySupplies(): void {
+        const hero = this.getHero();
+        console.log(`\n🍞 Comprar Mantimentos (💰 ${hero.scrapCount} sucata disponível, taxa 1:1)`);
+        this.ask('Quantos mantimentos comprar? (0 cancela) ', (answer) => {
+            const amount = parseInt(answer, 10);
+            if (isNaN(amount) || amount <= 0) {
+                return this.handleTrader();
+            }
+            const res = this.trader.buySupplies(this.campaign, hero.id, amount);
+            console.log(res.success
+                ? `✅ +${res.suppliesBought} mantimentos por ${res.scrapSpent} sucata (agora ${this.campaign.getSupplies()}).`
+                : '❌ Sucata insuficiente.');
+            this.handleTrader();
+        });
+    }
+
+    private handleRepair(): void {
+        const hero = this.getHero();
+        const durable = hero.durableEquipment.filter((e) => e.durability.current < e.durability.max);
+        if (durable.length === 0) {
+            console.log('\n✅ Nenhum equipamento precisa de reparo.');
+            return this.handleTrader();
+        }
+        console.log('\n🛠️ Equipamentos desgastados:');
+        durable.forEach((e, i) => {
+            const rusted = EquipmentEngine.isRusted(e) ? ' 🟠OXIDADO' : '';
+            console.log(`   ${i + 1}. ${e.name} ${e.durability.current}/${e.durability.max}${rusted} — custo ~${this.trader.estimateRepairCost(e)} sucata`);
+        });
+        console.log('   0. 🔙 Voltar');
+
+        this.ask('Reparar qual? ', (answer) => {
+            const idx = parseInt(answer, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= durable.length) {
+                return this.handleTrader();
+            }
+            const res = this.trader.repairEquipment(this.campaign, hero.id, durable[idx].id);
+            console.log(res.success
+                ? `✅ +${res.durabilityRestored} durabilidade por ${res.scrapSpent} sucata.`
+                : '❌ Reparo falhou (sucata insuficiente ou já íntegro).');
+            this.handleTrader();
+        });
+    }
+
+    private handleBuyItems(): void {
+        const hero = this.getHero();
+        const stock = this.trader.getAvailableStock();
+        console.log('\n📦 Itens à venda:');
+        stock.forEach((s, i) => {
+            console.log(`   ${i + 1}. ${s.name} [${s.type}] — 💰 ${s.scrapPrice} (estoque ${s.stock})`);
+        });
+        console.log('   0. 🔙 Voltar');
+
+        this.ask('Comprar qual? ', (answer) => {
+            const idx = parseInt(answer, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= stock.length) {
+                return this.handleTrader();
+            }
+            const ok = this.trader.buyItem(this.campaign, hero.id, stock[idx].itemId);
+            console.log(ok ? `✅ ${stock[idx].name} comprado.` : '❌ Compra falhou (sucata ou estoque).');
+            this.handleTrader();
         });
     }
 

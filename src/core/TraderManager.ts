@@ -1,4 +1,5 @@
 import { CampaignManager, IInventoryItem } from './CampaignManager';
+import { EquipmentEngine, IDurableEquipment, REPAIR_DURABILITY_PER_SCRAP } from './EquipmentEngine';
 
 export interface ITradeOption {
     itemId: string;
@@ -7,6 +8,23 @@ export interface ITradeOption {
     scrapPrice: number;
     stock: number;
 }
+
+/** Resultado de compra de mantimentos. */
+export interface IBuySuppliesResult {
+    success: boolean;
+    scrapSpent: number;
+    suppliesBought: number;
+}
+
+/** Resultado de reparo de equipamento. */
+export interface IRepairResult {
+    success: boolean;
+    scrapSpent: number;
+    durabilityRestored: number;
+}
+
+/** Custo em sucata por unidade de mantimento. */
+export const SCRAP_PER_SUPPLY = 1;
 
 export class TraderManager {
     private currentStoreStock: Map<string, ITradeOption>;
@@ -30,6 +48,13 @@ export class TraderManager {
             type: 'CONSUMABLE',
             scrapPrice: 40, // Custa 40 sucatas
             stock: 2
+        });
+        this.currentStoreStock.set('eq_scrap_shield', {
+            itemId: 'eq_scrap_shield',
+            name: 'Placa de Sucata Industrial',
+            type: 'EQUIPMENT',
+            scrapPrice: 60,
+            stock: 1
         });
     }
 
@@ -64,5 +89,80 @@ export class TraderManager {
 
     public getAvailableStock(): ITradeOption[] {
         return Array.from(this.currentStoreStock.values());
+    }
+
+    /**
+     * [2] COMPRA DE MANTIMENTOS COM SUCATA
+     * ------------------------------------------------------------------
+     * Converte a sucata de um comprador em mantimentos do grupo (à taxa
+     * SCRAP_PER_SUPPLY). Compra apenas o que a sucata permite (parcial).
+     *
+     * @returns Resultado com sucata gasta e mantimentos comprados.
+     */
+    public buySupplies(
+        campaign: CampaignManager,
+        buyerCharacterId: string,
+        desiredAmount: number,
+    ): IBuySuppliesResult {
+        const buyer = campaign.getPartyState().find((c) => c.id === buyerCharacterId);
+        if (!buyer || !Number.isFinite(desiredAmount) || desiredAmount <= 0) {
+            return { success: false, scrapSpent: 0, suppliesBought: 0 };
+        }
+
+        // Limita pela sucata disponível.
+        const affordable = Math.floor(buyer.scrapCount / SCRAP_PER_SUPPLY);
+        const suppliesBought = Math.min(Math.floor(desiredAmount), affordable);
+        if (suppliesBought <= 0) {
+            return { success: false, scrapSpent: 0, suppliesBought: 0 };
+        }
+
+        const scrapSpent = suppliesBought * SCRAP_PER_SUPPLY;
+        buyer.scrapCount -= scrapSpent;
+        campaign.addSupplies(suppliesBought);
+
+        return { success: true, scrapSpent, suppliesBought };
+    }
+
+    /**
+     * [3] REPARO DE EQUIPAMENTO DURÁVEL COM SUCATA
+     * ------------------------------------------------------------------
+     * Repara um equipamento durável (ex.: oxidado/desgastado) do dono,
+     * consumindo sucata do comprador via EquipmentEngine.repairEquipment.
+     *
+     * @param ownerCharacterId - Dono do equipamento durável.
+     * @param itemId           - Id do equipamento a reparar.
+     */
+    public repairEquipment(
+        campaign: CampaignManager,
+        ownerCharacterId: string,
+        itemId: string,
+    ): IRepairResult {
+        const owner = campaign.getPartyState().find((c) => c.id === ownerCharacterId);
+        if (!owner) {
+            return { success: false, scrapSpent: 0, durabilityRestored: 0 };
+        }
+        // durableEquipment retorna cópia do array, mas os itens são refs reais.
+        const item: IDurableEquipment | undefined = owner.durableEquipment.find((e) => e.id === itemId);
+        if (!item) {
+            return { success: false, scrapSpent: 0, durabilityRestored: 0 };
+        }
+        if (item.durability.current >= item.durability.max || owner.scrapCount < 1) {
+            return { success: false, scrapSpent: 0, durabilityRestored: 0 };
+        }
+
+        const result = EquipmentEngine.repairEquipment(item, owner.scrapCount);
+        owner.scrapCount -= result.scrapSpent;
+
+        return {
+            success: result.scrapSpent > 0,
+            scrapSpent: result.scrapSpent,
+            durabilityRestored: result.durabilityRestored,
+        };
+    }
+
+    /** Custo de reparo completo estimado (sucata) de um item. */
+    public estimateRepairCost(item: IDurableEquipment): number {
+        const missing = Math.max(0, item.durability.max - item.durability.current);
+        return Math.ceil(missing / REPAIR_DURABILITY_PER_SCRAP);
     }
 }

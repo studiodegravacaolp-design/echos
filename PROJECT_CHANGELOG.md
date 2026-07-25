@@ -15,7 +15,9 @@
 - **Combat Loop Engine:** Integrated (Turn-Based, Status, Speed Order)
 - **Combate Interativo:** Integrated (Ações gated pela Estafa + feedback loop)
 - **Progressão & Recompensas:** Integrated (Sucata, Drops, XP, Level-Up, Stat Scaling DRF)
-- **Interface CLI:** GameLoop v2.0 (Menu, HUD, Combate, Diálogo, Game Over)
+- **Habilidades de Combate:** Integrated (EP, Cooldown, Status, Gating por Estafa)
+- **Mercadores & Economia:** Integrated (Comprar Mantimentos, Reparo, Itens por Sucata)
+- **Interface CLI:** GameLoop v2.0 (Menu, HUD, Combate, Habilidades, Diálogo, Mercador, Game Over)
 - **Conteúdo:** Ato 2 (Profundezas de Brenhold) + 9 templates de inimigos
 - **Assets & Visuais:** Git LFS (.gitattributes, Portraits, Spritesheets)
 
@@ -25,7 +27,12 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-07-25] — Diretriz de Documentação Contínua (HEAD)
+### [2026-07-25] — Sprint Dupla: Habilidades no Combate & Economia de Mercador (HEAD)
+- **Opção 1 — Habilidades ativas no combate:** `CombatAbilities.ts` (kit canônico: Golpe de Forja, Descarga de Ferrugem, Solda de Sobrevivência); `CharacterState` aprende habilidades; `SkillTreeEngine.grantStarterAbilities` faz a ponte. `InteractiveCombatSession` ganha **pool de EP** (regen modulado pelo bônus Materno), **cooldowns**, opções de habilidade e `submitAbility` — com **gating pela Estafa** (agressivas travadas no Materno; suporte no Paterno), custo de EP efetivo (encarecido no Paterno), aplicação de status via `StatusEngine` e feedback loop de Estafa.
+- **Opção 2 — Mercador & economia de sucata:** `TraderManager` ganha `buySupplies` (sucata → mantimentos), `repairEquipment` (reparo via `EquipmentEngine`) e estoque de equipamento; `GameLoop` abre a interface de mercador ao chegar em nós `SCRAP_TRADER`, persistindo no AutoSave.
+- **Testes:** `CombatSkillsIntegration` 19/19 e `TraderIntegration` 18/18. Type-check limpo; regressão verde.
+
+### [2026-07-25] — Diretriz de Documentação Contínua
 - **Implementado:** `CLAUDE.md` na raiz formaliza a regra de **commit atômico** (código + `PROJECT_CHANGELOG.md` sempre no mesmo commit). A partir daqui, toda entrega atualiza este changelog junto do código.
 
 ### [2026-07-25] — Ganchos de Nó: Diálogos Ancorados & Reabastecimento
