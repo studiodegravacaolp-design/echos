@@ -308,6 +308,12 @@ export class CLIGameLoop {
     private combatTurnPrompt(session: InteractiveCombatSession): void {
         if (session.isOver()) {
             const outcome = session.getOutcome();
+            // Feedback loop: as escolhas de combate deixam marca na Estafa do grupo.
+            const netShift = session.getNetEstafaShift();
+            if (netShift !== 0 && outcome !== 'DEFEAT') {
+                this.campaign.modifyEstafaBalance(netShift);
+                console.log(`\n⚖️ As escolhas do combate deslocam a Estafa do grupo em ${netShift >= 0 ? '+' : ''}${netShift} (agora ${this.campaign.getProgress().estafaBalance}).`);
+            }
             if (outcome === 'VICTORY') {
                 console.log('\n🏆 Vitória! Os dutos ficam em silêncio novamente.');
                 this.autoSave();

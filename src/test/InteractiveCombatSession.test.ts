@@ -184,6 +184,41 @@ function runDefeatTest(): void {
 }
 
 // ====================================================================
+// F) FEEDBACK LOOP — AÇÕES DESLOCAM A ESTAFA E RE-BLOQUEIAM
+// ====================================================================
+function runEstafaFeedbackTest(): void {
+    printSection('F — Ações de combate deslocam a Estafa (feedback loop)');
+
+    // Começa em +50 (Paterno, ainda não extremo). Uma Execução Fria (+10)
+    // leva a +60 → a Cura Compassiva passa a ser bloqueada no turno seguinte.
+    const striker = hero('striker_01', { damage: 40, movementSpeed: 30 });
+    const session = new InteractiveCombatSession(
+        [striker],
+        [enemy('Saco de Pancada', { maxHp: 9999, currentHp: 9999, damage: 0, defense: 5, movementSpeed: 1 })],
+        { estafaBalance: 50, maxRounds: 20 },
+    );
+    session.start();
+
+    // Antes: no +50, cura ainda liberada.
+    assert(findAction(session, 'MERCY_HEAL').locked === false, 'F.1: em +50 a Cura ainda está liberada');
+
+    const res = session.submitPlayerAction('EXECUTE');
+    assert(res.insubordination === false, 'F.2: Execução Fria permitida em +50');
+    assert(res.estafaShift === 10, `F.3: Execução Fria desloca +10 (obtido ${res.estafaShift})`);
+    assert(striker.shortTermEstafa === 60, `F.4: Estafa do herói vai a +60 (obtido ${striker.shortTermEstafa})`);
+
+    // Depois: agora em +60 (Paterno extremo) → Cura Compassiva bloqueada.
+    assert(findAction(session, 'MERCY_HEAL').locked === true, 'F.5: em +60 a Cura passa a ser BLOQUEADA');
+    assert(session.getNetEstafaShift() === 10, 'F.6: deslocamento líquido acumulado = +10');
+
+    // Ação bloqueada (autônoma) NÃO desloca a Estafa.
+    const blocked = session.submitPlayerAction('MERCY_HEAL');
+    assert(blocked.insubordination === true, 'F.7: cura bloqueada no Paterno vira ação autônoma');
+    assert(blocked.estafaShift === 0, 'F.8: ação autônoma não desloca a Estafa');
+    assert(session.getNetEstafaShift() === 10, 'F.9: líquido permanece +10 após ação bloqueada');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -192,6 +227,7 @@ function main(): void {
     runMaternoBlockTest();
     runHealTest();
     runDefeatTest();
+    runEstafaFeedbackTest();
 
     console.log(`\n${'='.repeat(72)}`);
     console.log(`  RELATÓRIO DE HOMOLOGAÇÃO — InteractiveCombatSession`);

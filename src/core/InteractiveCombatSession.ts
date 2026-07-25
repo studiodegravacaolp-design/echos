@@ -70,6 +70,8 @@ export interface IActionResolution {
     insubordination: boolean;
     lockReason?: string;
     autonomousAlternative?: string;
+    /** Deslocamento de Estafa aplicado por esta ação (0 se bloqueada/neutra). */
+    estafaShift: number;
     /** Log desta ação + turnos inimigos até a próxima decisão. */
     log: string[];
     over: boolean;
@@ -98,6 +100,18 @@ const DEFAULT_MAX_ROUNDS = 50;
 const EXECUTE_DAMAGE_MULTIPLIER = 1.6;
 /** Fator de cura da Cura Compassiva (sobre o dano efetivo do curador). */
 const MERCY_HEAL_FACTOR = 1.5;
+
+/**
+ * Deslocamento de Estafa por ação executada (feedback loop):
+ *   - Execução Fria endurece o líder rumo ao Paterno (+).
+ *   - Cura Compassiva o abranda rumo ao Materno (−).
+ *   - Ataque padrão é neutro.
+ */
+const ESTAFA_SHIFT_BY_ACTION: Record<CombatActionType, number> = {
+    ATTACK: 0,
+    EXECUTE: 10,
+    MERCY_HEAL: -10,
+};
 
 /** Mapa de ação de combate → tipo de ação da Balança de Estafa. */
 const COMBAT_TO_ESTAFA: Record<CombatActionType, EstafaActionType> = {
@@ -129,6 +143,8 @@ export class InteractiveCombatSession {
     private over = false;
     private outcome: CombatOutcome | null = null;
     private readonly fullLog: string[] = [];
+    /** Soma dos deslocamentos de Estafa das ações do jogador no combate. */
+    private netEstafaShift = 0;
 
     constructor(
         party: CharacterState[],
@@ -201,6 +217,7 @@ export class InteractiveCombatSession {
                 requestedAction: action,
                 executedAction: action,
                 insubordination: false,
+                estafaShift: 0,
                 log: ['(combate encerrado — ação ignorada)'],
                 over: this.over,
                 outcome: this.outcome ?? undefined,
@@ -219,9 +236,11 @@ export class InteractiveCombatSession {
         );
 
         let executed: CombatActionType = action;
+        let estafaShift = 0;
 
         if (resolution.insubordination) {
             // Comando bloqueado → executa a ação autônoma modificada.
+            // Sem deslocamento de Estafa: a intenção foi recusada pela unidade.
             localLog.push(`   🧠 Insubordinação: ${resolution.reason}`);
             localLog.push(`   ➡️ ${resolution.autonomousAlternative}`);
             executed = 'ATTACK'; // a alternativa autônoma resolve como ataque padrão
@@ -238,6 +257,17 @@ export class InteractiveCombatSession {
                 case 'MERCY_HEAL':
                     this.applyHeal(actor, localLog);
                     break;
+            }
+
+            // Feedback loop: a ação executada desloca a Estafa do herói e do grupo.
+            estafaShift = ESTAFA_SHIFT_BY_ACTION[action];
+            if (estafaShift !== 0) {
+                actor.state.shortTermEstafa = actor.state.shortTermEstafa + estafaShift;
+                this.netEstafaShift += estafaShift;
+                localLog.push(
+                    `   ⚖️ A escolha desloca a Estafa de ${actor.name} em ${estafaShift >= 0 ? '+' : ''}${estafaShift} ` +
+                    `(agora ${actor.state.shortTermEstafa}).`,
+                );
             }
         }
 
@@ -257,10 +287,16 @@ export class InteractiveCombatSession {
             insubordination: resolution.insubordination,
             lockReason: resolution.reason,
             autonomousAlternative: resolution.autonomousAlternative,
+            estafaShift,
             log: localLog,
             over: this.over,
             outcome: this.outcome ?? undefined,
         };
+    }
+
+    /** Soma dos deslocamentos de Estafa das ações do jogador (para persistir no grupo). */
+    public getNetEstafaShift(): number {
+        return this.netEstafaShift;
     }
 
     // --------------------------------------------------------------
