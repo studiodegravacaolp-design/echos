@@ -5,7 +5,7 @@
 ---
 
 **ID do Documento:** ART-PROMPTS-TIER1
-**Versão:** 1.0.0
+**Versão:** 1.1.0
 **Status:** APROVADO — Conformidade R3
 **Classificação:** Técnico / Pipeline de Arte / Engenharia de Prompts
 **Auditoria:** Dola IA — Gerenciamento de Conformidade
@@ -128,71 +128,22 @@ heavy shadows pooling in corners,
 
 ---
 
-## Seção 2: A Fricção Biomecânica da Raça Humana (Sapadores)
+## Seção 2: Portraits de Personagens/Raças — ⚠️ MIGRADO
 
-### 2.1 Prompt Padrão de Equipamento — Sapador Humano
-
-```
-[PPB-SAPADOR]: 
-portrait of human sapper combat engineer, 
-(rectangular rigid block silhouette:1.4), 
-(heavy mechanical articulated joints:1.5), 
-(opaque hydraulic pressure tubing:1.3), 
-(exposed rivets:1.3), (rough canvas tunic:1.3), 
-(cordura leather armor:1.2), 
-(functional utilitarian gear:1.5), 
-(tool belts:1.2), (wrench and hammer hanging:1.1), 
-(goggles with brass frames:1.1), 
-(coal dust smudged face:1.2), 
-(grim determined expression:1.1), 
-(metal shoulder pauldrons:1.3), 
-[medium shot], [eye-level perspective], [hard directional light]
-
---NEGATIVE PROMPT (R3 LOCK)--
-(magical lights:-1.5), (glowing auras:-1.5), (runes:-1.5), 
-(ember color:-1.0), (golden color:-1.0), (luminous effects:-1.5), 
-(floating runes:-1.5), (arcane symbols:-1.5), (smooth gradients:-1.0), 
-(bright highlights:-1.0), (ethereal glow:-1.5), (magic particles:-1.5), 
-(crystal formations:-1.0), (fantasy glow:-1.5), (divine light:-1.5), 
-(neon:-1.5), (cyberpunk:-1.5), (sleek armor:-1.0), (polished metal:-1.0), 
-(heroic pose:-1.0)
-```
-
-### 2.2 Anatomia do Prompt — Sapador (Decomposição Estrutural)
-
-| Componente Visual              | Palavras-Chave Obrigatórias                | Peso |
-|--------------------------------|---------------------------------------------|------|
-| Silhueta base                  | `rectangular rigid block silhouette`        | 1.4  |
-| Juntas mecânicas               | `heavy mechanical articulated joints`       | 1.5  |
-| Tubulações                     | `opaque hydraulic pressure tubing`          | 1.3  |
-| Fixação                        | `exposed rivets`                            | 1.3  |
-| Armadura têxtil                | `rough canvas tunic`, `cordura leather`     | 1.3  |
-| Estética funcional             | `functional utilitarian gear`               | 1.5  |
-| Ferramentas                    | `tool belts`, `wrench`, `hammer`            | 1.1  |
-| Proteção facial                | `goggles with brass frames`                 | 1.1  |
-| Sujeira ambiental              | `coal dust smudged face`                    | 1.2  |
-
-### 2.3 Paleta de Cores — Sapador
-
-| Cor               | Proporção | Aplicação                             |
-|-------------------|-----------|---------------------------------------|
-| Lona crua         | 35%       | Uniformes, túnicas, bolsas            |
-| Ferro escurecido  | 30%       | Armaduras, juntas, ferramentas        |
-| Couro marrom      | 20%       | Cintos, coldres, luvas, botas        |
-| Latão opaco       | 10%       | Rebites, fivelas, óculos             |
-| Fuligem           | 5%        | Manchas, desgaste, sombras faciais   |
-
-### 2.4 Proibições Específicas — Sapador
-
-- **Proibido** armaduras elegantes, polidas ou ornamentais
-- **Proibido** posturas heroicas idealizadas (poses de super-herói)
-- **Proibido** capuzes com brilho místico
-- **Proibido** armas que emitam luz própria
-- **Proibido** qualquer indício de tecnologia elétrica ou digital
+> **DEPRECIADO / MOVIDO.** O antigo prompt de retrato `[PPB-SAPADOR]` (retrato solto) foi **migrado** para o padrão diegético **"Card de UI com Caixa de Diálogo Integrada"** e agora vive em [`doc/art_bible/PROMPTS_MESTRES_ARTE.md`](../../doc/art_bible/PROMPTS_MESTRES_ARTE.md):
+>
+> - **Prompt mestre de portrait (UI Card):** §1.2
+> - **Sapador Humano migrado (`[UICARD-SAPADOR-HUMANO]`):** §1.6
+> - **Tabela de injeção de chassi por raça** (Humanos, Anões, Elfos, Fadas, Draconianos, Lurídeos): §1.5
+> - **Reconciliação canônica das runas** (glifos industriais gravados, não-mágicos): §1.3
+>
+> **Este arquivo (ART-PROMPTS-TIER1) trata apenas de cenários, arquitetura e itens.** Todo portrait de personagem/raça deve ser gerado a partir do `PROMPTS_MESTRES_ARTE.md`. A anatomia estrutural, a paleta e as proibições do Sapador foram absorvidas pelo card migrado.
 
 ---
 
-## Seção 3: A Engenharia Pesada da Raça Anã (Artífices)
+## Seção 3: A Engenharia Pesada da Raça Anã (Artífices) — Arquitetura
+
+> **Escopo:** esta seção é **arquitetura/cenário** (estruturas anãs), não um portrait de personagem. O retrato do Anão segue o padrão UI Card em [`doc/art_bible/PROMPTS_MESTRES_ARTE.md`](../../doc/art_bible/PROMPTS_MESTRES_ARTE.md) §1.5. Mantida aqui por ser um prompt de estrutura/ambiente.
 
 ### 3.1 Prompt Padrão de Estrutura — Artífice Anão
 
@@ -304,7 +255,7 @@ illustration of dwarf artifice structural architecture,
 - [ ] Nenhum prompt do TIER 1 contém as cores Ember (#FF4500) ou Dourado (#FFD700) como elemento positivo
 - [ ] Nenhum prompt do TIER 1 referencia runas, auras brilhantes, luz mágica ou símbolos arcanos
 - [ ] Cenários de Vardhelm usam exclusivamente paleta sépia/chumbo/fuligem
-- [ ] Sapadores usam exclusivamente silhueta retangular rígida, juntas mecânicas expostas, sem heroísmo
+- [ ] Portraits de personagens/raças seguem o padrão UI Card em `PROMPTS_MESTRES_ARTE.md` (não gerar retrato solto aqui)
 - [ ] Artífices anões usam exclusivamente bases trapezoidais ultra-largas, pedra bruta, sem ornamentação
 - [ ] Nenhum prompt contém referências a tecnologia elétrica, digital ou cyberpunk
 - [ ] Proporções de cor por ativo respeitam as tabelas de paleta definidas
@@ -317,6 +268,7 @@ illustration of dwarf artifice structural architecture,
 | Versão | Data       | Autor                  | Descrição                                      |
 |--------|------------|------------------------|------------------------------------------------|
 | 1.0.0  | 2026-07-11 | Núcleo de Arte Técnica | Criação do repositório de prompts TIER 1 (Early Game) — conformidade R3 |
+| 1.1.0  | 2026-07-24 | Núcleo de Arte Técnica | Migração dos portraits (`[PPB-SAPADOR]`) para o padrão UI Card em `PROMPTS_MESTRES_ARTE.md`; escopo deste arquivo reduzido a cenários/arquitetura/itens |
 
 ---
 
