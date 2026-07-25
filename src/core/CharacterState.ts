@@ -32,6 +32,9 @@ import {
   EstafaCalculator,
   EstafaModifiers,
 } from '../mechanics/EstafaCalculator';
+// Import apenas-de-tipo (erased em runtime) para evitar ciclo de importação
+// com EquipmentEngine, que por sua vez importa CharacterState/CampaignManager.
+import type { IDurableEquipment } from './EquipmentEngine';
 
 /**
  * Interface para callback de eventos disparados pelo CharacterState.
@@ -142,6 +145,9 @@ export class CharacterState {
   /** Bônus cumulativos de atributos concedidos pelos equipamentos ativos */
   private _equipmentBonusStats: IEquipmentStats;
 
+  /** Equipamentos duráveis ativos (modelo com durabilidade/oxidação) */
+  private _durableEquipment: IDurableEquipment[];
+
   // ==================================================================
   // CONSTRUTOR
   // ==================================================================
@@ -182,6 +188,7 @@ export class CharacterState {
     this._engineeringCharges = {};
     this._equippedItems = {};
     this._equipmentBonusStats = {};
+    this._durableEquipment = [];
   }
 
   // ==================================================================
@@ -828,17 +835,85 @@ export class CharacterState {
   /**
    * getEffectivePhysicalDefense()
    * ------------------------------------------------------------------
-   * Defesa física efetiva = (defesa base + bônus de equipamento) ajustada
+   * Defesa física efetiva = (defesa base + bônus de equipamento legado +
+   * defesa de equipamentos duráveis com penalidade de oxidação) ajustada
    * pela Estafa. O lado Paterno concede physicalDefBonus (rigidez); o
    * lado Materno aplica armorPenalty (perda de eficiência de armadura).
    * Apenas um dos lados está ativo por vez (ver EstafaCalculator).
+   *
+   * Armaduras duráveis oxidadas (Rusted) contribuem apenas 50% da defesa.
    */
   public getEffectivePhysicalDefense(): number {
     const baseDefense =
-      this._stats.defense + (this._equipmentBonusStats.bonusDefense ?? 0);
+      this._stats.defense +
+      (this._equipmentBonusStats.bonusDefense ?? 0) +
+      this.getDurableDefenseBonus();
     const mods = this.getEstafaModifiers();
     const factor = 1 + mods.physicalDefBonus / 100 - mods.armorPenalty / 100;
     return Math.max(0, baseDefense * factor);
+  }
+
+  // ==================================================================
+  // EQUIPAMENTOS DURÁVEIS — DEFESA COM PENALIDADE DE OXIDAÇÃO
+  // ==================================================================
+  // NOTA: os limiares abaixo espelham RUST_DURABILITY_THRESHOLD e
+  // RUST_STAT_PENALTY de EquipmentEngine (fonte da verdade). São
+  // replicados aqui como constantes locais para manter o import de
+  // EquipmentEngine apenas-de-tipo e evitar ciclo de importação.
+  // ==================================================================
+
+  /** Razão de durabilidade (<=) que marca um item como oxidado. */
+  private static readonly DURABLE_RUST_RATIO = 0.25;
+
+  /** Penalidade multiplicativa dos atributos de um item oxidado. */
+  private static readonly DURABLE_RUST_PENALTY = 0.5;
+
+  /**
+   * Obtém uma cópia da lista de equipamentos duráveis ativos.
+   */
+  get durableEquipment(): IDurableEquipment[] {
+    return [...this._durableEquipment];
+  }
+
+  /**
+   * Equipa um item durável (modelo com durabilidade/oxidação).
+   * @param item - Item durável a acoplar
+   */
+  public equipDurable(item: IDurableEquipment): void {
+    this._durableEquipment.push(item);
+  }
+
+  /**
+   * Remove um item durável pelo id.
+   * @param itemId - Identificador do item durável
+   * @returns true se removido, false se não encontrado
+   */
+  public unequipDurable(itemId: string): boolean {
+    const index = this._durableEquipment.findIndex((e) => e.id === itemId);
+    if (index < 0) {
+      return false;
+    }
+    this._durableEquipment.splice(index, 1);
+    return true;
+  }
+
+  /**
+   * getDurableDefenseBonus()
+   * ------------------------------------------------------------------
+   * Soma a defesa concedida pelos equipamentos duráveis ativos, aplicando
+   * penalidade de 50% na contribuição de cada item oxidado (Rusted).
+   */
+  private getDurableDefenseBonus(): number {
+    let sum = 0;
+    for (const item of this._durableEquipment) {
+      const rusted =
+        item.durability.max > 0 &&
+        item.durability.current <=
+          item.durability.max * CharacterState.DURABLE_RUST_RATIO;
+      const factor = rusted ? CharacterState.DURABLE_RUST_PENALTY : 1;
+      sum += item.baseStats.defense * factor;
+    }
+    return sum;
   }
 
   /**
