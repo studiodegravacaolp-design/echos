@@ -34,6 +34,17 @@ export type EnemyCategory = 'MUTANT' | 'AUTOMATON' | 'SCAVENGER';
  */
 export type EnemyAIArchetype = 'AGGRESSIVE' | 'TACTICAL_DEBUFF' | 'DESPERATE';
 
+/** Entrada de tabela de drop de um inimigo. */
+export interface IEnemyDrop {
+    itemId: string;
+    name: string;
+    type: 'MATERIAL' | 'CONSUMABLE' | 'EQUIPMENT';
+    /** Probabilidade de queda (0..1). */
+    chance: number;
+    /** Quantidade concedida quando o drop ocorre. */
+    quantity: number;
+}
+
 /** Definição estática (template) de um inimigo. */
 export interface IEnemyTemplate {
     id: string;
@@ -45,6 +56,8 @@ export interface IEnemyTemplate {
     archetypeAI: EnemyAIArchetype;
     /** Condições táticas que este inimigo pode infligir. */
     statusCapabilities: StatusType[];
+    /** Itens que o inimigo pode largar ao ser derrotado. */
+    dropTable: IEnemyDrop[];
 }
 
 /** Instância concreta de um inimigo gerada para um encontro. */
@@ -61,6 +74,8 @@ export interface IEnemyInstance {
     statusCapabilities: StatusType[];
     /** Condições ativas na criação (ex.: RUST_LOCK ambiental). */
     activeStatuses: ITacticalStatus[];
+    /** Tabela de drop herdada do template (itens possíveis ao derrotar). */
+    dropTable: IEnemyDrop[];
 }
 
 /** Opções de geração de encontro. */
@@ -117,6 +132,9 @@ const CANONICAL_ENEMIES: Record<string, IEnemyTemplate> = {
         baseStats: { maxHp: 30, currentHp: 30, damage: 6, defense: 2, resilience: 3, movementSpeed: 14 },
         archetypeAI: 'AGGRESSIVE',
         statusCapabilities: ['CHEMICAL_POISON'],
+        dropTable: [
+            { itemId: 'mat_steel_bar', name: 'Barra de Aço de Alta Densidade', type: 'MATERIAL', chance: 0.5, quantity: 1 },
+        ],
     },
     batedor_catador: {
         id: 'batedor_catador',
@@ -126,6 +144,11 @@ const CANONICAL_ENEMIES: Record<string, IEnemyTemplate> = {
         baseStats: { maxHp: 45, currentHp: 45, damage: 9, defense: 5, resilience: 4, movementSpeed: 12 },
         archetypeAI: 'DESPERATE',
         statusCapabilities: ['CHEMICAL_POISON'],
+        // Catadores acumulam suprimentos.
+        dropTable: [
+            { itemId: 'medkit_standard', name: 'Medkit Padrão', type: 'CONSUMABLE', chance: 0.4, quantity: 1 },
+            { itemId: 'mat_bronze_plate', name: 'Placa de Bronze Industrial', type: 'MATERIAL', chance: 0.5, quantity: 1 },
+        ],
     },
     automato_oxidado: {
         id: 'automato_oxidado',
@@ -135,6 +158,10 @@ const CANONICAL_ENEMIES: Record<string, IEnemyTemplate> = {
         baseStats: { maxHp: 70, currentHp: 70, damage: 10, defense: 12, resilience: 6, movementSpeed: 6 },
         archetypeAI: 'TACTICAL_DEBUFF',
         statusCapabilities: ['RUST_LOCK', 'SPARK_OVERCHARGE'],
+        dropTable: [
+            { itemId: 'mat_silicon_wafer', name: 'Placa de Silício Processado', type: 'MATERIAL', chance: 0.6, quantity: 1 },
+            { itemId: 'eq_scrap_shield', name: 'Placa de Sucata Industrial', type: 'EQUIPMENT', chance: 0.15, quantity: 1 },
+        ],
     },
     guardiao_vapor: {
         id: 'guardiao_vapor',
@@ -144,6 +171,10 @@ const CANONICAL_ENEMIES: Record<string, IEnemyTemplate> = {
         baseStats: { maxHp: 110, currentHp: 110, damage: 16, defense: 14, resilience: 8, movementSpeed: 7 },
         archetypeAI: 'AGGRESSIVE',
         statusCapabilities: ['STEAM_BURN'],
+        dropTable: [
+            { itemId: 'mat_steel_bar', name: 'Barra de Aço de Alta Densidade', type: 'MATERIAL', chance: 0.7, quantity: 2 },
+            { itemId: 'eq_bronze_armor', name: 'Chapa de Armadura de Bronze', type: 'EQUIPMENT', chance: 0.2, quantity: 1 },
+        ],
     },
 };
 
@@ -174,6 +205,7 @@ export class BestiaryEngine {
             ...t,
             baseStats: { ...t.baseStats },
             statusCapabilities: [...t.statusCapabilities],
+            dropTable: t.dropTable.map((d) => ({ ...d })),
         };
     }
 
@@ -268,6 +300,7 @@ export class BestiaryEngine {
             stats,
             statusCapabilities: [...template.statusCapabilities],
             activeStatuses: [],
+            dropTable: template.dropTable.map((d) => ({ ...d })),
         };
     }
 

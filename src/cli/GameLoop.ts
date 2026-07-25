@@ -308,6 +308,10 @@ export class CLIGameLoop {
             this.progression,
         );
         console.log(`\n🎁 Espólio: +${reward.scrapAwarded} sucata | +${reward.xpAwarded} XP por herói.`);
+        if (reward.itemsDropped.length > 0) {
+            const summary = reward.itemsDropped.map((it) => `${it.name} x${it.quantity}`).join(', ');
+            console.log(`   📦 Itens saqueados: ${summary}`);
+        }
         reward.levelUps.forEach((lu) => {
             console.log(`   ⬆️ ${lu.characterId} subiu ${lu.levelsGained} nível(is) → Nv.${lu.newLevel}!`);
         });

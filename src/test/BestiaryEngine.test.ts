@@ -137,6 +137,11 @@ function runStatusTest(): void {
     // Não-autômato nunca recebe RUST_LOCK ambiental.
     const rat = engine.instantiateEnemy('rato_quimico', 2, 3);
     assert(engine.applyEncounterStatus(rat as IEnemyInstance, { oxidationLevel: 1, rng: () => 0 }) === false, 'C.9: mutante não recebe RUST_LOCK ambiental');
+
+    // Tabelas de drop: presentes nos templates e herdadas pelas instâncias.
+    assert(templates.every((t) => Array.isArray(t.dropTable)), 'C.10: todo template tem dropTable');
+    assert(engine.getEnemyTemplate('guardiao_vapor')!.dropTable.length >= 1, 'C.11: Guardião de Vapor tem drops');
+    assert(rat.dropTable.length >= 1, 'C.12: instância herda a tabela de drop do template');
 }
 
 // ====================================================================

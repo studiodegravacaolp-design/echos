@@ -76,6 +76,7 @@ function enemy(
         stats: s,
         statusCapabilities: [] as StatusType[],
         activeStatuses: [],
+        dropTable: [],
         ...overrides,
     };
 }

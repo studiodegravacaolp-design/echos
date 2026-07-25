@@ -57,12 +57,12 @@ function hero(id: string): CharacterState {
     return new CharacterState(stats(), undefined, undefined, undefined, null, id);
 }
 let ec = 0;
-function enemyInst(level: number, category: EnemyCategory): IEnemyInstance {
+function enemyInst(level: number, category: EnemyCategory, dropTable: IEnemyInstance['dropTable'] = []): IEnemyInstance {
     ec++;
     return {
         instanceId: `e#${ec}`, templateId: 't', name: `Inimigo ${ec}`, category,
         archetypeAI: 'AGGRESSIVE', level,
-        stats: stats(), statusCapabilities: [], activeStatuses: [],
+        stats: stats(), statusCapabilities: [], activeStatuses: [], dropTable,
     };
 }
 
@@ -141,12 +141,44 @@ function runDistributionTest(): void {
 }
 
 // ====================================================================
+// D) DROPS DE ITENS (RNG DETERMINÍSTICO)
+// ====================================================================
+function runDropTest(): void {
+    printSection('D — Drops de itens dos inimigos');
+
+    const h = hero('hero_01');
+    const campaign = new CampaignManager([h]);
+    const progression = new ProgressionManager();
+    const rewards = new CombatRewardEngine();
+
+    const drops = [
+        { itemId: 'mat_steel_bar', name: 'Barra de Aço', type: 'MATERIAL' as const, chance: 0.5, quantity: 2 },
+        { itemId: 'eq_scrap_shield', name: 'Escudo de Sucata', type: 'EQUIPMENT' as const, chance: 0.15, quantity: 1 },
+    ];
+    const enemies = [enemyInst(3, 'AUTOMATON', drops)];
+
+    // RNG "sempre passa" (0 < chance) → todos os drops caem.
+    const all = rewards.grantVictoryRewards(campaign, enemies, [h], progression, { rng: () => 0 });
+    assert(all.itemsDropped.length === 2, `D.1: RNG baixo → 2 drops (obtido ${all.itemsDropped.length})`);
+    assert(campaign.getGlobalInventory().some((i) => i.id === 'mat_steel_bar' && i.quantity === 2), 'D.2: material adicionado ao inventário (x2)');
+    assert(campaign.getGlobalInventory().some((i) => i.id === 'eq_scrap_shield'), 'D.3: equipamento adicionado ao inventário');
+
+    // RNG "nunca passa" (>= chance) → nenhum drop.
+    const h2 = hero('hero_02');
+    const campaign2 = new CampaignManager([h2]);
+    const none = rewards.grantVictoryRewards(campaign2, [enemyInst(3, 'AUTOMATON', drops)], [h2], progression, { rng: () => 0.99 });
+    assert(none.itemsDropped.length === 0, 'D.4: RNG alto → nenhum drop');
+    assert(none.scrapAwarded > 0, 'D.5: sucata ainda concedida mesmo sem drops');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
     runScrapTest();
     runXpTest();
     runDistributionTest();
+    runDropTest();
 
     console.log(`\n${'='.repeat(72)}`);
     console.log(`  RELATÓRIO DE HOMOLOGAÇÃO — CombatRewardEngine`);

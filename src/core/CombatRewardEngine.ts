@@ -14,7 +14,7 @@
  * ====================================================================
  */
 
-import { CampaignManager } from './CampaignManager';
+import { CampaignManager, IInventoryItem } from './CampaignManager';
 import { CharacterState } from './CharacterState';
 import { ProgressionManager } from './ProgressionManager';
 import { LootEngine } from '../modules/combat/LootEngine';
@@ -41,6 +41,14 @@ export interface IVictoryReward {
     levelUps: ICharacterLevelUp[];
     /** Marcas de Aço geradas por overflow no nível máximo. */
     overflowMarks: number;
+    /** Itens largados pelos inimigos e adicionados ao inventário. */
+    itemsDropped: IInventoryItem[];
+}
+
+/** Opções de recompensa. */
+export interface IRewardOptions {
+    /** RNG injetável (padrão Math.random) para as rolagens de drop. */
+    rng?: () => number;
 }
 
 // ==================================================================
@@ -74,16 +82,35 @@ export class CombatRewardEngine {
         defeatedEnemies: IEnemyInstance[],
         survivors: CharacterState[],
         progression: ProgressionManager,
+        options: IRewardOptions = {},
     ): IVictoryReward {
+        const rng = options.rng ?? Math.random;
+
         // --- Sucata: soma por inimigo (autômato = loot mecânico) ---
         let scrapAwarded = 0;
         for (const enemy of defeatedEnemies) {
             const isMechanical = enemy.category === 'AUTOMATON';
             scrapAwarded += LootEngine.calculateBattleLoot(enemy.level, isMechanical);
         }
-        if (scrapAwarded > 0) {
-            // Distribui a sucata igualmente entre os membros da party.
-            campaign.consolidateLoot(scrapAwarded, []);
+
+        // --- Drops: rola a tabela de cada inimigo derrotado ---
+        const itemsDropped: IInventoryItem[] = [];
+        for (const enemy of defeatedEnemies) {
+            for (const drop of enemy.dropTable) {
+                if (rng() < drop.chance) {
+                    itemsDropped.push({
+                        id: drop.itemId,
+                        name: drop.name,
+                        type: drop.type,
+                        quantity: drop.quantity,
+                    });
+                }
+            }
+        }
+
+        // Consolida sucata + itens no grupo/inventário em uma única operação.
+        if (scrapAwarded > 0 || itemsDropped.length > 0) {
+            campaign.consolidateLoot(scrapAwarded, itemsDropped);
         }
 
         // --- XP: proporcional ao nível dos inimigos, por sobrevivente ---
@@ -107,6 +134,6 @@ export class CombatRewardEngine {
             }
         }
 
-        return { scrapAwarded, xpAwarded, levelUps, overflowMarks };
+        return { scrapAwarded, xpAwarded, levelUps, overflowMarks, itemsDropped };
     }
 }

@@ -63,7 +63,7 @@ function enemy(name: string, o?: Partial<ICharacterStats>): IEnemyInstance {
     const s = stats({ maxHp: 30, currentHp: 30, damage: 3, defense: 2, movementSpeed: 1, ...o });
     return {
         instanceId: `enemy#${ec}`, templateId: 't', name, category: 'MUTANT',
-        archetypeAI: 'AGGRESSIVE', level: 1, stats: s, statusCapabilities: [], activeStatuses: [],
+        archetypeAI: 'AGGRESSIVE', level: 1, stats: s, statusCapabilities: [], activeStatuses: [], dropTable: [],
     };
 }
 
