@@ -29,6 +29,7 @@ import { CampaignMapEngine, ITraversalResult, ICampaignNode, NodeType } from '..
 import { CraftingEngine } from '../core/CraftingEngine';
 import { EquipmentEngine } from '../core/EquipmentEngine';
 import { QuestManager, QuestStatus } from '../core/QuestManager';
+import { DialogueEngine } from '../core/DialogueEngine';
 import { SaveSlotEngine, SaveSlotId, ISaveSlotSummary } from '../core/SaveSlotEngine';
 import { CombatAIEngine, ICommandResolution } from '../core/CombatAIEngine';
 import { BestiaryEngine, IEnemyInstance, ENEMY_TO_COMBAT_ARCHETYPE } from '../core/BestiaryEngine';
@@ -80,6 +81,7 @@ export class CLIGameLoop {
     private craftingEngine = new CraftingEngine();
     private eqEngine = new EquipmentEngine();
     private questManager = new QuestManager();
+    private dialogueEngine = new DialogueEngine();
     private bestiary = new BestiaryEngine();
     private combatLoop = new CombatLoopEngine();
     private progression = new ProgressionManager();
@@ -229,21 +231,25 @@ export class CLIGameLoop {
      */
     public performTraversal(
         targetNodeId: string,
-    ): { result: ITraversalResult; autoSaved: boolean; encounter?: IGeneratedEncounter } {
+    ): { result: ITraversalResult; autoSaved: boolean; encounter?: IGeneratedEncounter; dialogueId?: string } {
         const result = this.mapEngine.traverseToNode(this.campaign, targetNodeId);
         if (!result.success) {
             return { result, autoSaved: false };
         }
 
+        const node = this.mapEngine.getNodeDetails(targetNodeId);
+
         // Nós hostis disparam um encontro escalado pelo perigo do duto.
         let encounter: IGeneratedEncounter | undefined;
-        const node = this.mapEngine.getNodeDetails(targetNodeId);
         if (node && COMBAT_NODE_TYPES.has(node.type)) {
             encounter = this.generateEncounterForNode(node);
         }
 
+        // Nós narrativos ancoram um diálogo ramificado por Estafa.
+        const dialogueId = node?.dialogueId;
+
         const autoSaved = this.autoSave();
-        return { result, autoSaved, encounter };
+        return { result, autoSaved, encounter, dialogueId };
     }
 
     /**
@@ -727,14 +733,14 @@ export class CLIGameLoop {
                     return this.showCampaignMenu();
                 }
 
-                const { result, autoSaved, encounter } = this.performTraversal(targetNodeId);
+                const { result, autoSaved, encounter, dialogueId } = this.performTraversal(targetNodeId);
                 if (!result.success) {
                     console.log(`\n❌ ${result.message ?? 'Não foi possível atravessar.'}`);
                     return this.showCampaignMenu();
                 }
 
                 console.log(`\n✅ ${result.message}`);
-                console.log(`   🍞 -${result.suppliesConsumed} mantimentos (restam ${result.suppliesRemaining}) | ⚖️ ${result.estafaShift >= 0 ? '+' : ''}${result.estafaShift} | 🛠️ ${result.equipmentDegraded} item(ns) desgastado(s)`);
+                console.log(`   🍞 -${result.suppliesConsumed} mantimentos${result.suppliesRestocked > 0 ? ` (+${result.suppliesRestocked} reabastecido)` : ''} (restam ${result.suppliesRemaining}) | ⚖️ ${result.estafaShift >= 0 ? '+' : ''}${result.estafaShift} | 🛠️ ${result.equipmentDegraded} item(ns) desgastado(s)`);
                 if (result.survivalCrisis) {
                     console.log('   ⚠️ ESCASSEZ DE MANTIMENTOS — o grupo avança exausto!');
                 }
@@ -749,8 +755,80 @@ export class CLIGameLoop {
                     // Combate interativo por turnos (retorna ao menu ao terminar).
                     return this.handleCombat(encounter);
                 }
+                if (dialogueId) {
+                    // Encontro narrativo ancorado ao nó (retorna ao menu ao terminar).
+                    return this.handleDialogue(dialogueId);
+                }
                 this.showCampaignMenu();
             });
+        });
+    }
+
+    // --------------------------------------------------------------
+    // DIÁLOGO RAMIFICADO ANCORADO A NÓS
+    // --------------------------------------------------------------
+
+    /**
+     * handleDialogue(dialogueId)
+     * ------------------------------------------------------------------
+     * Inicia um diálogo ramificado (Estafa) ancorado a um nó do mapa.
+     */
+    private handleDialogue(dialogueId: string): void {
+        const node = this.dialogueEngine.startDialogue(dialogueId);
+        if (!node) {
+            return this.showCampaignMenu();
+        }
+        this.dialoguePrompt();
+    }
+
+    /** Encerra o diálogo salvando o desfecho e volta ao menu. */
+    private endDialogue(): void {
+        this.autoSave();
+        this.showCampaignMenu();
+    }
+
+    /**
+     * dialoguePrompt()
+     * ------------------------------------------------------------------
+     * Exibe o nó ativo, lista as opções ricas com bloqueios por Estafa e
+     * aplica a escolha (deslocando a Estafa do grupo). Nós terminais
+     * (apenas texto/continuação) encerram o diálogo.
+     */
+    private dialoguePrompt(): void {
+        const node = this.dialogueEngine.getActiveDialogue();
+        if (!node) {
+            return this.endDialogue();
+        }
+
+        console.log(`\n💬 [${node.speaker}]: "${node.text}"`);
+        const estafa = this.campaign.getProgress().estafaBalance;
+        const options = this.dialogueEngine.getAvailableOptions(estafa);
+
+        // Nó terminal/continuação (sem opções ricas).
+        if (options.length === 0) {
+            return this.ask('   (Enter para continuar) ', () => this.endDialogue());
+        }
+
+        options.forEach((o, i) => {
+            const lock = o.locked ? ` 🔒 (${o.lockReason})` : '';
+            console.log(`   ${i + 1}. ${o.text}${lock}`);
+        });
+
+        this.ask('Escolha: ', (answer) => {
+            const idx = parseInt(answer, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= options.length) {
+                console.log('⚠️ Opção inválida!');
+                return this.dialoguePrompt();
+            }
+            const chosen = options[idx];
+            const res = this.dialogueEngine.selectOption(chosen.id, estafa, this.campaign);
+            if (res.locked) {
+                // A psique do líder recusa esta resposta — reoferece as opções.
+                console.log(`   🧠 ${res.lockReason}`);
+                return this.dialoguePrompt();
+            }
+            console.log(`   ⚖️ Estafa do grupo agora: ${this.campaign.getProgress().estafaBalance}`);
+            this.dialoguePrompt();
         });
     }
 

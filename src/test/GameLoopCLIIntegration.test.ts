@@ -240,6 +240,36 @@ function runLevelScalingTest(): void {
 }
 
 // ====================================================================
+// H) GANCHOS: DIÁLOGO ANCORADO + REABASTECIMENTO
+// ====================================================================
+function runNodeHooksTest(): void {
+    printSection('H — Diálogo ancorado a nó e reabastecimento de mantimentos');
+
+    const loop = newLoop();
+    const campaign = loop.startNewGame();
+
+    // Posiciona no sector_02 e reduz mantimentos para observar o reabastecimento.
+    campaign.setCurrentNode('sector_02_combat');
+    campaign.consumeSupplies(80); // 100 → 20
+
+    // Refúgio Selado: reabastece +60 e ancora um diálogo (sem encontro de combate).
+    const refuge = loop.performTraversal('deep_refuge');
+    assert(refuge.result.success === true, 'H.1: travessia ao Refúgio bem-sucedida');
+    assert(refuge.encounter === undefined, 'H.2: zona segura não gera encontro');
+    assert(refuge.result.suppliesRestocked === 60, `H.3: reabastecimento +60 (obtido ${refuge.result.suppliesRestocked})`);
+    assert(campaign.getSupplies() === 80, `H.4: mantimentos 20 → 80 (obtido ${campaign.getSupplies()})`);
+    assert(refuge.dialogueId === 'wounded_engineer', 'H.5: nó ancora o diálogo da Engenheira Ferida');
+
+    // Condutos de Vapor (a partir do sector_02) ancoram o Autômato Preso.
+    const loop2 = newLoop();
+    const c2 = loop2.startNewGame();
+    c2.setCurrentNode('sector_02_combat');
+    const vapor = loop2.performTraversal('vapor_conduits');
+    assert(vapor.dialogueId === 'trapped_automaton', 'H.6: Condutos ancoram o Autômato Preso');
+    assert(vapor.encounter === undefined, 'H.7: nó HAZARD não gera encontro de combate');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -251,6 +281,7 @@ function main(): void {
         runEncounterTest();
         runGameOverTest();
         runLevelScalingTest();
+        runNodeHooksTest();
     } finally {
         cleanup();
     }

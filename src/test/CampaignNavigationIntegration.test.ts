@@ -218,13 +218,18 @@ function runDeepNodesTest(): void {
     // Condutos de Vapor puxam a Estafa ao Materno (medo/preservação).
     assert(map.getTraversalPreview('vapor_conduits')!.estafaImpact === -8, 'E.5: Condutos de Vapor têm estafaImpact negativo');
 
-    // Travessia real por uma rota do Ato 2 (posiciona no sector_02 antes).
+    // Travessia ao Refúgio reabastece mantimentos (posiciona no sector_02 antes).
     campaign.setCurrentNode('sector_02_combat');
-    const suppliesBefore = campaign.getSupplies();
+    campaign.consumeSupplies(70); // 100 → 30
     const res = map.traverseToNode(campaign, 'deep_refuge');
     assert(res.success === true, 'E.6: travessia ao Refúgio Selado bem-sucedida');
     assert(res.suppliesConsumed === 0, 'E.7: refúgio não consome mantimentos');
-    assert(campaign.getSupplies() === suppliesBefore, 'E.8: mantimentos preservados no refúgio');
+    assert(res.suppliesRestocked === 60, `E.8: refúgio reabastece +60 (obtido ${res.suppliesRestocked})`);
+    assert(campaign.getSupplies() === 90, `E.9: mantimentos 30 → 90 após reabastecer (obtido ${campaign.getSupplies()})`);
+
+    // Ancoragem de diálogos aos nós.
+    assert(map.getNodeDetails('vapor_conduits')!.dialogueId === 'trapped_automaton', 'E.10: Condutos ancoram o Autômato Preso');
+    assert(map.getNodeDetails('deep_refuge')!.dialogueId === 'wounded_engineer', 'E.11: Refúgio ancora a Engenheira Ferida');
 }
 
 // ====================================================================

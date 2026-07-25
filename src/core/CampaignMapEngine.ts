@@ -14,6 +14,10 @@ export interface ICampaignNode {
     estafaImpact?: number;
     /** Custo de mantimentos para atravessar. Padrão: derivado do hazard. */
     traversalSupplyCost?: number;
+    /** Mantimentos reabastecidos ao chegar (zonas seguras/mercados). */
+    supplyRestock?: number;
+    /** Diálogo disparado ao chegar neste nó (ancoragem narrativa). */
+    dialogueId?: string;
 }
 
 // ==================================================================
@@ -44,7 +48,9 @@ export interface ITraversalResult {
     targetNodeId: string;
     /** Mantimentos efetivamente consumidos. */
     suppliesConsumed: number;
-    /** Mantimentos restantes após a travessia. */
+    /** Mantimentos reabastecidos ao chegar (0 se o nó não reabastece). */
+    suppliesRestocked: number;
+    /** Mantimentos restantes após a travessia (pós-consumo e reabastecimento). */
     suppliesRemaining: number;
     /** Número de itens duráveis degradados no grupo. */
     equipmentDegraded: number;
@@ -109,6 +115,8 @@ export class CampaignMapEngine {
             hazardLevel: 0,
             estafaImpact: 0,
             traversalSupplyCost: 0,
+            supplyRestock: 60, // ração e descanso no refúgio
+            dialogueId: 'wounded_engineer', // uma sobrevivente busca abrigo aqui
         });
         this.mapNodes.set('vapor_conduits', {
             id: 'vapor_conduits',
@@ -117,6 +125,7 @@ export class CampaignMapEngine {
             connectedTo: ['foundry_depths', 'rust_shrine'],
             hazardLevel: 3,
             estafaImpact: -8, // o medo do vapor puxa o grupo ao Materno (preservação)
+            dialogueId: 'trapped_automaton', // um autômato preso implora nos dutos
         });
         this.mapNodes.set('foundry_depths', {
             id: 'foundry_depths',
@@ -141,6 +150,7 @@ export class CampaignMapEngine {
             connectedTo: ['core_reactor'],
             hazardLevel: 1,
             estafaImpact: 0,
+            supplyRestock: 40, // reabastecimento comprado no mercado
         });
         this.mapNodes.set('core_reactor', {
             id: 'core_reactor',
@@ -234,6 +244,7 @@ export class CampaignMapEngine {
                 success: false,
                 targetNodeId,
                 suppliesConsumed: 0,
+                suppliesRestocked: 0,
                 suppliesRemaining: campaign.getSupplies(),
                 equipmentDegraded: 0,
                 estafaShift: 0,
@@ -273,17 +284,33 @@ export class CampaignMapEngine {
             campaign.modifyEstafaBalance(estafaShift);
         }
 
-        // --- 4. Move o grupo ---
+        // --- 4. Reabastecimento (zonas seguras/mercados) ---
+        const suppliesRestocked = Math.max(0, targetNode.supplyRestock ?? 0);
+        if (suppliesRestocked > 0) {
+            campaign.addSupplies(suppliesRestocked);
+            // Reabastecer alivia a crise de escassez.
+            if (campaign.getSupplies() > 0) {
+                campaign.setSurvivalCrisis(false);
+            }
+        }
+
+        // --- 5. Move o grupo ---
         campaign.setCurrentNode(targetNodeId);
 
-        const message = survivalCrisis
-            ? `⚠️ Escassez de Mantimentos! O grupo cruza ${targetNode.name} esfomeado e exausto.`
-            : `Travessia concluída até ${targetNode.name}.`;
+        let message: string;
+        if (survivalCrisis) {
+            message = `⚠️ Escassez de Mantimentos! O grupo cruza ${targetNode.name} esfomeado e exausto.`;
+        } else if (suppliesRestocked > 0) {
+            message = `Travessia concluída até ${targetNode.name}. Reabastecimento: +${suppliesRestocked} mantimentos.`;
+        } else {
+            message = `Travessia concluída até ${targetNode.name}.`;
+        }
 
         return {
             success: true,
             targetNodeId,
             suppliesConsumed,
+            suppliesRestocked,
             suppliesRemaining: campaign.getSupplies(),
             equipmentDegraded,
             estafaShift,
