@@ -83,6 +83,10 @@ export interface ICampaignProgress {
   unlockedNodeIds: string[];
   completedBattlesCount: number;
   estafaBalance: number;
+  /** Mantimentos do grupo — consumidos ao atravessar nós do mapa. */
+  supplies: number;
+  /** true quando o grupo entrou em Escassez de Mantimentos (SURVIVAL_CRISIS). */
+  survivalCrisis: boolean;
 }
 
 // ==================================================================
@@ -104,6 +108,9 @@ export interface ICampaignProgress {
  * global ou o progresso sem passar por esta classe.
  */
 export class CampaignManager {
+  /** Mantimentos iniciais do grupo ao começar a campanha. */
+  public static readonly STARTING_SUPPLIES = 100;
+
   private party: CharacterState[];
   private globalInventory: Map<string, IInventoryItem>;
   private progress: ICampaignProgress;
@@ -122,6 +129,8 @@ export class CampaignManager {
       unlockedNodeIds: ['brenhold_entrance'],
       completedBattlesCount: 0,
       estafaBalance: 0,
+      supplies: CampaignManager.STARTING_SUPPLIES,
+      survivalCrisis: false,
     };
   }
 
@@ -241,6 +250,65 @@ export class CampaignManager {
   }
 
   // ==================================================================
+  // RECURSOS DE CAMPANHA — MANTIMENTOS E ESCASSEZ (SURVIVAL_CRISIS)
+  // ==================================================================
+
+  /**
+   * getSupplies()
+   * ------------------------------------------------------------------
+   * Retorna o total de mantimentos do grupo (nunca negativo).
+   */
+  public getSupplies(): number {
+    return this.progress.supplies ?? 0;
+  }
+
+  /**
+   * addSupplies(amount)
+   * ------------------------------------------------------------------
+   * Adiciona mantimentos ao grupo (ex.: reabastecimento em zona segura).
+   * Valores inválidos (NaN, <= 0) são ignorados.
+   */
+  public addSupplies(amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    this.progress.supplies = this.getSupplies() + amount;
+  }
+
+  /**
+   * consumeSupplies(amount)
+   * ------------------------------------------------------------------
+   * Consome mantimentos, com clamp mínimo em 0. Retorna a quantidade
+   * efetivamente consumida (pode ser menor que `amount` em escassez).
+   *
+   * @param amount - Quantidade desejada de consumo
+   * @returns Quantidade realmente consumida
+   */
+  public consumeSupplies(amount: number): number {
+    if (!Number.isFinite(amount) || amount <= 0) return 0;
+    const available = this.getSupplies();
+    const consumed = Math.min(available, amount);
+    this.progress.supplies = available - consumed;
+    return consumed;
+  }
+
+  /**
+   * isSurvivalCrisis()
+   * ------------------------------------------------------------------
+   * Indica se o grupo está em Escassez de Mantimentos (SURVIVAL_CRISIS).
+   */
+  public isSurvivalCrisis(): boolean {
+    return this.progress.survivalCrisis === true;
+  }
+
+  /**
+   * setSurvivalCrisis(active)
+   * ------------------------------------------------------------------
+   * Define o estado de Escassez de Mantimentos do grupo.
+   */
+  public setSurvivalCrisis(active: boolean): void {
+    this.progress.survivalCrisis = active;
+  }
+
+  // ==================================================================
   // [A] LÓGICA DE CONSUMÍVEIS FORA DE COMBATE
   // ==================================================================
 
@@ -346,8 +414,14 @@ export class CampaignManager {
       const data: ISaveData = JSON.parse(jsonString);
       if (!data.progress || !data.globalInventory || !data.partyStates) return false;
 
-      // Restaura o progresso
+      // Restaura o progresso, normalizando campos ausentes em saves antigos.
       this.progress = data.progress;
+      if (typeof this.progress.supplies !== 'number') {
+        this.progress.supplies = CampaignManager.STARTING_SUPPLIES;
+      }
+      if (typeof this.progress.survivalCrisis !== 'boolean') {
+        this.progress.survivalCrisis = false;
+      }
 
       // Reconstrói o Map do inventário
       this.globalInventory.clear();
