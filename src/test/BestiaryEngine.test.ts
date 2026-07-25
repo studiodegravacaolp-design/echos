@@ -145,12 +145,46 @@ function runStatusTest(): void {
 }
 
 // ====================================================================
+// E) NOVOS TEMPLATES DE ALTO TIER
+// ====================================================================
+function runHighTierTemplatesTest(): void {
+    printSection('E — Novos templates de alto tier');
+
+    const engine = new BestiaryEngine();
+
+    // Templates recém-adicionados existem.
+    for (const id of ['enxame_faisca', 'catador_veterano', 'lurideo_afogado', 'nucleo_instavel', 'colosso_ferrugem']) {
+        assert(engine.getEnemyTemplate(id) !== undefined, `E.1: template '${id}' existe`);
+    }
+
+    // O chefe é tier 5 e só é elegível no perigo máximo.
+    const boss = engine.getEnemyTemplate('colosso_ferrugem')!;
+    assert(boss.tier === 5 && boss.category === 'AUTOMATON', 'E.2: Colosso de Ferrugem é AUTOMATON tier 5');
+
+    // Em hazard 2, nenhum template de tier > 2 aparece.
+    const low = engine.generateEncounter(2, 5);
+    assert(low.every((e) => engine.getEnemyTemplate(e.templateId)!.tier <= 2), 'E.3: hazard 2 não spawna alto tier');
+
+    // Em hazard 5, tiers altos ficam elegíveis (incluindo o chefe).
+    const eligibleIds = new Set(
+        engine.listTemplates().filter((t) => t.tier <= 5).map((t) => t.id),
+    );
+    assert(eligibleIds.has('colosso_ferrugem'), 'E.4: chefe elegível no hazard máximo');
+
+    // O chefe escala de forma imponente.
+    const bossInst = engine.instantiateEnemy('colosso_ferrugem', 5, 10);
+    assert(bossInst.stats.maxHp > 300, `E.5: chefe escalado tem HP massivo (obtido ${bossInst.stats.maxHp})`);
+    assert(bossInst.dropTable.length >= 2, 'E.6: chefe tem tabela de drop rica');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
     runEncounterBoundsTest();
     runScalingTest();
     runStatusTest();
+    runHighTierTemplatesTest();
 
     console.log(`\n${'='.repeat(72)}`);
     console.log(`  RELATÓRIO DE HOMOLOGAÇÃO — BestiaryEngine`);

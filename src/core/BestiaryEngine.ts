@@ -176,6 +176,72 @@ const CANONICAL_ENEMIES: Record<string, IEnemyTemplate> = {
             { itemId: 'eq_bronze_armor', name: 'Chapa de Armadura de Bronze', type: 'EQUIPMENT', chance: 0.2, quantity: 1 },
         ],
     },
+    enxame_faisca: {
+        id: 'enxame_faisca',
+        name: 'Enxame de Faíscas',
+        category: 'AUTOMATON',
+        tier: 2,
+        // Rápido e frágil — sobrecarrega antes de ser desligado.
+        baseStats: { maxHp: 40, currentHp: 40, damage: 12, defense: 4, resilience: 4, movementSpeed: 16 },
+        archetypeAI: 'AGGRESSIVE',
+        statusCapabilities: ['SPARK_OVERCHARGE'],
+        dropTable: [
+            { itemId: 'mat_silicon_wafer', name: 'Placa de Silício Processado', type: 'MATERIAL', chance: 0.55, quantity: 1 },
+        ],
+    },
+    catador_veterano: {
+        id: 'catador_veterano',
+        name: 'Catador Veterano',
+        category: 'SCAVENGER',
+        tier: 3,
+        baseStats: { maxHp: 90, currentHp: 90, damage: 14, defense: 8, resilience: 6, movementSpeed: 11 },
+        archetypeAI: 'DESPERATE',
+        statusCapabilities: ['CHEMICAL_POISON'],
+        dropTable: [
+            { itemId: 'medkit_standard', name: 'Medkit Padrão', type: 'CONSUMABLE', chance: 0.5, quantity: 1 },
+            { itemId: 'eq_scrap_shield', name: 'Placa de Sucata Industrial', type: 'EQUIPMENT', chance: 0.2, quantity: 1 },
+        ],
+    },
+    lurideo_afogado: {
+        id: 'lurideo_afogado',
+        name: 'Lurídeo Afogado',
+        category: 'MUTANT',
+        tier: 3,
+        baseStats: { maxHp: 100, currentHp: 100, damage: 15, defense: 9, resilience: 10, movementSpeed: 9 },
+        archetypeAI: 'TACTICAL_DEBUFF',
+        statusCapabilities: ['CHEMICAL_POISON', 'STEAM_BURN'],
+        dropTable: [
+            { itemId: 'mat_lurid_crystal', name: 'Cristal de Ignição Lurídeo', type: 'MATERIAL', chance: 0.35, quantity: 1 },
+        ],
+    },
+    nucleo_instavel: {
+        id: 'nucleo_instavel',
+        name: 'Núcleo Instável',
+        category: 'AUTOMATON',
+        tier: 4,
+        baseStats: { maxHp: 140, currentHp: 140, damage: 20, defense: 16, resilience: 8, movementSpeed: 8 },
+        archetypeAI: 'TACTICAL_DEBUFF',
+        statusCapabilities: ['SPARK_OVERCHARGE', 'RUST_LOCK'],
+        dropTable: [
+            { itemId: 'mat_silicon_wafer', name: 'Placa de Silício Processado', type: 'MATERIAL', chance: 0.7, quantity: 2 },
+            { itemId: 'eq_lurid_core', name: 'Núcleo Térmico Lurídeo', type: 'EQUIPMENT', chance: 0.15, quantity: 1 },
+        ],
+    },
+    colosso_ferrugem: {
+        id: 'colosso_ferrugem',
+        name: 'Colosso de Ferrugem',
+        category: 'AUTOMATON',
+        tier: 5,
+        // Chefe: massivo, lento e implacável.
+        baseStats: { maxHp: 260, currentHp: 260, damage: 28, defense: 24, resilience: 14, movementSpeed: 5 },
+        archetypeAI: 'AGGRESSIVE',
+        statusCapabilities: ['RUST_LOCK', 'STEAM_BURN'],
+        dropTable: [
+            { itemId: 'eq_steel_blade', name: 'Lâmina de Aço de Brenhold', type: 'EQUIPMENT', chance: 0.5, quantity: 1 },
+            { itemId: 'eq_bronze_armor', name: 'Chapa de Armadura de Bronze', type: 'EQUIPMENT', chance: 0.5, quantity: 1 },
+            { itemId: 'mat_steel_bar', name: 'Barra de Aço de Alta Densidade', type: 'MATERIAL', chance: 1.0, quantity: 3 },
+        ],
+    },
 };
 
 // ==================================================================

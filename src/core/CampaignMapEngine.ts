@@ -95,9 +95,60 @@ export class CampaignMapEngine {
             id: 'sector_02_combat',
             name: 'Sala de Máquinas Principal',
             type: 'COMBAT_ARENA',
-            connectedTo: [],
+            connectedTo: ['deep_refuge', 'vapor_conduits'],
             hazardLevel: 3,
             estafaImpact: 12,
+        });
+
+        // ── Ato 2: profundezas de Brenhold ──
+        this.mapNodes.set('deep_refuge', {
+            id: 'deep_refuge',
+            name: 'Refúgio Selado',
+            type: 'SAFE_ZONE',
+            connectedTo: ['foundry_depths'],
+            hazardLevel: 0,
+            estafaImpact: 0,
+            traversalSupplyCost: 0,
+        });
+        this.mapNodes.set('vapor_conduits', {
+            id: 'vapor_conduits',
+            name: 'Condutos de Vapor',
+            type: 'HAZARD',
+            connectedTo: ['foundry_depths', 'rust_shrine'],
+            hazardLevel: 3,
+            estafaImpact: -8, // o medo do vapor puxa o grupo ao Materno (preservação)
+        });
+        this.mapNodes.set('foundry_depths', {
+            id: 'foundry_depths',
+            name: 'Profundezas da Fundição',
+            type: 'COMBAT_ARENA',
+            connectedTo: ['salvage_market', 'core_reactor'],
+            hazardLevel: 4,
+            estafaImpact: 14,
+        });
+        this.mapNodes.set('rust_shrine', {
+            id: 'rust_shrine',
+            name: 'Santuário Enferrujado',
+            type: 'AMBUSH',
+            connectedTo: ['core_reactor'],
+            hazardLevel: 4,
+            estafaImpact: 10,
+        });
+        this.mapNodes.set('salvage_market', {
+            id: 'salvage_market',
+            name: 'Mercado das Profundezas',
+            type: 'SCRAP_TRADER',
+            connectedTo: ['core_reactor'],
+            hazardLevel: 1,
+            estafaImpact: 0,
+        });
+        this.mapNodes.set('core_reactor', {
+            id: 'core_reactor',
+            name: 'Câmara do Reator Central',
+            type: 'COMBAT_ARENA',
+            connectedTo: [],
+            hazardLevel: 5,
+            estafaImpact: 18,
         });
     }
 

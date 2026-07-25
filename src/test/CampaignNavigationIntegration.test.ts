@@ -189,6 +189,45 @@ function runInvalidTraversalTest(): void {
 }
 
 // ====================================================================
+// E) NOVOS NÓS DO ATO 2 (PROFUNDEZAS)
+// ====================================================================
+function runDeepNodesTest(): void {
+    printSection('E — Novos nós das profundezas de Brenhold');
+
+    const { hero } = makeHeroWithGear();
+    const campaign = new CampaignManager([hero]);
+    const map = new CampaignMapEngine();
+
+    // Nós existem e têm dados de travessia.
+    for (const id of ['deep_refuge', 'vapor_conduits', 'foundry_depths', 'rust_shrine', 'salvage_market', 'core_reactor']) {
+        assert(map.getNodeDetails(id) !== undefined, `E.1: nó '${id}' existe no mapa`);
+    }
+
+    // sector_02_combat agora avança para o Ato 2.
+    const sector02 = map.getNodeDetails('sector_02_combat')!;
+    assert(sector02.connectedTo.includes('deep_refuge') && sector02.connectedTo.includes('vapor_conduits'), 'E.2: sector_02 conecta ao Ato 2');
+
+    // O reator é o clímax: hazard 5.
+    const reactor = map.getTraversalPreview('core_reactor')!;
+    assert(reactor.hazardLevel === 5, `E.3: Reator Central é hazard 5 (obtido ${reactor.hazardLevel})`);
+
+    // Refúgio selado é seguro e sem custo.
+    const refuge = map.getTraversalPreview('deep_refuge')!;
+    assert(refuge.hazardLevel === 0 && refuge.supplyCost === 0, 'E.4: Refúgio Selado é seguro e gratuito');
+
+    // Condutos de Vapor puxam a Estafa ao Materno (medo/preservação).
+    assert(map.getTraversalPreview('vapor_conduits')!.estafaImpact === -8, 'E.5: Condutos de Vapor têm estafaImpact negativo');
+
+    // Travessia real por uma rota do Ato 2 (posiciona no sector_02 antes).
+    campaign.setCurrentNode('sector_02_combat');
+    const suppliesBefore = campaign.getSupplies();
+    const res = map.traverseToNode(campaign, 'deep_refuge');
+    assert(res.success === true, 'E.6: travessia ao Refúgio Selado bem-sucedida');
+    assert(res.suppliesConsumed === 0, 'E.7: refúgio não consome mantimentos');
+    assert(campaign.getSupplies() === suppliesBefore, 'E.8: mantimentos preservados no refúgio');
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -196,6 +235,7 @@ function main(): void {
     runEstafaRiskTest();
     runSurvivalCrisisTest();
     runInvalidTraversalTest();
+    runDeepNodesTest();
 
     console.log(`\n${'='.repeat(72)}`);
     console.log(`  RELATÓRIO DE INTEGRAÇÃO — Navegação × Recursos × Estafa`);

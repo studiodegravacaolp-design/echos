@@ -226,6 +226,41 @@ function runCampaignPersistenceTest(): void {
 }
 
 // ====================================================================
+// F) NOVOS ENCONTROS RAMIFICADOS (CONTEÚDO)
+// ====================================================================
+function runBranchingContentTest(): void {
+    printSection('F — Encontros ramificados por Estafa (Autômato Preso / Engenheira Ferida)');
+
+    // Autômato Preso: libertar (Materno) vs desmontar (Paterno) vs ignorar.
+    let engine = new DialogueEngine();
+    engine.startDialogue('trapped_automaton');
+
+    // No extremo Paterno (+80): "libertar" (empatia) é bloqueado.
+    let opts = engine.getAvailableOptions(80);
+    assert(findOption(opts, 'auto_free').locked === true, 'F.1: no Paterno, libertar (empatia) é bloqueado');
+    assert(findOption(opts, 'auto_salvage').locked === false, 'F.2: desmontar (cálculo) liberado no Paterno');
+    assert(findOption(opts, 'auto_ignore').locked === false, 'F.3: ignorar (STANDARD) sempre liberado');
+
+    // No extremo Materno (-80): "desmontar" (frieza) é bloqueado.
+    opts = engine.getAvailableOptions(-80);
+    assert(findOption(opts, 'auto_salvage').locked === true, 'F.4: no Materno, desmontar (frieza) é bloqueado');
+    assert(findOption(opts, 'auto_free').locked === false, 'F.5: libertar liberado no Materno');
+
+    // Selecionar "libertar" na zona neutra desloca a Estafa ao Materno e avança.
+    engine.startDialogue('trapped_automaton');
+    const freed = engine.selectOption('auto_free', 0);
+    assert(freed.locked === false, 'F.6: libertar permitido na zona neutra');
+    assert(freed.newEstafa === -12, `F.7: libertar desloca a Estafa a -12 (obtido ${freed.newEstafa})`);
+    assert(engine.getActiveDialogue()?.id === 'automaton_freed', 'F.8: diálogo avança para o desfecho de libertação');
+
+    // Engenheira Ferida: interrogar friamente desloca ao Paterno.
+    engine = new DialogueEngine();
+    engine.startDialogue('wounded_engineer');
+    const cold = engine.selectOption('eng_interrogate', 0);
+    assert(cold.newEstafa === 10, `F.9: interrogatório frio desloca a +10 (obtido ${cold.newEstafa})`);
+}
+
+// ====================================================================
 // MAIN
 // ====================================================================
 function main(): void {
@@ -234,6 +269,7 @@ function main(): void {
     runPaternoLockTest();
     runNeutralTest();
     runCampaignPersistenceTest();
+    runBranchingContentTest();
 
     console.log(`\n${'='.repeat(72)}`);
     console.log(`  RELATÓRIO DE INTEGRAÇÃO — Diálogo × Estafa`);

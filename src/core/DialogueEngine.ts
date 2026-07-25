@@ -164,6 +164,73 @@ export class DialogueEngine {
             text: 'Um bom negócio. O ferro vai continuar girando. Pode passar.',
             choices: [{ text: 'Continuar jornada...', nextDialogueId: null, targetNodeId: 'sector_01_combat' }]
         });
+
+        // ── Encontro ramificado: Autômato Preso ──
+        this.dialogueNodes.set('trapped_automaton', {
+            id: 'trapped_automaton',
+            speaker: 'Autômato Preso',
+            text: 'Circuitos... presos sob os escombros. Unidade requisita assistência — ou desativação misericordiosa.',
+            choices: [],
+            options: [
+                {
+                    id: 'auto_free',
+                    text: '🔧 Libertar o autômato dos escombros (compaixão)',
+                    estafaShift: -12,
+                    actionCategory: 'MATERNAL_EMPATHY',
+                    nextDialogueId: 'automaton_freed',
+                },
+                {
+                    id: 'auto_salvage',
+                    text: '🔩 Desmontá-lo por peças enquanto está imóvel (frieza)',
+                    estafaShift: 12,
+                    actionCategory: 'PATERNAL_CALCULATION',
+                    nextDialogueId: 'automaton_salvaged',
+                },
+                {
+                    id: 'auto_ignore',
+                    text: '🚶 Seguir em frente sem interferir',
+                    estafaShift: 0,
+                    actionCategory: 'STANDARD',
+                    nextDialogueId: null,
+                },
+            ],
+        });
+        this.dialogueNodes.set('automaton_freed', {
+            id: 'automaton_freed',
+            speaker: 'Autômato Liberto',
+            text: 'Gratidão registrada nos bancos de memória. A unidade se afasta, mancando de volta aos dutos.',
+            choices: [{ text: 'Continuar jornada...', nextDialogueId: null }],
+        });
+        this.dialogueNodes.set('automaton_salvaged', {
+            id: 'automaton_salvaged',
+            speaker: 'Narrador',
+            text: 'Você arranca as placas úteis antes que as luzes do núcleo se apaguem. Peças valiosas, silêncio incômodo.',
+            choices: [{ text: 'Continuar jornada...', nextDialogueId: null }],
+        });
+
+        // ── Encontro ramificado: Engenheira Ferida ──
+        this.dialogueNodes.set('wounded_engineer', {
+            id: 'wounded_engineer',
+            speaker: 'Engenheira Ferida',
+            text: 'Por favor... uma ferida feia. Ajuda? Ou você só quer o que resta da minha bolsa?',
+            choices: [],
+            options: [
+                {
+                    id: 'eng_heal',
+                    text: '💧 Estabilizar seus ferimentos (compaixão)',
+                    estafaShift: -10,
+                    actionCategory: 'MATERNAL_EMPATHY',
+                    nextDialogueId: null,
+                },
+                {
+                    id: 'eng_interrogate',
+                    text: '🔩 Interrogá-la friamente por rotas e recursos (cálculo)',
+                    estafaShift: 10,
+                    actionCategory: 'PATERNAL_CALCULATION',
+                    nextDialogueId: null,
+                },
+            ],
+        });
     }
 
     public startDialogue(nodeId: string): IDialogueNode | undefined {
