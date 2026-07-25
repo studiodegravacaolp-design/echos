@@ -24,6 +24,7 @@ import { CharacterState } from '../core/CharacterState';
 import { CampaignManager } from '../core/CampaignManager';
 import { SaveSlotEngine } from '../core/SaveSlotEngine';
 import { StatusEngine } from '../core/StatusEngine';
+import { ProgressionManager } from '../core/ProgressionManager';
 import { IDurableEquipment } from '../core/EquipmentEngine';
 import { ICharacterStats, LatentLineageAxis } from '../types/aetheris.types';
 
@@ -94,12 +95,17 @@ function runRoundTripTest(): void {
     campaign.consumeSupplies(40); // 100 → 60
     campaign.setCurrentNode('sector_01_combat');
 
-    const saved = engine.saveToSlot('SLOT_1', campaign, { playTimeSeconds: 1234, currentAreaName: 'Pátio de Fundição' });
+    // Progressão: XP acumulado no nível atual.
+    const progression = new ProgressionManager();
+    progression.setXp(hero, 45);
+
+    const saved = engine.saveToSlot('SLOT_1', campaign, { playTimeSeconds: 1234, currentAreaName: 'Pátio de Fundição', progression });
     assert(saved === true, 'A.1: saveToSlot retorna sucesso');
 
     // Campanha nova (esqueleto com mesmo id e stats-base).
     const { campaign: fresh, hero: freshHero } = makeCampaign();
-    const load = engine.loadFromSlot('SLOT_1', fresh);
+    const freshProgression = new ProgressionManager();
+    const load = engine.loadFromSlot('SLOT_1', fresh, freshProgression);
 
     assert(load.success === true, 'A.2: loadFromSlot bem-sucedido');
     assert(load.metadata?.playTimeSeconds === 1234, 'A.3: metadata playTime preservado');
@@ -117,6 +123,7 @@ function runRoundTripTest(): void {
     // latentLineageAxis real (nível 12 < 36 → getter mascara, mas o valor stored deve ser PATERNO_EMBER).
     const rawLineage = (freshHero.toJSON() as { latentLineageAxis?: LatentLineageAxis }).latentLineageAxis;
     assert(rawLineage === LatentLineageAxis.PATERNO_EMBER, `A.15: linhagem real preservada (obtido ${rawLineage})`);
+    assert(freshProgression.getXp(freshHero) === 45, `A.16: XP restaurado = 45 (obtido ${freshProgression.getXp(freshHero)})`);
 }
 
 // ====================================================================
@@ -219,6 +226,7 @@ function runMigrationTest(): void {
     assert(Array.isArray(load.payload?.party[0].durableEquipment) && load.payload!.party[0].durableEquipment.length === 0, 'D.5: durableEquipment default = []');
     assert(Array.isArray(load.payload?.party[0].activeStatuses) && load.payload!.party[0].activeStatuses.length === 0, 'D.6: activeStatuses default = []');
     assert(load.payload?.party[0].level === 1, 'D.7: level default = 1');
+    assert(load.payload?.party[0].xp === 0, 'D.7b: xp default = 0 em save legado');
     assert(load.payload?.party[0].latentLineageAxis === LatentLineageAxis.NEUTRO_ABSOLUTO, 'D.8: linhagem default = NEUTRO_ABSOLUTO');
     assert(load.payload?.progress.estafaBalance === 5, 'D.9: campo existente (estafa=5) preservado na migração');
 

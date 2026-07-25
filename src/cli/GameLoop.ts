@@ -385,6 +385,7 @@ export class CLIGameLoop {
         return this.saveSlots.saveToSlot('AUTOSAVE', this.campaign, {
             playTimeSeconds: this.playTimeSeconds(),
             currentAreaName: areaName,
+            progression: this.progression,
         });
     }
 
@@ -399,6 +400,7 @@ export class CLIGameLoop {
         return this.saveSlots.saveToSlot(slotId, this.campaign, {
             playTimeSeconds: this.playTimeSeconds(),
             currentAreaName: areaName,
+            progression: this.progression,
         });
     }
 
@@ -411,7 +413,8 @@ export class CLIGameLoop {
      */
     public loadSlot(slotId: SaveSlotId): boolean {
         this.startNewGame(); // esqueleto com o id de herói correto
-        const result = this.saveSlots.loadFromSlot(slotId, this.campaign);
+        this.progression.clear(); // limpa o XP da sessão antes de restaurar
+        const result = this.saveSlots.loadFromSlot(slotId, this.campaign, this.progression);
         return result.success;
     }
 

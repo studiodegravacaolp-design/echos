@@ -26,6 +26,7 @@ import { LatentLineageAxis } from '../types/aetheris.types';
 import type { CharacterState } from './CharacterState';
 import type { IDurableEquipment } from './EquipmentEngine';
 import type { ITacticalStatus } from './StatusEngine';
+import type { ProgressionManager } from './ProgressionManager';
 
 // ==================================================================
 // CONSTANTES
@@ -60,6 +61,8 @@ export interface ISaveSlotMetadata {
 export interface ISavedCharacter {
     id: string;
     level: number;
+    /** XP acumulado no nível atual (ProgressionManager). */
+    xp: number;
     hp: number;
     scrapCount: number;
     engineeringCharges: Record<string, number>;
@@ -108,6 +111,8 @@ export interface ILoadSlotResult {
 export interface ISaveOptions {
     playTimeSeconds?: number;
     currentAreaName?: string;
+    /** Gerenciador de progressão — captura o XP por personagem, se fornecido. */
+    progression?: ProgressionManager;
 }
 
 // ==================================================================
@@ -209,7 +214,7 @@ export class SaveSlotEngine {
             const payload: ISaveSlotPayload = {
                 progress: this.clone(progress),
                 globalInventory: this.clone(campaign.getGlobalInventory()),
-                party: party.map((c) => this.serializeCharacter(c)),
+                party: party.map((c) => this.serializeCharacter(c, options.progression)),
                 mapState: {
                     currentNodeId: progress.currentNodeId,
                     unlockedNodeIds: [...progress.unlockedNodeIds],
@@ -242,7 +247,7 @@ export class SaveSlotEngine {
     }
 
     /** Serializa um CharacterState para o formato de save. */
-    private serializeCharacter(c: CharacterState): ISavedCharacter {
+    private serializeCharacter(c: CharacterState, progression?: ProgressionManager): ISavedCharacter {
         // toJSON() expõe o latentLineageAxis REAL (o getter mascara < nível 36).
         const rawLineage = (c.toJSON() as { latentLineageAxis?: LatentLineageAxis })
             .latentLineageAxis ?? LatentLineageAxis.NEUTRO_ABSOLUTO;
@@ -250,6 +255,7 @@ export class SaveSlotEngine {
         return {
             id: c.id,
             level: c.currentLevel,
+            xp: progression?.getXp(c) ?? 0,
             hp: c.hp,
             scrapCount: c.scrapCount,
             engineeringCharges: { ...c.engineeringCharges },
@@ -273,7 +279,11 @@ export class SaveSlotEngine {
      * @param slotId   - Id do slot
      * @param campaign - Campanha alvo para restauração (opcional)
      */
-    public loadFromSlot(slotId: string, campaign?: CampaignManager): ILoadSlotResult {
+    public loadFromSlot(
+        slotId: string,
+        campaign?: CampaignManager,
+        progression?: ProgressionManager,
+    ): ILoadSlotResult {
         if (!this.isValidSlot(slotId)) {
             return { success: false, slotId: 'SLOT_1', error: `Slot inválido: ${slotId}` };
         }
@@ -299,7 +309,7 @@ export class SaveSlotEngine {
 
         // Restaura o estado no CampaignManager fornecido.
         if (campaign) {
-            this.applyPayloadToCampaign(campaign, data.payload);
+            this.applyPayloadToCampaign(campaign, data.payload, progression);
         }
 
         return {
@@ -319,7 +329,11 @@ export class SaveSlotEngine {
      * party básica e aplica os campos adicionais (nível, linhagem,
      * equipamentos duráveis e status táticos) por personagem.
      */
-    private applyPayloadToCampaign(campaign: CampaignManager, payload: ISaveSlotPayload): void {
+    private applyPayloadToCampaign(
+        campaign: CampaignManager,
+        payload: ISaveSlotPayload,
+        progression?: ProgressionManager,
+    ): void {
         // 1. Progresso + inventário + party básica via serialização legada.
         const legacySave = {
             progress: payload.progress,
@@ -341,6 +355,11 @@ export class SaveSlotEngine {
 
             char.currentLevel = saved.level;
             char.latentLineageAxis = saved.latentLineageAxis;
+
+            // Restaura o XP acumulado no ProgressionManager, se fornecido.
+            if (progression) {
+                progression.setXp(char, saved.xp);
+            }
 
             // Equipamentos duráveis: limpa e reaplica (clones defensivos).
             for (const existing of char.durableEquipment) {
@@ -460,6 +479,7 @@ export class SaveSlotEngine {
                 sc.durableEquipment === undefined ||
                 sc.activeStatuses === undefined ||
                 sc.level === undefined ||
+                sc.xp === undefined ||
                 sc.latentLineageAxis === undefined ||
                 sc.engineeringCharges === undefined
             ) {
@@ -468,6 +488,7 @@ export class SaveSlotEngine {
             return {
                 id: sc.id ?? 'unknown',
                 level: sc.level ?? 1,
+                xp: typeof sc.xp === 'number' ? sc.xp : 0,
                 hp: sc.hp ?? 0,
                 scrapCount: sc.scrapCount ?? 0,
                 engineeringCharges: sc.engineeringCharges ?? {},
