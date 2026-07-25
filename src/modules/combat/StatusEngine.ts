@@ -59,6 +59,7 @@ const TECH_CONDUCTIVE_DURATION_TURNS = 2;
 function createTechBurnEffect(): IStatusEffect {
   return {
     id: TECH_STATUS_IDS.TECH_BURN,
+    name: 'Queimadura Técnica',
     duration: TECH_BURN_DURATION_TURNS,
     remainingDuration: TECH_BURN_DURATION_TURNS,
     modifiers: { damagePerTurn: TECH_BURN_DAMAGE_PER_TURN },
@@ -74,6 +75,7 @@ function createTechBurnEffect(): IStatusEffect {
 function createTechSlowEffect(): IStatusEffect {
   return {
     id: TECH_STATUS_IDS.TECH_SLOW,
+    name: 'Lentidão Técnica',
     duration: TECH_SLOW_DURATION_TURNS,
     remainingDuration: TECH_SLOW_DURATION_TURNS,
     modifiers: { speedMultiplier: TECH_SLOW_SPEED_MULTIPLIER },
@@ -89,6 +91,7 @@ function createTechSlowEffect(): IStatusEffect {
 function createTechConductiveEffect(): IStatusEffect {
   return {
     id: TECH_STATUS_IDS.TECH_CONDUCTIVE,
+    name: 'Condutivo Técnico',
     duration: TECH_CONDUCTIVE_DURATION_TURNS,
     remainingDuration: TECH_CONDUCTIVE_DURATION_TURNS,
     modifiers: { lightningDamageMultiplier: TECH_CONDUCTIVE_LIGHTNING_MULTIPLIER },
