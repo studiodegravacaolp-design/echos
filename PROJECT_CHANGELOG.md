@@ -19,6 +19,7 @@
 - **Mercadores & Economia:** Integrated (Comprar Mantimentos, Reparo, Itens por Sucata)
 - **Sistema de Missões:** Integrated (Main/Side, Gatilhos de Nó/Combate/Diálogo, Recompensas, Persistência)
 - **Acampamento & Grupo:** Integrated (Descanso HP/EP, Reparo de Campo, Formação, Conversa de Estafa)
+- **Anomalias de Duto:** Integrated (Gás Químico, Vapor, Surto Elétrico; mitigação por recurso/risco)
 - **Interface CLI:** GameLoop v2.0 (Menu, HUD+Missão, Combate, Habilidades, Diálogo, Mercador, Acampamento, Diário, Game Over)
 - **Conteúdo:** Ato 2 (Profundezas de Brenhold) + 9 templates de inimigos
 - **Assets & Visuais:** Git LFS (.gitattributes, Portraits, Spritesheets)
@@ -29,7 +30,12 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-07-25] — Acampamento & Gestão de Grupo (REST_SITE) (HEAD)
+### [2026-07-27] — Anomalias de Duto & Eventos de Travessia (HEAD)
+- **HazardEventEngine.ts (novo):** eventos ambientais aleatórios sorteados por `hazardLevel` (RNG injetável). 3 anomalias táticas com mitigação: **Vazamento de Gás Químico** (filtro −1 mantimento / correr → CHEMICAL_POISON 2 turnos / severo → +10 Paterno e dano ao líder), **Sobrecarga de Vapor** (desviar −1 sucata → +5 EP / forçar → STEAM_BURN) e **Surtos Elétricos** (descarregar → −5% durabilidade, pode oxidar / contornar → −1 mantimento).
+- **GameLoop:** `performTraversal` sorteia a anomalia pelo perigo do nó de destino e a devolve; a tela de evento (narrativa + opções + feedback imediato) precede o processamento do destino (`processArrival`). Seam de RNG injetável (`setHazardRng`) para testes determinísticos.
+- **Testes:** `HazardEventIntegration` 20/20 (sorteio, mitigação por recurso, status/dano/estafa, disparo via GameLoop). Type-check limpo; regressão verde.
+
+### [2026-07-25] — Acampamento & Gestão de Grupo (REST_SITE)
 - **CampingEngine.ts (novo):** `restAndFeed` (−2 mantimentos → +40% HP / +50% EP; descanso parcial só-EP com alerta de SURVIVAL_CRISIS), `fieldRepair` (reparo com sucata, remove *Rusted* acima de 25%), `adjustFormation` e `campConversation` (±10 Estafa Paterno/Materno).
 - **EP persistente:** `CharacterState` ganhou `currentEp`/`maxEp` (MAX_EP=100); a `InteractiveCombatSession` passa a semear e sincronizar o EP a partir do `CharacterState` (descanso restaura o EP entre combates).
 - **CampaignManager:** `reorderParty` e `swapFormationPositions` (Vanguarda/Retaguarda).

@@ -41,6 +41,7 @@ import { ProgressionManager } from '../core/ProgressionManager';
 import { SkillTreeEngine } from '../core/SkillTreeEngine';
 import { TraderManager } from '../core/TraderManager';
 import { CampingEngine } from '../core/CampingEngine';
+import { HazardEventEngine, IHazardEvent, IHazardResolution, HazardEventType } from '../core/HazardEventEngine';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType, ICharacterStats } from '../types/aetheris.types';
@@ -93,6 +94,10 @@ export class CLIGameLoop {
     private skillTree = new SkillTreeEngine();
     private trader = new TraderManager();
     private camping = new CampingEngine();
+    private hazardEngine = new HazardEventEngine();
+
+    /** RNG das anomalias de duto (injetável para testes determinísticos). */
+    private hazardRng: () => number = Math.random;
     private readonly saveSlots: SaveSlotEngine;
 
     /** Cursor de impressão do log de combate interativo. */
@@ -316,7 +321,7 @@ export class CLIGameLoop {
      */
     public performTraversal(
         targetNodeId: string,
-    ): { result: ITraversalResult; autoSaved: boolean; encounter?: IGeneratedEncounter; dialogueId?: string } {
+    ): { result: ITraversalResult; autoSaved: boolean; encounter?: IGeneratedEncounter; dialogueId?: string; hazardEvent?: IHazardEvent } {
         const result = this.mapEngine.traverseToNode(this.campaign, targetNodeId);
         if (!result.success) {
             return { result, autoSaved: false };
@@ -333,11 +338,26 @@ export class CLIGameLoop {
         // Nós narrativos ancoram um diálogo ramificado por Estafa.
         const dialogueId = node?.dialogueId;
 
+        // Anomalia de duto: probabilidade proporcional ao perigo do nó.
+        const hazardEvent = node
+            ? (this.hazardEngine.rollEvent(Math.max(0, node.hazardLevel ?? 0), this.hazardRng) ?? undefined)
+            : undefined;
+
         // Gatilho de missão: visita ao nó (REACH_NODE).
         this.processQuestCompletions(this.questManager.notifyNodeVisited(targetNodeId));
 
         const autoSaved = this.autoSave();
-        return { result, autoSaved, encounter, dialogueId };
+        return { result, autoSaved, encounter, dialogueId, hazardEvent };
+    }
+
+    /** Injeta o RNG das anomalias (para testes determinísticos). */
+    public setHazardRng(rng: () => number): void {
+        this.hazardRng = rng;
+    }
+
+    /** Resolve uma opção de anomalia aplicando a consequência ao grupo. */
+    public resolveHazardEvent(type: HazardEventType, optionId: string): IHazardResolution {
+        return this.hazardEngine.resolveEvent(this.campaign, type, optionId);
     }
 
     /**
@@ -849,7 +869,7 @@ export class CLIGameLoop {
                     return this.showCampaignMenu();
                 }
 
-                const { result, autoSaved, encounter, dialogueId } = this.performTraversal(targetNodeId);
+                const { result, autoSaved, encounter, dialogueId, hazardEvent } = this.performTraversal(targetNodeId);
                 if (!result.success) {
                     console.log(`\n❌ ${result.message ?? 'Não foi possível atravessar.'}`);
                     return this.showCampaignMenu();
@@ -862,28 +882,77 @@ export class CLIGameLoop {
                 }
                 console.log(autoSaved ? '   💾 AutoSave concluído.' : '   ⚠️ Falha no AutoSave.');
 
-                if (encounter) {
-                    console.log(`\n⚔️ ENCONTRO (${encounter.nodeType})! ${encounter.enemies.length} inimigo(s) surgem dos dutos:`);
-                    encounter.enemies.forEach((e, i) => {
-                        const rusted = e.activeStatuses.some((s) => s.type === 'RUST_LOCK') ? ' 🟠(travado por ferrugem)' : '';
-                        console.log(`   ${i + 1}. ${e.name} [Nv.${e.level}] HP ${e.stats.maxHp} | DMG ${e.stats.damage} | DEF ${e.stats.defense} — IA ${e.archetypeAI}${rusted}`);
-                    });
-                    // Combate interativo por turnos (retorna ao menu ao terminar).
-                    return this.handleCombat(encounter);
+                // Anomalia de duto (durante a travessia) precede o processamento do destino.
+                const proceed = () => this.processArrival(targetNodeId, encounter, dialogueId);
+                if (hazardEvent) {
+                    return this.handleHazardEvent(hazardEvent, proceed);
                 }
-                if (dialogueId) {
-                    // Encontro narrativo ancorado ao nó (retorna ao menu ao terminar).
-                    return this.handleDialogue(dialogueId);
-                }
-                const arrived = this.mapEngine.getNodeDetails(targetNodeId);
-                if (arrived && arrived.type === 'REST_SITE') {
-                    return this.handleCamp();
-                }
-                if (arrived && arrived.type === 'SCRAP_TRADER') {
-                    return this.handleTrader();
-                }
-                this.showCampaignMenu();
+                proceed();
             });
+        });
+    }
+
+    /**
+     * processArrival(targetNodeId, encounter, dialogueId)
+     * ------------------------------------------------------------------
+     * Processa o destino após a travessia (e após eventual anomalia):
+     * combate → diálogo → acampamento → mercador → menu.
+     */
+    private processArrival(targetNodeId: string, encounter?: IGeneratedEncounter, dialogueId?: string): void {
+        if (encounter) {
+            console.log(`\n⚔️ ENCONTRO (${encounter.nodeType})! ${encounter.enemies.length} inimigo(s) surgem dos dutos:`);
+            encounter.enemies.forEach((e, i) => {
+                const rusted = e.activeStatuses.some((s) => s.type === 'RUST_LOCK') ? ' 🟠(travado por ferrugem)' : '';
+                console.log(`   ${i + 1}. ${e.name} [Nv.${e.level}] HP ${e.stats.maxHp} | DMG ${e.stats.damage} | DEF ${e.stats.defense} — IA ${e.archetypeAI}${rusted}`);
+            });
+            return this.handleCombat(encounter);
+        }
+        if (dialogueId) {
+            return this.handleDialogue(dialogueId);
+        }
+        const arrived = this.mapEngine.getNodeDetails(targetNodeId);
+        if (arrived && arrived.type === 'REST_SITE') {
+            return this.handleCamp();
+        }
+        if (arrived && arrived.type === 'SCRAP_TRADER') {
+            return this.handleTrader();
+        }
+        this.showCampaignMenu();
+    }
+
+    /**
+     * handleHazardEvent(event, onDone)
+     * ------------------------------------------------------------------
+     * Exibe a anomalia de duto com narrativa e opções de mitigação,
+     * resolve a escolha do jogador (aplicando a consequência ao grupo) e
+     * então executa a continuação (chegada ao destino).
+     */
+    private handleHazardEvent(event: IHazardEvent, onDone: () => void): void {
+        console.log(`\n${event.title}`);
+        console.log(`   "${event.narrative}"`);
+        event.options.forEach((o, i) => console.log(`   ${i + 1}. ${o.label}`));
+
+        this.ask('Como reagir? ', (answer) => {
+            const idx = parseInt(answer, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= event.options.length) {
+                console.log('⚠️ Opção inválida!');
+                return this.handleHazardEvent(event, onDone);
+            }
+            const res = this.hazardEngine.resolveEvent(this.campaign, event.type, event.options[idx].id);
+            if (!res.success) {
+                // Recurso insuficiente — reoferece as opções.
+                console.log(`   ⛔ ${res.message}`);
+                return this.handleHazardEvent(event, onDone);
+            }
+            console.log(`   ➡️ ${res.message}`);
+            if (res.statusApplied) console.log(`   🧪 Grupo afetado por ${res.statusApplied} no próximo combate.`);
+            if (res.hpDamage) console.log(`   💥 Líder sofre ${res.hpDamage} de dano.`);
+            if (res.estafaShift) console.log(`   ⚖️ Estafa ${res.estafaShift >= 0 ? '+' : ''}${res.estafaShift}.`);
+            if (res.epGained) console.log(`   ⚡ +${res.epGained} EP ao grupo.`);
+            if (res.suppliesSpent) console.log(`   🍞 −${res.suppliesSpent} mantimento(s).`);
+            if (res.scrapSpent) console.log(`   💰 −${res.scrapSpent} sucata.`);
+            if (res.durabilityReducedPct) console.log(`   🛠️ Equipamentos −${res.durabilityReducedPct}% de durabilidade.`);
+            onDone();
         });
     }
 
