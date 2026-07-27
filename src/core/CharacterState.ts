@@ -83,6 +83,9 @@ export class CharacterState {
   /** Valor padrão do medidor de estafa */
   public static readonly ESTAFA_DEFAULT = 0;
 
+  /** Energia de Perícia (EP) máxima — recurso de habilidades ativas. */
+  public static readonly MAX_EP = 100;
+
   /** Nível inicial do personagem */
   public static readonly LEVEL_INITIAL = 1;
 
@@ -159,6 +162,9 @@ export class CharacterState {
   /** Habilidades ativas de combate aprendidas pelo personagem */
   private _combatAbilities: ICombatAbility[];
 
+  /** Energia de Perícia (EP) atual — persiste fora de combate (descanso restaura) */
+  private _currentEp: number;
+
   // ==================================================================
   // CONSTRUTOR
   // ==================================================================
@@ -202,6 +208,7 @@ export class CharacterState {
     this._durableEquipment = [];
     this._activeStatuses = [];
     this._combatAbilities = [];
+    this._currentEp = CharacterState.MAX_EP;
   }
 
   // ==================================================================
@@ -923,6 +930,26 @@ export class CharacterState {
    */
   public hasCombatAbility(abilityId: string): boolean {
     return this._combatAbilities.some((a) => a.id === abilityId);
+  }
+
+  // ==================================================================
+  // ENERGIA DE PERÍCIA (EP)
+  // ==================================================================
+
+  /** EP atual (recurso de habilidades ativas). */
+  get currentEp(): number {
+    return this._currentEp;
+  }
+
+  /** Define o EP atual, com clamp em [0, MAX_EP]. */
+  set currentEp(value: number) {
+    if (!Number.isFinite(value)) return;
+    this._currentEp = Math.max(0, Math.min(CharacterState.MAX_EP, value));
+  }
+
+  /** EP máximo. */
+  get maxEp(): number {
+    return CharacterState.MAX_EP;
   }
 
   /**

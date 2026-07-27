@@ -193,7 +193,8 @@ export class InteractiveCombatSession {
         for (const state of party) {
             state.shortTermEstafa = seededEstafa;
             this.combatants.push({ state, side: 'PARTY', name: state.id });
-            this.ep.set(state.id, { current: EP_MAX, max: EP_MAX });
+            // EP persiste no CharacterState (descanso restaura); combate parte daí.
+            this.ep.set(state.id, { current: state.currentEp, max: state.maxEp });
             this.cooldowns.set(state.id, new Map<string, number>());
         }
         for (const inst of enemyInstances) {
