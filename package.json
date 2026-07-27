@@ -7,7 +7,7 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "npx tsx src/test/progressionIntegration.test.ts",
+    "test": "npx tsx src/test/progressionIntegration.test.ts && npx tsx src/test/HazardEventIntegration.test.ts",
     "test:persistence": "npx tsx src/test/progressionPersistence.test.ts",
     "build": "tsc --noEmit"
   },
