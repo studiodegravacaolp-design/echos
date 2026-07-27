@@ -188,6 +188,58 @@ export class CampaignManager {
   }
 
   /**
+   * reorderParty(orderedIds)
+   * ------------------------------------------------------------------
+   * Reordena a party segundo a lista de ids informada (índice 0 =
+   * Vanguarda, último = Retaguarda). IDs ausentes na lista mantêm sua
+   * ordem relativa ao final. Ignora ids desconhecidos.
+   *
+   * @param orderedIds - Nova ordem desejada (por id de personagem)
+   * @returns true se a party foi reordenada
+   */
+  public reorderParty(orderedIds: string[]): boolean {
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) return false;
+
+    const byId = new Map(this.party.map((c) => [c.id, c]));
+    const reordered: CharacterState[] = [];
+    const used = new Set<string>();
+
+    for (const id of orderedIds) {
+      const char = byId.get(id);
+      if (char && !used.has(id)) {
+        reordered.push(char);
+        used.add(id);
+      }
+    }
+    // Anexa membros não citados, preservando a ordem original.
+    for (const char of this.party) {
+      if (!used.has(char.id)) reordered.push(char);
+    }
+
+    this.party = reordered;
+    return true;
+  }
+
+  /**
+   * swapFormationPositions(indexA, indexB)
+   * ------------------------------------------------------------------
+   * Troca dois heróis de posição na linha de batalha.
+   */
+  public swapFormationPositions(indexA: number, indexB: number): boolean {
+    if (
+      indexA < 0 || indexB < 0 ||
+      indexA >= this.party.length || indexB >= this.party.length ||
+      indexA === indexB
+    ) {
+      return false;
+    }
+    const tmp = this.party[indexA];
+    this.party[indexA] = this.party[indexB];
+    this.party[indexB] = tmp;
+    return true;
+  }
+
+  /**
    * getGlobalInventory()
    * ------------------------------------------------------------------
    * Retorna o inventário global do grupo como um array de IInventoryItem.

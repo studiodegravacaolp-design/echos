@@ -1,7 +1,7 @@
 import { CampaignManager } from './CampaignManager';
 import { EquipmentEngine } from './EquipmentEngine';
 
-export type NodeType = 'COMBAT_ARENA' | 'SCRAP_TRADER' | 'SAFE_ZONE' | 'AMBUSH' | 'HAZARD';
+export type NodeType = 'COMBAT_ARENA' | 'SCRAP_TRADER' | 'SAFE_ZONE' | 'AMBUSH' | 'HAZARD' | 'REST_SITE';
 
 export interface ICampaignNode {
     id: string;
@@ -111,12 +111,21 @@ export class CampaignMapEngine {
             id: 'deep_refuge',
             name: 'Refúgio Selado',
             type: 'SAFE_ZONE',
-            connectedTo: ['foundry_depths'],
+            connectedTo: ['foundry_depths', 'sealed_bivouac'],
             hazardLevel: 0,
             estafaImpact: 0,
             traversalSupplyCost: 0,
             supplyRestock: 60, // ração e descanso no refúgio
             dialogueId: 'wounded_engineer', // uma sobrevivente busca abrigo aqui
+        });
+        this.mapNodes.set('sealed_bivouac', {
+            id: 'sealed_bivouac',
+            name: 'Bivaque Selado',
+            type: 'REST_SITE',
+            connectedTo: ['foundry_depths'],
+            hazardLevel: 0,
+            estafaImpact: 0,
+            traversalSupplyCost: 0,
         });
         this.mapNodes.set('vapor_conduits', {
             id: 'vapor_conduits',

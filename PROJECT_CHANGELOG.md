@@ -18,7 +18,8 @@
 - **Habilidades de Combate:** Integrated (EP, Cooldown, Status, Gating por Estafa)
 - **Mercadores & Economia:** Integrated (Comprar Mantimentos, Reparo, Itens por Sucata)
 - **Sistema de Missões:** Integrated (Main/Side, Gatilhos de Nó/Combate/Diálogo, Recompensas, Persistência)
-- **Interface CLI:** GameLoop v2.0 (Menu, HUD+Missão, Combate, Habilidades, Diálogo, Mercador, Diário, Game Over)
+- **Acampamento & Grupo:** Integrated (Descanso HP/EP, Reparo de Campo, Formação, Conversa de Estafa)
+- **Interface CLI:** GameLoop v2.0 (Menu, HUD+Missão, Combate, Habilidades, Diálogo, Mercador, Acampamento, Diário, Game Over)
 - **Conteúdo:** Ato 2 (Profundezas de Brenhold) + 9 templates de inimigos
 - **Assets & Visuais:** Git LFS (.gitattributes, Portraits, Spritesheets)
 
@@ -28,7 +29,14 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-07-25] — Integração de Missões: GameLoop, Gatilhos & Persistência (HEAD)
+### [2026-07-25] — Acampamento & Gestão de Grupo (REST_SITE) (HEAD)
+- **CampingEngine.ts (novo):** `restAndFeed` (−2 mantimentos → +40% HP / +50% EP; descanso parcial só-EP com alerta de SURVIVAL_CRISIS), `fieldRepair` (reparo com sucata, remove *Rusted* acima de 25%), `adjustFormation` e `campConversation` (±10 Estafa Paterno/Materno).
+- **EP persistente:** `CharacterState` ganhou `currentEp`/`maxEp` (MAX_EP=100); a `InteractiveCombatSession` passa a semear e sincronizar o EP a partir do `CharacterState` (descanso restaura o EP entre combates).
+- **CampaignManager:** `reorderParty` e `swapFormationPositions` (Vanguarda/Retaguarda).
+- **Mapa & GameLoop:** novo tipo de nó `REST_SITE` (Bivaque Selado); ao chegar, abre a tela de Acampamento; "Levantar Acampamento & Marchar" dispara o AutoSave.
+- **Testes:** `CampingIntegration` 25/25 (descanso HP/EP, parcial, reparo de oxidado, formação, conversa, persistência pós-acampamento). Type-check limpo; regressão verde.
+
+### [2026-07-25] — Integração de Missões: GameLoop, Gatilhos & Persistência
 - **QuestManager estendido:** tipos `MAIN`/`SIDE`, metas tipadas (`REACH_NODE`/`DEFEAT_ENEMIES`/`KILL_BOSS`/`TALK_NPC`), gatilhos `notifyNodeVisited`/`notifyEnemiesDefeated`/`notifyNpcTalked`, `getActiveMainQuest`/`getCurrentGoal`, `claimQuestReward` (XP/Sucata/Mantimentos) e `serializeState`/`restoreState`. Catálogo em `QuestContent.ts` (missão principal + secundária).
 - **GameLoop:** registra/ativa quests no novo jogo; HUD mostra a **Missão Principal** e a etapa atual; "Ver Diário de Missões" lista principal/secundárias/concluídas; gatilhos disparam na travessia (nó), na vitória de combate (inimigos) e no fim de diálogo (NPC); recompensas concedidas ao grupo automaticamente.
 - **Persistência:** `SaveSlotEngine` serializa/reidrata o estado das quests (`quests` no payload), com auto-migração para saves legados (checksum SHA-256 preservado).

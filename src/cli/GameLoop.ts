@@ -40,6 +40,7 @@ import { CombatRewardEngine } from '../core/CombatRewardEngine';
 import { ProgressionManager } from '../core/ProgressionManager';
 import { SkillTreeEngine } from '../core/SkillTreeEngine';
 import { TraderManager } from '../core/TraderManager';
+import { CampingEngine } from '../core/CampingEngine';
 import { EstafaActionType } from '../mechanics/EstafaCalculator';
 import { CANONICAL_EQUIPMENT } from '../database/CanonicalContent';
 import { LatentLineageAxis, SlotType, ICharacterStats } from '../types/aetheris.types';
@@ -91,6 +92,7 @@ export class CLIGameLoop {
     private rewards = new CombatRewardEngine();
     private skillTree = new SkillTreeEngine();
     private trader = new TraderManager();
+    private camping = new CampingEngine();
     private readonly saveSlots: SaveSlotEngine;
 
     /** Cursor de impressão do log de combate interativo. */
@@ -874,6 +876,9 @@ export class CLIGameLoop {
                     return this.handleDialogue(dialogueId);
                 }
                 const arrived = this.mapEngine.getNodeDetails(targetNodeId);
+                if (arrived && arrived.type === 'REST_SITE') {
+                    return this.handleCamp();
+                }
                 if (arrived && arrived.type === 'SCRAP_TRADER') {
                     return this.handleTrader();
                 }
@@ -992,6 +997,133 @@ export class CLIGameLoop {
             const ok = this.saveToManualSlot(slot);
             console.log(ok ? `\n💾 Jogo salvo em ${slot}.` : `\n❌ Falha ao salvar em ${slot}.`);
             this.showCampaignMenu();
+        });
+    }
+
+    // --------------------------------------------------------------
+    // ACAMPAMENTO (REST_SITE) — GESTÃO DE GRUPO
+    // --------------------------------------------------------------
+
+    /**
+     * handleCamp()
+     * ------------------------------------------------------------------
+     * Tela de acampamento em nós REST_SITE: descansar/alimentar, reparo de
+     * campo, ajuste de formação e conversa de acampamento. Ao levantar
+     * acampamento, dispara o AutoSave e retorna ao menu de campanha.
+     */
+    private handleCamp(): void {
+        const progress = this.campaign.getProgress();
+        console.log('\n🏕️  ACAMPAMENTO');
+        console.log(`   💰 Sucata: ${this.getHero().scrapCount} | 🍞 Mantimentos: ${this.campaign.getSupplies()} | ⚖️ Estafa: ${progress.estafaBalance}`);
+        console.log('   1. 🔥 Descansar e Alimentar (−2 mantimentos → +40% HP / +50% EP)');
+        console.log('   2. 🛠️  Reparo de Campo');
+        console.log('   3. 🎖️  Ajustar Formação');
+        console.log('   4. 💬 Conversa de Acampamento');
+        console.log('   0. 🥾 Levantar Acampamento & Marchar');
+
+        this.ask('Escolha: ', (answer) => {
+            switch (answer) {
+                case '1': this.handleCampRest(); break;
+                case '2': this.handleCampRepair(); break;
+                case '3': this.handleCampFormation(); break;
+                case '4': this.handleCampConversation(); break;
+                case '0':
+                    console.log('\n🥾 Levantando acampamento e marchando...');
+                    this.autoSave(); // persiste o estado pós-acampamento
+                    this.showCampaignMenu();
+                    break;
+                default:
+                    console.log('⚠️ Opção inválida!');
+                    this.handleCamp();
+            }
+        });
+    }
+
+    private handleCampRest(): void {
+        const res = this.camping.restAndFeed(this.campaign);
+        if (res.fed) {
+            console.log(`\n🔥 Descanso completo: −${res.suppliesConsumed} mantimentos → +${res.hpRestoredTotal} HP e +${res.epRestoredTotal} EP no grupo.`);
+        } else {
+            console.log(`\n⚠️ Sem mantimentos! Descanso parcial: apenas +${res.epRestoredTotal} EP.`);
+            console.log('   ☠️ Risco de ESCASSEZ DE MANTIMENTOS (SURVIVAL_CRISIS) na próxima travessia perigosa.');
+        }
+        this.handleCamp();
+    }
+
+    private handleCampRepair(): void {
+        const hero = this.getHero();
+        const durable = hero.durableEquipment.filter((e) => e.durability.current < e.durability.max);
+        if (durable.length === 0) {
+            console.log('\n✅ Nenhum equipamento precisa de reparo.');
+            return this.handleCamp();
+        }
+        console.log('\n🛠️ Reparo de Campo (💰 ' + hero.scrapCount + ' sucata):');
+        durable.forEach((e, i) => {
+            const rusted = EquipmentEngine.isRusted(e) ? ' 🟠OXIDADO' : '';
+            console.log(`   ${i + 1}. ${e.name} ${e.durability.current}/${e.durability.max}${rusted}`);
+        });
+        console.log('   0. 🔙 Voltar');
+
+        this.ask('Reparar qual? ', (answer) => {
+            const idx = parseInt(answer, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= durable.length) {
+                return this.handleCamp();
+            }
+            const res = this.camping.fieldRepair(this.campaign, hero.id, durable[idx].id);
+            if (res.success) {
+                console.log(`\n✅ +${res.durabilityRestored} durabilidade por ${res.scrapSpent} sucata.${res.rustCleared ? ' 🟢 Oxidação removida!' : ''}`);
+            } else {
+                console.log('\n❌ Reparo falhou (sucata insuficiente ou item já íntegro).');
+            }
+            this.handleCampRepair();
+        });
+    }
+
+    private handleCampFormation(): void {
+        const party = this.campaign.getPartyState();
+        console.log('\n🎖️ Formação atual (Vanguarda → Retaguarda):');
+        party.forEach((c, i) => {
+            const role = i === 0 ? 'Vanguarda' : i === party.length - 1 ? 'Retaguarda' : 'Centro';
+            console.log(`   ${i + 1}. ${c.id} [${role}] HP ${c.hp}/${c.maxHp}`);
+        });
+        if (party.length < 2) {
+            console.log('   (Grupo com um único herói — sem reordenação possível.)');
+            return this.handleCamp();
+        }
+        console.log('   Informe duas posições para trocar (ex.: "1 2"), ou 0 para voltar.');
+
+        this.ask('Trocar: ', (answer) => {
+            if (answer.trim() === '0') return this.handleCamp();
+            const parts = answer.trim().split(/\s+/).map((n) => parseInt(n, 10) - 1);
+            if (parts.length !== 2 || parts.some((n) => isNaN(n))) {
+                console.log('⚠️ Entrada inválida!');
+                return this.handleCampFormation();
+            }
+            const ok = this.campaign.swapFormationPositions(parts[0], parts[1]);
+            console.log(ok ? '✅ Formação ajustada.' : '❌ Posições inválidas.');
+            this.handleCampFormation();
+        });
+    }
+
+    private handleCampConversation(): void {
+        console.log('\n💬 Conversa de Acampamento:');
+        console.log('   1. 🔩 "Sem espaço para fraqueza aqui." (endurece — +10 Paterno)');
+        console.log('   2. 💧 "Descansem; cuidamos uns dos outros." (abranda — −10 Materno)');
+        console.log('   0. 🔙 Voltar');
+
+        this.ask('Escolha: ', (answer) => {
+            if (answer === '1') {
+                const e = this.camping.campConversation(this.campaign, 'PATERNO');
+                console.log(`\n⚖️ O grupo se enrijece. Estafa agora: ${e} (Paterno).`);
+            } else if (answer === '2') {
+                const e = this.camping.campConversation(this.campaign, 'MATERNO');
+                console.log(`\n⚖️ O grupo respira fundo. Estafa agora: ${e} (Materno).`);
+            } else if (answer === '0') {
+                return this.handleCamp();
+            } else {
+                console.log('⚠️ Opção inválida!');
+            }
+            this.handleCamp();
         });
     }
 

@@ -389,6 +389,7 @@ export class InteractiveCombatSession {
         // --- Execução ---
         const localLog: string[] = [];
         pool.current -= cost;
+        actor.state.currentEp = pool.current; // sincroniza EP persistente
         cdMap.set(ability.id, ability.cooldown);
         localLog.push(`   ✨ ${actor.name} usa ${ability.name} (−${cost} EP).`);
 
@@ -446,6 +447,7 @@ export class InteractiveCombatSession {
         if (pool) {
             const regen = Math.round(EP_REGEN_BASE * (1 + actor.state.getEpRegenBonusPercent() / 100));
             pool.current = Math.min(pool.max, pool.current + regen);
+            actor.state.currentEp = pool.current; // sincroniza EP persistente
         }
         const cdMap = this.cooldowns.get(actor.state.id);
         if (cdMap) {
