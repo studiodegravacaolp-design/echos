@@ -1,0 +1,12 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/prototypes/vp_01_vardhelm.tscn" id="1_vardhelm"]
+[ext_resource type="Script" path="res://scripts/vardhelm/vardhelm_vertical_slice.gd" id="2_slice"]
+[ext_resource type="PackedScene" path="res://scenes/prototypes/vardhelm_audio.tscn" id="3_audio"]
+
+[node name="VardhelmVerticalSlice" type="Node3D"]
+script = ExtResource("2_slice")
+
+[node name="VP01_Vardhelm" parent="." instance=ExtResource("1_vardhelm")]
+
+[node name="VardhelmAudio" parent="." instance=ExtResource("3_audio")]

@@ -1,0 +1,35 @@
+{
+  "dialogue_id": "vardhelm_intro",
+  "entries": [
+    {
+      "entry_id": "start",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.greeting",
+      "choices": [
+        {
+          "choice_id": "learn",
+          "text_key": "dialogue.vardhelm.choice.memory",
+          "next_entry_id": "memory",
+          "consequences": ["vardhelm_heard_echo"]
+        },
+        {
+          "choice_id": "leave",
+          "text_key": "dialogue.vardhelm.choice.leave",
+          "next_entry_id": "end"
+        }
+      ]
+    },
+    {
+      "entry_id": "memory",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "Um instante impossível atravessa sua memória.",
+      "choices": []
+    },
+    {
+      "entry_id": "end",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "Então siga. Talvez o Eco encontre você depois.",
+      "choices": []
+    }
+  ]
+}

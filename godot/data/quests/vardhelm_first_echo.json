@@ -1,0 +1,6 @@
+{
+  "quest_id": "vardhelm_first_echo",
+  "title_key": "quest.vardhelm.title",
+  "objective_keys": ["observe"],
+  "completion_consequence": "vardhelm_first_echo_complete"
+}

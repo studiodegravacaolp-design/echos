@@ -1,0 +1,323 @@
+{
+  "version": 1,
+  "workers": [
+    {
+      "id": "worker_forge_01",
+      "display_name": "Trabalhador",
+      "station": "forge",
+      "position": [
+        4.6,
+        0,
+        2.6
+      ],
+      "idle_seconds": 1.8,
+      "work_seconds": 2.6,
+      "accent": "#D7D7D7",
+      "route": [
+        [
+          4.6,
+          0,
+          2.6
+        ],
+        [
+          4.0,
+          0,
+          2.6
+        ]
+      ]
+    },
+    {
+      "id": "worker_bench_01",
+      "display_name": "Trabalhador",
+      "station": "bench",
+      "position": [
+        -2.4,
+        0,
+        2.0
+      ],
+      "idle_seconds": 2.2,
+      "work_seconds": 2.2,
+      "accent": "#BDBDBD",
+      "route": [
+        [
+          -2.4,
+          0,
+          2.0
+        ],
+        [
+          -1.7,
+          0,
+          2.0
+        ]
+      ]
+    },
+    {
+      "id": "worker_storage_01",
+      "display_name": "Trabalhador",
+      "station": "storage",
+      "position": [
+        6.2,
+        0,
+        -2.8
+      ],
+      "idle_seconds": 1.6,
+      "work_seconds": 2.8,
+      "accent": "#AFAFAF",
+      "route": [
+        [
+          6.2,
+          0,
+          -2.8
+        ],
+        [
+          6.2,
+          0,
+          -2.0
+        ],
+        [
+          5.5,
+          0,
+          -2.0
+        ]
+      ]
+    },
+    {
+      "id": "worker_maintenance_01",
+      "display_name": "Trabalhador",
+      "station": "maintenance",
+      "position": [
+        -5.4,
+        0,
+        -3.2
+      ],
+      "idle_seconds": 2.4,
+      "work_seconds": 2.0,
+      "accent": "#C7C7C7",
+      "route": [
+        [
+          -5.4,
+          0,
+          -3.2
+        ],
+        [
+          -4.7,
+          0,
+          -3.2
+        ]
+      ]
+    }
+  ],
+  "stations": [
+    {
+      "id": "forge",
+      "label": "FORJA",
+      "position": [
+        4.0,
+        0,
+        2.6
+      ]
+    },
+    {
+      "id": "bench",
+      "label": "OFICINA",
+      "position": [
+        -2.4,
+        0,
+        2.0
+      ]
+    },
+    {
+      "id": "storage",
+      "label": "ARMAZENAMENTO",
+      "position": [
+        6.0,
+        0,
+        -2.5
+      ]
+    },
+    {
+      "id": "maintenance",
+      "label": "MANUTENÇÃO",
+      "position": [
+        -5.2,
+        0,
+        -3.2
+      ]
+    }
+  ],
+  "story_props": [
+    {
+      "id": "maintenance_board",
+      "position": [
+        -5.7,
+        1.4,
+        -3.9
+      ],
+      "size": [
+        1.8,
+        1.2,
+        0.12
+      ],
+      "label": "QUADRO DE MANUTENÇÃO"
+    },
+    {
+      "id": "sealed_panel",
+      "position": [
+        -6.7,
+        1.3,
+        1.8
+      ],
+      "size": [
+        0.8,
+        1.6,
+        0.18
+      ],
+      "label": "PAINEL SELADO"
+    },
+    {
+      "id": "tool_rack",
+      "position": [
+        -3.5,
+        1.1,
+        3.1
+      ],
+      "size": [
+        1.8,
+        1.8,
+        0.18
+      ],
+      "label": "SUPORTE DE FERRAMENTAS"
+    }
+  ],
+  "reactions": [
+    {
+      "id": "vardhelm_first_echo_complete",
+      "label_suffix": " • ATENÇÃO",
+      "duration": 2.4,
+      "worker_attention": true,
+      "station_pulse": true
+    }
+  ],
+  "observations": [
+    {
+      "id": "maintenance_board",
+      "label": "EXAMINAR QUADRO",
+      "position": [
+        -5.7,
+        1.4,
+        -3.9
+      ],
+      "size": [
+        1.8,
+        1.2,
+        0.12
+      ],
+      "interaction_radius": 1.7,
+      "visible_marker": false,
+      "title_key": "observation.maintenance_board.title",
+      "text_key": "observation.maintenance_board.text",
+      "after_echo_text_key": "observation.maintenance_board.after_echo",
+      "seen_flag": "observation_maintenance_board_seen",
+      "memory_id": "vardhelm_memory_maintenance_board",
+      "memory_category": "Vardhelm / Observação",
+      "memory_title_key": "memory.vardhelm.maintenance_board.title",
+      "memory_text_key": "memory.vardhelm.maintenance_board.text"
+    },
+    {
+      "id": "sealed_panel",
+      "label": "EXAMINAR PAINEL",
+      "position": [
+        -6.7,
+        1.3,
+        1.8
+      ],
+      "size": [
+        0.8,
+        1.6,
+        0.18
+      ],
+      "interaction_radius": 1.5,
+      "visible_marker": false,
+      "title_key": "observation.sealed_panel.title",
+      "text_key": "observation.sealed_panel.text",
+      "after_echo_text_key": "observation.sealed_panel.after_echo",
+      "seen_flag": "observation_sealed_panel_seen",
+      "memory_id": "vardhelm_memory_sealed_panel",
+      "memory_category": "Vardhelm / Observação",
+      "memory_title_key": "memory.vardhelm.sealed_panel.title",
+      "memory_text_key": "memory.vardhelm.sealed_panel.text"
+    },
+    {
+      "id": "tool_rack",
+      "label": "EXAMINAR FERRAMENTAS",
+      "position": [
+        -3.5,
+        1.1,
+        3.1
+      ],
+      "size": [
+        1.8,
+        1.8,
+        0.18
+      ],
+      "interaction_radius": 1.6,
+      "visible_marker": false,
+      "title_key": "observation.tool_rack.title",
+      "text_key": "observation.tool_rack.text",
+      "after_echo_text_key": "observation.tool_rack.after_echo",
+      "seen_flag": "observation_tool_rack_seen",
+      "memory_id": "vardhelm_memory_tool_rack",
+      "memory_category": "Vardhelm / Observação",
+      "memory_title_key": "memory.vardhelm.tool_rack.title",
+      "memory_text_key": "memory.vardhelm.tool_rack.text"
+    }
+  ],
+  "memory_responses": [
+    {
+      "memory_id": "vardhelm_memory_maintenance_board",
+      "duration": 2.0,
+      "worker_attention": true,
+      "station_pulse": false
+    },
+    {
+      "memory_id": "vardhelm_memory_sealed_panel",
+      "duration": 2.4,
+      "worker_attention": true,
+      "station_pulse": true
+    },
+    {
+      "memory_id": "vardhelm_memory_tool_rack",
+      "duration": 1.8,
+      "worker_attention": true,
+      "station_pulse": false
+    }
+  ],
+  "narrative_consequences": [
+    {
+      "id": "vardhelm_first_echo_complete",
+      "world_flag": "vardhelm_first_echo_complete",
+      "environment_state": "echo_awakened"
+    },
+    {
+      "id": "vardhelm_memory_maintenance_board",
+      "world_flag": "observation_maintenance_board_seen",
+      "environment_state": "maintenance_remembered"
+    },
+    {
+      "id": "vardhelm_memory_sealed_panel",
+      "world_flag": "observation_sealed_panel_seen",
+      "environment_state": "sealed_panel_remembered"
+    },
+    {
+      "id": "vardhelm_memory_tool_rack",
+      "world_flag": "observation_tool_rack_seen",
+      "environment_state": "tools_remembered"
+    }
+  ],
+  "presentation": {
+    "show_station_labels": false,
+    "show_story_prop_labels": false,
+    "show_worker_labels": false,
+    "show_observation_labels": false
+  }
+}
