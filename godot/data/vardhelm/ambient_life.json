@@ -12,7 +12,7 @@
       ],
       "idle_seconds": 1.8,
       "work_seconds": 2.6,
-      "accent": "#D7D7D7",
+      "accent": "#8C8274", "outfit": {"apron":true},
       "route": [
         [
           4.6,
@@ -37,7 +37,10 @@
       ],
       "idle_seconds": 2.2,
       "work_seconds": 2.2,
-      "accent": "#BDBDBD",
+      "accent": "#7E7A72", "outfit": {"cap":true},
+      "after_echo_route": [[-4.9, 0, 0.9], [-4.6, 0, 1.15]],
+      "after_echo_idle_seconds": 5.5,
+      "after_echo_work_seconds": 1.6,
       "route": [
         [
           -2.4,
@@ -62,7 +65,7 @@
       ],
       "idle_seconds": 1.6,
       "work_seconds": 2.8,
-      "accent": "#AFAFAF",
+      "accent": "#6F6A62", "outfit": {"cap":true},
       "route": [
         [
           6.2,
@@ -92,7 +95,7 @@
       ],
       "idle_seconds": 2.4,
       "work_seconds": 2.0,
-      "accent": "#C7C7C7",
+      "accent": "#857B6C", "outfit": {"apron":true,"trousers":"#2F2A24"},
       "route": [
         [
           -5.4,
@@ -105,7 +108,10 @@
           -3.2
         ]
       ]
-    }
+    },
+    {"id":"worker_anvil_01","display_name":"Trabalhador","station":"forge","position":[-3.45,0,-0.05],"idle_seconds":1.4,"work_seconds":0.35,"accent":"#7A7064", "outfit": {"apron":true},"route":[[-3.45,0,-0.05],[-3.52,0,0.02]]},
+    {"id":"worker_hauler_01","display_name":"Trabalhador","station":"storage","position":[-1.4,0,-4.5],"idle_seconds":2.5,"work_seconds":4,"accent":"#8A8479", "outfit": {"cap":true},"carry":[0.45,0.35,0.35],"route":[[-1.4,0,-4.5],[-3.9,0,-4.4]]},
+    {"id":"worker_far_01","display_name":"Trabalhador","station":"storage","position":[7.3,0,-4.8],"idle_seconds":3,"work_seconds":1.2,"accent":"#6E6A63", "outfit": {},"route":[[7.3,0,-4.8],[7.3,0,-4.4]]}
   ],
   "stations": [
     {
@@ -186,7 +192,8 @@
         1.8,
         0.18
       ],
-      "label": "SUPORTE DE FERRAMENTAS"
+      "label": "SUPORTE DE FERRAMENTAS",
+      "color": "#3F3022"
     }
   ],
   "reactions": [
@@ -272,6 +279,21 @@
       "memory_text_key": "memory.vardhelm.tool_rack.text"
     }
   ],
+  "conditional_observations": [
+    {
+      "id": "durn_notes",
+      "label": "EXAMINAR FOLHA",
+      "position": [-4.0, 0.02, -2.0],
+      "size": [0.34, 0.02, 0.26],
+      "interaction_radius": 1.2,
+      "visible_marker": true,
+      "marker_color": "#C9C2B0",
+      "starts_unavailable": true,
+      "title_key": "observation.durn_notes.title",
+      "text_key": "observation.durn_notes.text",
+      "seen_flag": "observation_durn_notes_seen"
+    }
+  ],
   "memory_responses": [
     {
       "memory_id": "vardhelm_memory_maintenance_board",
@@ -292,7 +314,40 @@
       "station_pulse": false
     }
   ],
+  "after_echo": {
+    "environment_state": "echo_awakened",
+    "routine_delay": 0.6,
+    "flicker_light": "VardhelmSetDressing/WorkLight_00",
+    "flicker_fixture": "VardhelmSetDressing/WorkLightFixture_00",
+    "fixture_energy": 1.5,
+    "flicker_color": "#BFE3EA",
+    "flicker_range": 3.6,
+    "flicker_steps": [[2.6, 3.0], [0.5, 0.07], [2.8, 0.1], [0.8, 0.06], [2.6, 0.12], [2.6, 4.5], [0.4, 0.09], [2.6, 0.15]],
+    "quiet_audio": "VardhelmAudio/VardhelmMachinery",
+    "quiet_audio_db": -10.0,
+    "closing_silence": {
+      "audio": ["VardhelmAudio/VardhelmHum", "VardhelmAudio/VardhelmSteam", "VardhelmAudio/VardhelmMachinery"],
+      "silent_db": -70.0,
+      "fade_out": 1.4,
+      "hold": 4.0,
+      "fade_in": 3.0,
+      "lamp_off": true
+    }
+  },
+  "durn_alone": {
+    "environment_state": "durn_alone",
+    "after": "echo_awakened",
+    "position": [1.1, 0.25, -3.4],
+    "face": [2.5, 0.25, -3.0],
+    "delay": 1.2,
+    "walk_seconds": 3.5
+  },
   "narrative_consequences": [
+    {
+      "id": "vardhelm_felt_nothing",
+      "world_flag": "vardhelm_felt_nothing",
+      "environment_state": "durn_alone"
+    },
     {
       "id": "vardhelm_first_echo_complete",
       "world_flag": "vardhelm_first_echo_complete",
@@ -314,6 +369,10 @@
       "environment_state": "tools_remembered"
     }
   ],
+  "worker_body": {
+    "radius": 0.25,
+    "height": 1.7
+  },
   "presentation": {
     "show_station_labels": false,
     "show_story_prop_labels": false,

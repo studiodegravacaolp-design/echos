@@ -1,0 +1,57 @@
+{
+  "dialogue_id": "vardhelm_after_echo",
+  "entries": [
+    {
+      "entry_id": "start",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_echo.start",
+      "choices": [
+        {
+          "choice_id": "found",
+          "text_key": "dialogue.vardhelm.after_echo.choice.found",
+          "next_entry_id": "noticed"
+        },
+        {
+          "choice_id": "unsure",
+          "text_key": "dialogue.vardhelm.after_echo.choice.unsure",
+          "next_entry_id": "noticed"
+        }
+      ]
+    },
+    {
+      "entry_id": "noticed",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_echo.noticed",
+      "choices": [
+        {
+          "choice_id": "ask",
+          "text_key": "dialogue.vardhelm.after_echo.choice.ask",
+          "next_entry_id": "dont_know"
+        },
+        {
+          "choice_id": "felt",
+          "text_key": "dialogue.vardhelm.after_echo.choice.felt",
+          "next_entry_id": "dont_know"
+        }
+      ]
+    },
+    {
+      "entry_id": "dont_know",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_echo.dont_know",
+      "choices": []
+    },
+    {
+      "entry_id": "clue",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_echo.clue",
+      "choices": []
+    },
+    {
+      "entry_id": "closing",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_echo.closing",
+      "choices": []
+    }
+  ]
+}

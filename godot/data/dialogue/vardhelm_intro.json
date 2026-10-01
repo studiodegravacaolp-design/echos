@@ -15,20 +15,21 @@
         {
           "choice_id": "leave",
           "text_key": "dialogue.vardhelm.choice.leave",
-          "next_entry_id": "end"
+          "next_entry_id": "end",
+          "consequences": ["vardhelm_felt_nothing"]
         }
       ]
     },
     {
       "entry_id": "memory",
       "speaker_id": "npc.vardhelm.elder.name",
-      "text": "Um instante impossível atravessa sua memória.",
+      "text": "dialogue.vardhelm.pause",
       "choices": []
     },
     {
       "entry_id": "end",
       "speaker_id": "npc.vardhelm.elder.name",
-      "text": "Então siga. Talvez o Eco encontre você depois.",
+      "text": "dialogue.vardhelm.farewell",
       "choices": []
     }
   ]

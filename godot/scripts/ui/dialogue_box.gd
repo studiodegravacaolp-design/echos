@@ -14,7 +14,9 @@ func _ready() -> void:
 
 func show_entry(entry: DialogueEntry, localizer: LocalizationService = null) -> void:
     visible = true
-    speaker_label.text = entry.speaker_id
+    # Bloco C10: speaker_id é chave de localização (ex.: npc.vardhelm.elder.name -> "Durn"),
+    # resolvida como o texto e as escolhas. O ID do NPC (npc.vardhelm.durn) não muda.
+    speaker_label.text = localizer.tr_key(entry.speaker_id) if localizer != null else entry.speaker_id
     text_label.text = localizer.tr_key(entry.text) if localizer != null else entry.text
     for child in choices_box.get_children():
         child.queue_free()

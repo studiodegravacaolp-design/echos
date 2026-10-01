@@ -2,15 +2,56 @@
   "level_name": "Vardhelm Forge 01",
 
   "material_palette": {
-	"floor": { "color": "#2B2F33", "metallic": 0.65, "roughness": 0.72 },
-	"wall": { "color": "#45484A", "metallic": 0.45, "roughness": 0.78 },
-	"machine": { "color": "#3A3D40", "metallic": 0.75, "roughness": 0.58 },
-	"catwalk": { "color": "#5A4632", "metallic": 0.60, "roughness": 0.66 },
+	"floor": {
+	  "shader": "res://assets/vardhelm/materials/floor_plates.gdshader",
+	  "shader_params": {
+		"plate_color": "#1E2226",
+		"plate_color_alt": "#25231F",
+		"seam_color": "#0D0E0F",
+		"oil_color": "#0B0A09",
+		"plate_size": 1.5,
+		"oil_amount": 0.5
+	  }
+	},
+	"wall": {
+	  "shader": "res://assets/vardhelm/materials/brick_wall.gdshader",
+	  "shader_params": {
+		"brick_color": "#4A3328",
+		"brick_color_alt": "#3A2A22",
+		"mortar_color": "#1F1C19",
+		"soot_color": "#121113",
+		"brick_size": [0.56, 0.24],
+		"soot_start": 1.2,
+		"soot_height": 3.6
+	  }
+	},
+	"machine": { "color": "#2A2C30", "metallic": 0.75, "roughness": 0.58 },
+	"catwalk": { "color": "#3E3126", "metallic": 0.60, "roughness": 0.70 },
+	"iron": { "color": "#1E222A", "metallic": 0.78, "roughness": 0.55 },
+	"iron_worn": { "color": "#3B2A22", "metallic": 0.50, "roughness": 0.80 },
 	"ember": {
-	  "color": "#3A2418",
+	  "color": "#2A1C14",
 	  "metallic": 0.2,
-	  "roughness": 0.6,
-	  "emission": { "color": "#FF8A3D", "energy": 1.5 }
+	  "roughness": 0.7,
+	  "emission": { "color": "#FF7900", "energy": 0.06 }
+	},
+	"wood_old": { "color": "#3F3022", "metallic": 0.0, "roughness": 0.92 },
+	"coal": { "color": "#121112", "metallic": 0.1, "roughness": 1.0 },
+	"canvas": { "color": "#4B3F30", "metallic": 0.0, "roughness": 1.0 },
+	"bucket": { "color": "#2E2A26", "metallic": 0.6, "roughness": 0.6 },
+	"verdigris": { "color": "#3E6664", "metallic": 0.6, "roughness": 0.62 },
+	"gauge_face": { "color": "#8A8575", "metallic": 0.2, "roughness": 0.5 },
+	"paper": { "color": "#8F8672", "metallic": 0.0, "roughness": 1.0 },
+	"rubber": { "color": "#141414", "metallic": 0.0, "roughness": 0.9 },
+	"soot_mark": { "color": "#0C0B0B", "metallic": 0.0, "roughness": 1.0 },
+	"oil_mark": { "color": "#0A0908", "metallic": 0.3, "roughness": 0.35 },
+	"soot": { "color": "#18181A", "metallic": 0.0, "roughness": 1.0 },
+	"soot_far": { "color": "#222120", "metallic": 0.0, "roughness": 1.0 },
+	"distant_window": {
+	  "color": "#1A1510",
+	  "metallic": 0.0,
+	  "roughness": 1.0,
+	  "emission": { "color": "#B07A40", "energy": 0.55 }
 	}
   },
 
@@ -19,7 +60,33 @@
 	"depth": 14.0,
 	"floor_thickness": 0.5,
 	"wall_height": 4.0,
-	"wall_thickness": 0.5
+	"wall_thickness": 0.5,
+	"walls": {
+	  "north": {
+		"height": 5.5,
+		"openings": [
+		  { "from": -6.8, "to": -5.2, "bottom": 3.0, "top": 4.8 },
+		  { "from": -3.8, "to": -2.2, "bottom": 3.0, "top": 4.8 },
+		  { "from": 2.2, "to": 3.8, "bottom": 3.0, "top": 4.8 }
+		]
+	  },
+	  "west": {
+		"height": 5.5,
+		"openings": [
+		  { "from": -3.9, "to": -2.3, "bottom": 3.0, "top": 4.8 },
+		  { "from": 3.2, "to": 4.8, "bottom": 3.0, "top": 4.8 }
+		]
+	  },
+	  "south": {
+		"height": 1.1,
+		"openings": [
+		  { "from": -2.2, "to": 2.2 }
+		]
+	  },
+	  "east": {
+		"height": 1.1
+	  }
+	}
   },
 
   "props": [
@@ -41,35 +108,301 @@
 	  "position": [0.0, 2.5, -4.5],
 	  "material": "catwalk"
 	},
+	{ "name": "CatwalkRail", "size": [8.0, 0.08, 0.08], "position": [0.0, 3.55, -3.55], "material": "iron", "collision": false },
+	{ "name": "CatwalkRailMid", "size": [8.0, 0.05, 0.05], "position": [0.0, 3.1, -3.55], "material": "iron", "collision": false },
+	{ "name": "CatwalkPost_W", "size": [0.2, 2.33, 0.2], "position": [-3.3, 1.165, -5.3], "material": "iron" },
+	{ "name": "CatwalkPost_E", "size": [0.2, 2.33, 0.2], "position": [3.3, 1.165, -5.3], "material": "iron" },
 	{
 	  "name": "EmberVent",
 	  "shape": "cylinder",
 	  "size": [1.0, 2.2, 1.0],
 	  "position": [3.0, 1.1, 5.0],
-	  "material": "ember"
+	  "material": "iron_worn"
+	},
+
+	{ "name": "PanelBulkhead", "size": [2.3, 3.2, 0.5], "position": [-6.7, 1.6, 1.45], "material": "wall" },
+	{ "name": "PanelFramePost_W", "size": [0.25, 2.4, 0.35], "position": [-7.3, 1.2, 1.8], "material": "iron" },
+	{ "name": "PanelFramePost_E", "size": [0.25, 2.4, 0.35], "position": [-6.1, 1.2, 1.8], "material": "iron" },
+	{ "name": "PanelFrameLintel", "size": [1.5, 0.25, 0.35], "position": [-6.7, 2.45, 1.8], "material": "iron" },
+	{ "name": "PanelFrameSill", "size": [1.2, 0.2, 0.3], "position": [-6.7, 0.4, 1.8], "material": "iron" },
+	{ "name": "PanelBulkheadCap", "size": [2.5, 0.14, 0.6], "position": [-6.7, 3.27, 1.45], "material": "iron", "collision": false },
+
+	{ "name": "CraneRunway_W", "size": [0.3, 0.35, 13.2], "position": [-9.45, 4.4, -0.2], "material": "iron", "collision": false },
+	{ "name": "CraneRunway_E", "size": [0.3, 0.35, 11.2], "position": [-2.4, 4.4, -0.9], "material": "iron", "collision": false },
+	{ "name": "CraneRunwayColumn_E", "size": [0.35, 4.4, 0.35], "position": [-2.4, 2.2, 4.6], "material": "iron" },
+	{ "name": "CraneBridge", "size": [7.4, 0.45, 0.4], "position": [-5.9, 4.8, -3.2], "material": "iron_worn", "collision": false },
+	{ "name": "CraneTrolley", "size": [0.7, 0.4, 0.7], "position": [-5.2, 4.4, -3.2], "material": "iron", "collision": false },
+	{ "name": "CraneChain", "size": [0.06, 1.3, 0.06], "position": [-5.2, 3.75, -3.2], "material": "iron", "collision": false },
+	{ "name": "CraneHook", "size": [0.3, 0.35, 0.2], "position": [-5.2, 3.05, -3.2], "material": "iron_worn", "collision": false },
+	{
+	  "name": "CraneLoad", "type": "group", "position": [-5.2, 0.0, -3.2],
+	  "items": [
+		{ "name": "Sling_W", "size": [0.03, 0.4, 0.03], "position": [-0.25, 2.93, 0.0], "rotation_degrees": [0.0, 0.0, -38.0], "material": "iron", "collision": false },
+		{ "name": "Sling_E", "size": [0.03, 0.4, 0.03], "position": [0.25, 2.93, 0.0], "rotation_degrees": [0.0, 0.0, 38.0], "material": "iron", "collision": false },
+		{ "name": "Bar_1", "size": [1.4, 0.07, 0.07], "position": [0.0, 2.74, -0.05], "material": "iron_worn", "collision": false },
+		{ "name": "Bar_2", "size": [1.4, 0.07, 0.07], "position": [0.0, 2.74, 0.05], "material": "iron_worn", "collision": false },
+		{ "name": "Bar_3", "size": [1.4, 0.07, 0.07], "position": [0.0, 2.81, 0.0], "material": "iron_worn", "collision": false }
+	  ]
+	},
+	{ "name": "CranePulley", "shape": "cylinder", "size": [0.35, 0.1, 0.35], "position": [-9.1, 4.55, -3.2], "rotation_degrees": [90.0, 0.0, 0.0], "material": "iron_worn", "collision": false },
+	{ "name": "RunwayChain", "size": [0.05, 1.2, 0.05], "position": [-9.25, 3.6, -0.9], "material": "iron", "collision": false },
+	{ "name": "RunwayChainHook", "size": [0.2, 0.25, 0.14], "position": [-9.25, 2.95, -0.9], "material": "iron_worn", "collision": false },
+
+	{
+	  "name": "ForgeStation_West", "type": "group", "position": [-8.6, 0.0, -1.0],
+	  "items": [
+		{ "name": "CoalBin", "size": [0.6, 0.5, 0.7], "position": [-0.35, 0.25, -0.45], "material": "wood_old", "collision": false },
+		{ "name": "CoalInBin", "size": [0.52, 0.06, 0.62], "position": [-0.35, 0.47, -0.45], "material": "coal", "collision": false },
+		{ "name": "CoalHeap", "size": [0.8, 0.16, 0.6], "position": [0.25, 0.08, 0.35], "material": "coal", "collision": false },
+		{ "name": "CoalHeapTop", "size": [0.45, 0.12, 0.35], "position": [0.2, 0.2, 0.3], "material": "coal", "collision": false },
+		{ "name": "Bar_1", "size": [0.06, 0.06, 1.3], "position": [-0.45, 0.03, 0.75], "material": "iron_worn", "collision": false },
+		{ "name": "Bar_2", "size": [0.06, 0.06, 1.3], "position": [-0.37, 0.03, 0.78], "material": "iron_worn", "collision": false },
+		{ "name": "Bar_3", "size": [0.06, 0.06, 1.3], "position": [-0.41, 0.09, 0.76], "material": "iron_worn", "collision": false },
+		{ "name": "QuenchBucket", "shape": "cylinder", "size": [0.36, 0.4, 0.36], "position": [0.45, 0.2, -0.9], "material": "bucket", "collision": false },
+		{ "name": "QuenchWater", "shape": "cylinder", "size": [0.3, 0.02, 0.3], "position": [0.45, 0.39, -0.9], "material": "oil_mark", "collision": false },
+		{ "name": "Tongs", "size": [0.04, 0.9, 0.04], "position": [0.64, 0.45, 0.25], "rotation_degrees": [0.0, 0.0, -14.0], "material": "iron", "collision": false }
+	  ]
 	},
 	{
-	  "name": "TestPrefabPillar",
-	  "type": "prefab",
-	  "scene": "res://assets/vardhelm/prefabs/test_prefab_pillar.tscn",
-	  "position": [-8.5, 0.0, 5.5],
-	  "rotation_degrees": [0.0, 45.0, 0.0],
-	  "scale": [1.0, 1.3, 1.0]
-	}
+	  "name": "AnvilStation", "type": "group", "position": [-4.1, 0.0, 0.45],
+	  "items": [
+		{ "name": "AnvilBase", "shape": "cylinder", "size": [0.34, 0.45, 0.34], "position": [0.0, 0.225, 0.0], "material": "iron", "collision": false },
+		{ "name": "AnvilBody", "size": [0.6, 0.2, 0.24], "position": [0.0, 0.55, 0.0], "material": "iron", "collision": false },
+		{ "name": "AnvilHorn", "size": [0.22, 0.1, 0.14], "position": [0.38, 0.58, 0.0], "material": "iron", "collision": false },
+		{ "name": "WorkedBar", "size": [0.5, 0.04, 0.04], "position": [-0.05, 0.67, 0.02], "rotation_degrees": [0.0, 20.0, 0.0], "material": "iron_worn", "collision": false },
+		{ "name": "HammerHandle", "size": [0.36, 0.035, 0.035], "position": [0.05, 0.67, -0.08], "rotation_degrees": [0.0, -35.0, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "HammerHead", "size": [0.07, 0.07, 0.14], "position": [0.2, 0.68, -0.18], "rotation_degrees": [0.0, -35.0, 0.0], "material": "iron", "collision": false },
+		{ "name": "SlackTub", "shape": "cylinder", "size": [0.5, 0.35, 0.5], "position": [0.15, 0.175, -0.6], "material": "bucket", "collision": false },
+		{ "name": "ScaleMark", "size": [1.4, 0.01, 1.1], "position": [0.0, 0.006, 0.0], "material": "soot_mark", "collision": false }
+	  ]
+	},
+	{
+	  "name": "WorkbenchStory", "type": "group", "position": [-0.6, 1.11, 4.7],
+	  "items": [
+		{ "name": "Gear", "shape": "cylinder", "size": [0.38, 0.06, 0.38], "position": [0.25, 0.03, -0.1], "material": "iron_worn", "collision": false },
+		{ "name": "GearCore", "shape": "cylinder", "size": [0.12, 0.1, 0.12], "position": [0.25, 0.05, -0.1], "material": "iron", "collision": false },
+		{ "name": "Plate", "size": [0.5, 0.02, 0.34], "position": [-0.75, 0.01, 0.12], "material": "iron", "collision": false },
+		{ "name": "HammerHandle", "size": [0.34, 0.035, 0.035], "position": [0.95, 0.02, 0.2], "rotation_degrees": [0.0, 25.0, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "HammerHead", "size": [0.07, 0.07, 0.14], "position": [1.1, 0.035, 0.27], "rotation_degrees": [0.0, 25.0, 0.0], "material": "iron", "collision": false },
+		{ "name": "Pliers_A", "size": [0.28, 0.02, 0.03], "position": [-0.2, 0.012, 0.25], "rotation_degrees": [0.0, 12.0, 0.0], "material": "iron", "collision": false },
+		{ "name": "Pliers_B", "size": [0.28, 0.02, 0.03], "position": [-0.2, 0.014, 0.25], "rotation_degrees": [0.0, -12.0, 0.0], "material": "iron", "collision": false },
+		{ "name": "File", "size": [0.3, 0.015, 0.03], "position": [-1.2, 0.01, -0.2], "material": "iron", "collision": false },
+		{ "name": "PartsTray", "size": [0.4, 0.06, 0.25], "position": [1.3, 0.03, -0.25], "material": "iron_worn", "collision": false },
+		{ "name": "Part_A", "size": [0.06, 0.05, 0.06], "position": [1.22, 0.085, -0.28], "material": "iron", "collision": false },
+		{ "name": "Part_B", "size": [0.05, 0.05, 0.08], "position": [1.36, 0.085, -0.22], "material": "iron", "collision": false },
+		{ "name": "Bucket", "shape": "cylinder", "size": [0.34, 0.4, 0.34], "position": [1.95, -0.91, 0.35], "material": "bucket", "collision": false },
+		{ "name": "OilStain", "size": [1.2, 0.01, 0.8], "position": [0.6, -1.104, -0.75], "material": "oil_mark", "collision": false }
+	  ]
+	},
+	{
+	  "name": "MaintenanceNook", "type": "group", "position": [-8.7, 0.0, -4.1],
+	  "items": [
+		{ "name": "OpenCrate", "size": [0.75, 0.45, 0.6], "position": [-0.1, 0.225, -0.4], "material": "wood_old" },
+		{ "name": "PartsInCrate", "size": [0.6, 0.08, 0.45], "position": [-0.1, 0.43, -0.4], "material": "iron_worn", "collision": false },
+		{ "name": "CrateLid", "size": [0.75, 0.04, 0.6], "position": [0.45, 0.3, -0.35], "rotation_degrees": [0.0, 0.0, -60.0], "material": "wood_old", "collision": false },
+		{ "name": "GearBig", "shape": "cylinder", "size": [0.6, 0.08, 0.6], "position": [0.25, 0.04, 0.35], "material": "iron_worn", "collision": false },
+		{ "name": "Shaft", "shape": "cylinder", "size": [0.08, 0.9, 0.08], "position": [0.0, 0.05, 0.8], "rotation_degrees": [0.0, 0.0, 90.0], "material": "iron", "collision": false },
+		{ "name": "Wrench", "size": [0.35, 0.02, 0.05], "position": [0.55, 0.012, 0.75], "rotation_degrees": [0.0, 30.0, 0.0], "material": "iron", "collision": false },
+		{ "name": "OilCan", "shape": "cylinder", "size": [0.16, 0.24, 0.16], "position": [0.62, 0.12, 0.2], "material": "bucket", "collision": false },
+		{ "name": "OilStain", "size": [0.9, 0.01, 0.7], "position": [0.3, 0.006, 0.55], "material": "oil_mark", "collision": false }
+	  ]
+	},
+	{
+	  "name": "TransportStack", "type": "group", "position": [-2.4, 0.0, -5.7],
+	  "items": [
+		{ "name": "Pallet", "size": [1.2, 0.12, 0.9], "position": [-0.15, 0.06, 0.0], "material": "wood_old" },
+		{ "name": "Bar_1", "size": [1.1, 0.08, 0.08], "position": [-0.15, 0.16, -0.1], "material": "iron_worn", "collision": false },
+		{ "name": "Bar_2", "size": [1.1, 0.08, 0.08], "position": [-0.15, 0.16, 0.02], "material": "iron_worn", "collision": false },
+		{ "name": "Bar_3", "size": [1.1, 0.08, 0.08], "position": [-0.15, 0.24, -0.04], "material": "iron_worn", "collision": false },
+		{ "name": "Strap_A", "size": [0.03, 0.2, 0.26], "position": [-0.45, 0.2, -0.04], "material": "canvas", "collision": false },
+		{ "name": "Strap_B", "size": [0.03, 0.2, 0.26], "position": [0.15, 0.2, -0.04], "material": "canvas", "collision": false },
+		{ "name": "Crate_Low", "size": [0.7, 0.7, 0.7], "position": [0.85, 0.35, 0.05], "material": "wood_old" },
+		{ "name": "Crate_Top", "size": [0.6, 0.55, 0.6], "position": [0.85, 0.975, 0.05], "material": "wood_old", "collision": false },
+		{ "name": "HangingChain", "size": [0.05, 1.1, 0.05], "position": [-0.15, 1.75, 0.3], "material": "iron", "collision": false },
+		{ "name": "HangingHook", "size": [0.18, 0.2, 0.12], "position": [-0.15, 1.15, 0.3], "material": "iron_worn", "collision": false }
+	  ]
+	},
+	{
+	  "name": "MachineB_Dress", "type": "group", "position": [6.0, 0.0, 3.5],
+	  "items": [
+		{ "name": "Plinth", "size": [2.9, 0.2, 2.9], "position": [0.0, 0.1, 0.0], "material": "iron", "collision": false },
+		{ "name": "Band_Low", "size": [2.56, 0.14, 2.56], "position": [0.0, 0.9, 0.0], "material": "iron_worn", "collision": false },
+		{ "name": "Band_High", "size": [2.56, 0.14, 2.56], "position": [0.0, 2.7, 0.0], "material": "iron_worn", "collision": false },
+		{ "name": "TopHousing", "size": [1.0, 0.7, 1.1], "position": [-0.9, 3.85, 0.2], "material": "iron", "collision": false },
+		{ "name": "Exhaust", "shape": "cylinder", "size": [0.28, 0.9, 0.28], "position": [-1.1, 4.65, 0.35], "material": "iron_worn", "collision": false },
+		{ "name": "ExhaustCap", "shape": "cylinder", "size": [0.42, 0.1, 0.42], "position": [-1.1, 5.12, 0.35], "material": "iron", "collision": false },
+		{ "name": "Flywheel", "shape": "cylinder", "size": [1.5, 0.16, 1.5], "position": [-0.5, 1.3, 1.33], "rotation_degrees": [90.0, 0.0, 0.0], "material": "iron", "collision": false },
+		{ "name": "FlywheelHub", "shape": "cylinder", "size": [0.3, 0.3, 0.3], "position": [-0.5, 1.3, 1.42], "rotation_degrees": [90.0, 0.0, 0.0], "material": "iron_worn", "collision": false },
+		{ "name": "Motor", "size": [0.6, 0.6, 0.55], "position": [0.65, 0.3, 1.55], "material": "machine" },
+		{ "name": "MotorPulley", "shape": "cylinder", "size": [0.22, 0.12, 0.22], "position": [0.65, 0.5, 1.86], "rotation_degrees": [90.0, 0.0, 0.0], "material": "iron_worn", "collision": false },
+		{ "name": "Belt", "size": [1.4, 0.08, 0.04], "position": [0.075, 0.9, 1.52], "rotation_degrees": [0.0, 0.0, -34.8], "material": "rubber", "collision": false },
+		{ "name": "Gauge_1", "shape": "cylinder", "size": [0.22, 0.04, 0.22], "position": [0.55, 2.2, 1.27], "rotation_degrees": [90.0, 0.0, 0.0], "material": "gauge_face", "collision": false },
+		{ "name": "Gauge_2", "shape": "cylinder", "size": [0.22, 0.04, 0.22], "position": [0.85, 2.2, 1.27], "rotation_degrees": [90.0, 0.0, 0.0], "material": "gauge_face", "collision": false },
+		{ "name": "Hatch", "size": [0.04, 1.0, 0.8], "position": [1.27, 1.6, 0.2], "material": "iron_worn", "collision": false },
+		{ "name": "PipeToManifold", "shape": "cylinder", "size": [0.16, 0.55, 0.16], "position": [1.5, 2.0, -0.6], "rotation_degrees": [0.0, 0.0, 90.0], "material": "verdigris", "collision": false },
+		{ "name": "OilDrip", "size": [1.2, 0.01, 0.8], "position": [0.4, 0.006, 1.7], "material": "oil_mark", "collision": false }
+	  ]
+	},
+	{
+	  "name": "MachineA_Dress", "type": "group", "position": [-6.0, 0.0, -4.0],
+	  "items": [
+		{ "name": "Plinth", "size": [3.3, 0.2, 2.3], "position": [0.0, 0.1, 0.0], "material": "iron", "collision": false },
+		{ "name": "Band", "size": [3.06, 0.14, 2.06], "position": [0.0, 1.9, 0.0], "material": "iron_worn", "collision": false },
+		{ "name": "BoardFrame", "size": [1.9, 1.3, 0.06], "position": [0.3, 1.4, 1.03], "material": "wood_old", "collision": false },
+		{ "name": "Sheet_1", "size": [0.4, 0.5, 0.01], "position": [-0.2, 1.5, 1.065], "material": "paper", "collision": false },
+		{ "name": "Sheet_2", "size": [0.35, 0.45, 0.01], "position": [0.3, 1.35, 1.065], "material": "paper", "collision": false },
+		{ "name": "Sheet_3", "size": [0.3, 0.4, 0.01], "position": [0.75, 1.55, 1.065], "rotation_degrees": [0.0, 0.0, 4.0], "material": "paper", "collision": false },
+		{ "name": "Sheet_4", "size": [0.45, 0.3, 0.01], "position": [0.1, 0.95, 1.065], "material": "paper", "collision": false },
+		{ "name": "RiserPipe", "shape": "cylinder", "size": [0.2, 1.2, 0.2], "position": [-1.0, 3.1, -0.6], "material": "verdigris", "collision": false },
+		{ "name": "WallPipe", "shape": "cylinder", "size": [0.2, 2.15, 0.2], "position": [-1.0, 3.7, -1.675], "rotation_degrees": [90.0, 0.0, 0.0], "material": "verdigris", "collision": false },
+		{ "name": "Gauge", "shape": "cylinder", "size": [0.22, 0.04, 0.22], "position": [1.52, 1.9, 0.3], "rotation_degrees": [0.0, 0.0, 90.0], "material": "gauge_face", "collision": false },
+		{ "name": "Hatch", "size": [0.04, 1.0, 0.8], "position": [1.52, 1.1, -0.4], "material": "iron_worn", "collision": false },
+		{ "name": "OilStain", "size": [1.0, 0.01, 0.6], "position": [1.9, 0.006, 0.3], "material": "oil_mark", "collision": false }
+	  ]
+	},
+	{
+	  "name": "ToolRackDress", "type": "group", "position": [-3.5, 0.0, 3.1],
+	  "items": [
+		{ "name": "Post_W", "size": [0.12, 2.2, 0.12], "position": [-0.97, 1.1, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "Post_E", "size": [0.12, 2.2, 0.12], "position": [0.97, 1.1, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "Foot_W", "size": [0.3, 0.04, 0.3], "position": [-0.97, 0.02, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "Foot_E", "size": [0.3, 0.04, 0.3], "position": [0.97, 0.02, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "TopRail", "size": [2.1, 0.1, 0.14], "position": [0.0, 2.08, 0.0], "material": "wood_old", "collision": false },
+		{ "name": "Tool_1", "size": [0.04, 0.55, 0.03], "position": [-0.55, 1.35, 0.12], "material": "iron", "collision": false },
+		{ "name": "Tool_1_Head", "size": [0.14, 0.07, 0.05], "position": [-0.55, 1.62, 0.13], "material": "iron", "collision": false },
+		{ "name": "Tool_2", "size": [0.05, 0.7, 0.03], "position": [-0.2, 1.3, 0.12], "material": "iron_worn", "collision": false },
+		{ "name": "Tool_3", "size": [0.35, 0.05, 0.03], "position": [0.3, 1.55, 0.12], "material": "iron", "collision": false },
+		{ "name": "Tool_4", "size": [0.04, 0.45, 0.03], "position": [0.62, 1.4, 0.12], "material": "iron", "collision": false }
+	  ]
+	},
+	{ "name": "BasePlate_CraneColumn", "size": [0.6, 0.05, 0.6], "position": [-2.4, 0.025, 4.6], "material": "iron", "collision": false },
+	{ "name": "BasePlate_CatwalkW", "size": [0.4, 0.05, 0.4], "position": [-3.3, 0.025, -5.3], "material": "iron", "collision": false },
+	{ "name": "BasePlate_CatwalkE", "size": [0.4, 0.05, 0.4], "position": [3.3, 0.025, -5.3], "material": "iron", "collision": false },
+	{ "name": "BasePlate_GateW", "size": [0.55, 0.05, 0.55], "position": [-2.2, 0.025, 6.35], "material": "iron", "collision": false },
+	{ "name": "BasePlate_GateE", "size": [0.55, 0.05, 0.55], "position": [2.2, 0.025, 6.35], "material": "iron", "collision": false },
+	{ "name": "ColdPipe_North", "shape": "cylinder", "size": [0.16, 8.8, 0.16], "position": [-5.1, 2.75, -6.18], "rotation_degrees": [0.0, 0.0, 90.0], "material": "verdigris", "collision": false },
+	{ "name": "ColdPipeClamp_1", "size": [0.12, 0.3, 0.12], "position": [-7.5, 2.75, -6.2], "material": "iron", "collision": false },
+	{ "name": "ColdPipeClamp_2", "size": [0.12, 0.3, 0.12], "position": [-4.5, 2.75, -6.2], "material": "iron", "collision": false },
+	{ "name": "ColdPipeClamp_3", "size": [0.12, 0.3, 0.12], "position": [-1.5, 2.75, -6.2], "material": "iron", "collision": false },
+	{ "name": "ColdPipeDrop", "shape": "cylinder", "size": [0.12, 2.7, 0.12], "position": [-0.7, 1.4, -6.18], "material": "verdigris", "collision": false },
+	{ "name": "ColdPipeValveBox", "size": [0.35, 0.35, 0.2], "position": [-0.7, 1.25, -6.1], "material": "iron", "collision": false },
+	{ "name": "ColdPipeValveWheel", "shape": "cylinder", "size": [0.3, 0.04, 0.3], "position": [-0.7, 1.25, -5.98], "rotation_degrees": [90.0, 0.0, 0.0], "material": "iron_worn", "collision": false },
+	{ "name": "WallToolRail", "size": [0.06, 0.06, 1.2], "position": [-9.68, 1.7, -0.4], "material": "iron", "collision": false },
+	{ "name": "WallTool_1", "size": [0.03, 0.5, 0.03], "position": [-9.66, 1.42, -0.8], "material": "iron", "collision": false },
+	{ "name": "WallTool_2", "size": [0.03, 0.62, 0.05], "position": [-9.66, 1.36, -0.4], "material": "iron", "collision": false },
+	{ "name": "WallTool_3", "size": [0.03, 0.45, 0.08], "position": [-9.66, 1.45, 0.0], "material": "iron_worn", "collision": false },
+	{ "name": "SootMark_ForgeMouth", "size": [1.6, 0.01, 0.3], "position": [-6.2, 0.006, 1.0], "material": "soot_mark", "collision": false },
+	{
+	  "name": "Foreground_Barrels", "type": "group", "position": [9.1, 0.0, 6.1],
+	  "items": [
+		{ "name": "Barrel_1", "shape": "cylinder", "size": [0.6, 0.9, 0.6], "position": [0.0, 0.45, 0.0], "material": "iron_worn" },
+		{ "name": "Barrel_2", "shape": "cylinder", "size": [0.6, 0.9, 0.6], "position": [-0.65, 0.45, 0.1], "material": "iron" },
+		{ "name": "Barrel_3", "shape": "cylinder", "size": [0.6, 0.9, 0.6], "position": [-0.3, 0.3, -0.65], "rotation_degrees": [0.0, 0.0, 90.0], "material": "iron_worn" }
+	  ]
+	},
+	{
+	  "name": "Foreground_Sacks", "type": "group", "position": [-9.1, 0.0, 6.1],
+	  "items": [
+		{ "name": "Sack_1", "size": [0.7, 0.35, 0.5], "position": [0.0, 0.175, 0.0], "rotation_degrees": [0.0, 10.0, 0.0], "material": "canvas", "collision": false },
+		{ "name": "Sack_2", "size": [0.7, 0.35, 0.5], "position": [0.1, 0.5, 0.05], "rotation_degrees": [0.0, -8.0, 0.0], "material": "canvas", "collision": false },
+		{ "name": "Sack_3", "size": [0.7, 0.32, 0.5], "position": [0.25, 0.16, -0.6], "material": "canvas", "collision": false }
+	  ]
+	},
+
+
+	{ "name": "SouthCoping_W", "size": [7.8, 0.1, 0.62], "position": [-6.1, 1.15, 7.0], "material": "iron", "collision": false },
+	{ "name": "SouthCoping_E", "size": [7.8, 0.1, 0.62], "position": [6.1, 1.15, 7.0], "material": "iron", "collision": false },
+	{ "name": "EastCoping", "size": [0.62, 0.1, 14.5], "position": [10.0, 1.15, 0.0], "material": "iron", "collision": false },
+
+	{ "name": "EntryLanding", "size": [5.2, 0.5, 3.25], "position": [0.0, -0.25, 8.625], "material": "floor" },
+	{ "name": "EntryRail_W", "size": [0.25, 1.1, 3.0], "position": [-2.475, 0.55, 8.75], "material": "wall" },
+	{ "name": "EntryRail_E", "size": [0.25, 1.1, 3.0], "position": [2.475, 0.55, 8.75], "material": "wall" },
+	{ "name": "EntryRail_S", "size": [5.2, 1.1, 0.25], "position": [0.0, 0.55, 10.125], "material": "wall" },
+	{ "name": "EntryBracket_W", "size": [0.2, 2.2, 0.2], "position": [-2.2, -1.2, 8.3], "rotation_degrees": [40.0, 0.0, 0.0], "material": "iron_worn", "collision": false },
+	{ "name": "EntryBracket_E", "size": [0.2, 2.2, 0.2], "position": [2.2, -1.2, 8.3], "rotation_degrees": [40.0, 0.0, 0.0], "material": "iron_worn", "collision": false },
+
+	{ "name": "Background_CityFloor", "size": [90.0, 1.0, 90.0], "position": [-10.0, -12.5, -10.0], "material": "soot_far", "collision": false },
+	{ "name": "Background_Hall_A", "size": [9.0, 7.0, 6.0], "position": [-8.0, -5.5, -12.5], "material": "soot", "collision": false },
+	{ "name": "Background_Hall_B", "size": [7.0, 9.0, 7.0], "position": [0.5, -6.5, -15.0], "material": "soot", "collision": false },
+	{ "name": "Background_Hall_C", "size": [10.0, 6.0, 8.0], "position": [-18.0, -4.0, -14.0], "material": "soot_far", "collision": false },
+	{ "name": "Background_Hall_D", "size": [6.0, 8.0, 10.0], "position": [-15.0, -5.0, -2.0], "material": "soot", "collision": false },
+	{ "name": "Background_Hall_E", "size": [7.0, 6.0, 7.0], "position": [-14.5, -4.0, 6.0], "material": "soot_far", "collision": false },
+	{ "name": "Background_Chimney_1", "shape": "cylinder", "size": [1.6, 18.0, 1.6], "position": [-11.0, 0.0, -11.0], "material": "soot", "collision": false },
+	{ "name": "Background_Chimney_2", "shape": "cylinder", "size": [1.2, 16.0, 1.2], "position": [-4.0, -1.0, -14.0], "material": "soot", "collision": false },
+	{ "name": "Background_Chimney_3", "shape": "cylinder", "size": [2.0, 22.0, 2.0], "position": [-19.0, 0.0, -8.0], "material": "soot_far", "collision": false },
+	{ "name": "Background_Chimney_4", "shape": "cylinder", "size": [1.3, 14.0, 1.3], "position": [-14.0, -2.0, 3.0], "material": "soot", "collision": false },
+	{ "name": "Background_GantryLeg_W", "size": [0.4, 9.0, 0.4], "position": [-3.5, -3.5, -11.0], "material": "soot", "collision": false },
+	{ "name": "Background_GantryLeg_E", "size": [0.4, 9.0, 0.4], "position": [1.5, -3.5, -11.0], "material": "soot", "collision": false },
+	{ "name": "Background_GantryBeam", "size": [5.8, 0.5, 0.6], "position": [-1.0, 1.0, -11.0], "material": "soot", "collision": false },
+	{ "name": "Background_Tank", "shape": "cylinder", "size": [3.0, 5.0, 3.0], "position": [-7.5, -3.5, -10.2], "material": "soot_far", "collision": false },
+	{ "name": "Background_Window_A3", "size": [0.7, 0.45, 0.05], "position": [-8.5, -4.2, -9.47], "material": "distant_window", "collision": false },
+	{ "name": "Background_Window_E1", "size": [0.05, 0.45, 0.7], "position": [-10.97, -2.6, 5.0], "material": "distant_window", "collision": false },
+	{ "name": "Background_Window_A1", "size": [0.7, 0.45, 0.05], "position": [-10.5, -3.0, -9.47], "material": "distant_window", "collision": false },
+	{ "name": "Background_Window_A2", "size": [0.7, 0.45, 0.05], "position": [-6.5, -3.4, -9.47], "material": "distant_window", "collision": false },
+	{ "name": "Background_Window_B1", "size": [0.7, 0.45, 0.05], "position": [-1.5, -3.2, -11.47], "material": "distant_window", "collision": false },
+	{ "name": "Background_Window_D1", "size": [0.05, 0.45, 0.7], "position": [-11.97, -2.8, -4.5], "material": "distant_window", "collision": false },
+	{ "name": "Background_Window_D2", "size": [0.05, 0.45, 0.7], "position": [-11.97, -3.3, 0.5], "material": "distant_window", "collision": false }
   ],
 
   "generation_rules": [
 	{
 	  "name": "NorthPillars",
 	  "rule": "linear",
-	  "position": [-7.5, 1.5, -6.25],
+	  "position": [-7.5, 2.75, -6.5],
 	  "step": [3.0, 0.0, 0.0],
 	  "count": 6,
 	  "template": {
 		"type": "primitive",
-		"shape": "cylinder",
-		"size": [0.8, 3.0, 0.8],
-		"material": "wall"
+		"size": [0.5, 5.5, 0.5],
+		"material": "iron"
+	  }
+	},
+	{
+	  "name": "WestPilasters",
+	  "rule": "linear",
+	  "position": [-9.525, 2.75, -5.4],
+	  "step": [0.0, 0.0, 3.6],
+	  "count": 4,
+	  "template": {
+		"type": "primitive",
+		"size": [0.45, 5.5, 0.45],
+		"material": "iron"
+	  }
+	},
+	{
+	  "name": "SouthParapetPosts_W",
+	  "rule": "linear",
+	  "position": [-9.0, 0.8, 7.0],
+	  "step": [3.4, 0.0, 0.0],
+	  "count": 2,
+	  "template": {
+		"type": "primitive",
+		"size": [0.3, 1.6, 0.3],
+		"material": "iron"
+	  }
+	},
+	{
+	  "name": "SouthParapetPosts_E",
+	  "rule": "linear",
+	  "position": [5.6, 0.8, 7.0],
+	  "step": [3.4, 0.0, 0.0],
+	  "count": 2,
+	  "template": {
+		"type": "primitive",
+		"size": [0.3, 1.6, 0.3],
+		"material": "iron"
+	  }
+	},
+	{
+	  "name": "EastParapetPosts",
+	  "rule": "linear",
+	  "position": [10.0, 0.8, -5.0],
+	  "step": [0.0, 0.0, 3.0],
+	  "count": 4,
+	  "template": {
+		"type": "primitive",
+		"size": [0.3, 1.6, 0.3],
+		"material": "iron"
 	  }
 	}
   ],
@@ -89,19 +422,35 @@
   "lights": [
 	{
 	  "type": "directional",
-	  "rotation_degrees": [-55.0, -35.0, 0.0],
-	  "shadows": true
+	  "rotation_degrees": [-70.0, -25.0, 0.0],
+	  "shadows": true,
+	  "color": "#A9B4BE",
+	  "energy": 0.6
 	}
   ],
 
   "environment": {
-	"background_color": "#101419",
-	"ambient_light_color": "#5A6470",
-	"ambient_light_energy": 0.35,
-	"exposure": 1.0,
+	"background_color": "#34312C",
+	"ambient_light_color": "#4D4740",
+	"ambient_light_energy": 0.3,
+	"exposure": 1.05,
+	"tonemap": "filmic",
 	"glow": {
 	  "enabled": true,
 	  "intensity": 0.8
+	},
+	"fog": {
+	  "enabled": true,
+	  "color": "#48443D",
+	  "density": 0.012,
+	  "sky_affect": 1.0,
+	  "height": -0.6,
+	  "height_density": 0.18
+	},
+	"ssao": {
+	  "enabled": false,
+	  "radius": 1.2,
+	  "intensity": 1.6
 	}
   }
 }

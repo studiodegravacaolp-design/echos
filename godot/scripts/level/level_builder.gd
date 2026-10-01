@@ -10,6 +10,12 @@ const LevelValidator = preload("res://scripts/level/level_validator.gd")
 
 const WORLD_ENVIRONMENT_NODE_NAME := "WorldEnvironment"
 const MANAGED_META_KEY := "level_builder_managed"
+const TONEMAP_MODES := {
+	"linear": Environment.TONE_MAPPER_LINEAR,
+	"reinhard": Environment.TONE_MAPPER_REINHARDT,
+	"filmic": Environment.TONE_MAPPER_FILMIC,
+	"aces": Environment.TONE_MAPPER_ACES,
+}
 
 
 @export_tool_button("Build Level") var build_button := build_level
@@ -157,6 +163,12 @@ func build_material_palette(palette_data: Dictionary) -> Dictionary:
 
 	for material_name in palette_data.keys():
 		var entry: Dictionary = palette_data[material_name]
+
+		# Opcional: material por shader (.gdshader), com parâmetros do JSON.
+		if entry.has("shader"):
+			materials[material_name] = create_shader_material(entry["shader"], entry.get("shader_params", {}))
+			continue
+
 		var material := create_material(
 			Color(entry["color"]),
 			float(entry["metallic"]),
@@ -169,6 +181,28 @@ func build_material_palette(palette_data: Dictionary) -> Dictionary:
 		materials[material_name] = material
 
 	return materials
+
+
+# Parâmetros: número -> float; string hex -> Color; [x, y] -> Vector2; [x, y, z] -> Vector3.
+func create_shader_material(shader_path: String, params: Dictionary) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = ResourceLoader.load(shader_path) as Shader
+
+	for param_name in params.keys():
+		var value = params[param_name]
+
+		match typeof(value):
+			TYPE_STRING:
+				material.set_shader_parameter(param_name, Color(value))
+			TYPE_ARRAY:
+				if value.size() == 2:
+					material.set_shader_parameter(param_name, Vector2(float(value[0]), float(value[1])))
+				else:
+					material.set_shader_parameter(param_name, array_to_vector3(value))
+			_:
+				material.set_shader_parameter(param_name, float(value))
+
+	return material
 
 
 func build_room(parent: Node3D, room: Dictionary, materials: Dictionary) -> void:
@@ -188,35 +222,83 @@ func build_room(parent: Node3D, room: Dictionary, materials: Dictionary) -> void
 
 	var half_width := width / 2.0
 	var half_depth := depth / 2.0
-	var wall_y := wall_height / 2.0
+	# Opcional por lado ("north", "south", "west", "east"): altura, material e aberturas.
+	# A colisão é sempre a mesma caixa da malha (nada de parede invisível).
+	var walls: Dictionary = room.get("walls", {})
 
-	create_prop_body(
-		parent, "NorthWall",
-		Vector3(width, wall_height, wall_thickness),
-		Vector3(0.0, wall_y, -half_depth),
-		materials["wall"]
-	)
+	build_wall(parent, "NorthWall", true, width, wall_thickness, Vector3(0.0, 0.0, -half_depth), wall_height, walls.get("north", {}), materials)
+	build_wall(parent, "SouthWall", true, width, wall_thickness, Vector3(0.0, 0.0, half_depth), wall_height, walls.get("south", {}), materials)
+	build_wall(parent, "WestWall", false, depth, wall_thickness, Vector3(-half_width, 0.0, 0.0), wall_height, walls.get("west", {}), materials)
+	build_wall(parent, "EastWall", false, depth, wall_thickness, Vector3(half_width, 0.0, 0.0), wall_height, walls.get("east", {}), materials)
 
-	create_prop_body(
-		parent, "SouthWall",
-		Vector3(width, wall_height, wall_thickness),
-		Vector3(0.0, wall_y, half_depth),
-		materials["wall"]
-	)
 
-	create_prop_body(
-		parent, "WestWall",
-		Vector3(wall_thickness, wall_height, depth),
-		Vector3(-half_width, wall_y, 0.0),
-		materials["wall"]
-	)
+# Parede ao longo de X (along_x) ou de Z. Sem aberturas: um único corpo com o nome de
+# sempre. Com aberturas ({"from", "to"} ao longo da parede, e opcionalmente "bottom"/"top"
+# para janelas): trechos cheios entre elas, peitoril abaixo e verga acima.
+func build_wall(
+	parent: Node3D,
+	wall_name: String,
+	along_x: bool,
+	length: float,
+	thickness: float,
+	center: Vector3,
+	default_height: float,
+	config: Dictionary,
+	materials: Dictionary
+) -> void:
+	var height := float(config.get("height", default_height))
+	var material: Material = materials[config.get("material", "wall")]
+	var openings: Array = config.get("openings", [])
 
-	create_prop_body(
-		parent, "EastWall",
-		Vector3(wall_thickness, wall_height, depth),
-		Vector3(half_width, wall_y, 0.0),
-		materials["wall"]
-	)
+	if openings.is_empty():
+		create_wall_piece(parent, wall_name, along_x, center, -length / 2.0, length / 2.0, 0.0, height, thickness, material)
+		return
+
+	var sorted: Array = openings.duplicate()
+	sorted.sort_custom(func(a, b): return float(a["from"]) < float(b["from"]))
+	var pieces: Array = []
+	var cursor := -length / 2.0
+
+	for opening in sorted:
+		var from := float(opening["from"])
+		var to := float(opening["to"])
+		var bottom := float(opening.get("bottom", 0.0))
+		var top := float(opening.get("top", height))
+
+		if from > cursor:
+			pieces.append([cursor, from, 0.0, height])
+		if bottom > 0.0:
+			pieces.append([from, to, 0.0, bottom])
+		if top < height:
+			pieces.append([from, to, top, height])
+		cursor = to
+
+	if cursor < length / 2.0:
+		pieces.append([cursor, length / 2.0, 0.0, height])
+
+	for i in pieces.size():
+		var piece: Array = pieces[i]
+		create_wall_piece(parent, "%s_%s" % [wall_name, pad_index(i, 2)], along_x, center, piece[0], piece[1], piece[2], piece[3], thickness, material)
+
+
+func create_wall_piece(
+	parent: Node3D,
+	piece_name: String,
+	along_x: bool,
+	center: Vector3,
+	from: float,
+	to: float,
+	bottom: float,
+	top: float,
+	thickness: float,
+	material: Material
+) -> void:
+	var span := to - from
+	var mid := (from + to) / 2.0
+	var size := Vector3(span, top - bottom, thickness) if along_x else Vector3(thickness, top - bottom, span)
+	var piece_position := center + (Vector3(mid, 0.0, 0.0) if along_x else Vector3(0.0, 0.0, mid))
+	piece_position.y = (top + bottom) / 2.0
+	create_prop_body(parent, piece_name, size, piece_position, material)
 
 
 func build_props(parent: Node3D, props: Array, materials: Dictionary) -> Node3D:
@@ -232,14 +314,43 @@ func build_props(parent: Node3D, props: Array, materials: Dictionary) -> Node3D:
 			create_prefab_instance(props_root, prop_dict)
 			continue
 
+		if prop_dict.get("type", "primitive") == "group":
+			create_group(props_root, prop_dict, materials)
+			continue
+
 		var size := array_to_vector3(prop_dict["size"])
 		var prop_position := array_to_vector3(prop_dict["position"])
-		var material: StandardMaterial3D = materials[prop_dict["material"]]
+		var material: Material = materials[prop_dict["material"]]
 		var shape: String = prop_dict.get("shape", "box")
 
-		create_prop_body(props_root, prop_dict["name"], size, prop_position, material, shape)
+		create_primitive(props_root, prop_dict["name"], size, prop_position, material, shape, prop_dict)
 
 	return props_root
+
+
+# Grupo (opcional): um posto de trabalho ou pilha de material como uma unidade. Um nó com
+# posição/rotação próprias e "items" primitivos em coordenadas LOCAIS (mesmos campos de
+# uma primitiva: size, material, shape, rotation_degrees, collision).
+func create_group(parent: Node3D, group_dict: Dictionary, materials: Dictionary) -> void:
+	var group := Node3D.new()
+	group.name = group_dict["name"]
+	group.position = array_to_vector3(group_dict["position"])
+	group.rotation_degrees = array_to_vector3(group_dict.get("rotation_degrees", [0.0, 0.0, 0.0]))
+	parent.add_child(group)
+	set_scene_owner(group)
+
+	for item in group_dict["items"]:
+		var item_dict: Dictionary = item
+		var material: Material = materials[item_dict["material"]]
+		create_primitive(
+			group,
+			item_dict["name"],
+			array_to_vector3(item_dict["size"]),
+			array_to_vector3(item_dict["position"]),
+			material,
+			item_dict.get("shape", "box"),
+			item_dict
+		)
 
 
 func create_prefab_instance(parent: Node3D, prop_dict: Dictionary) -> void:
@@ -324,10 +435,10 @@ func create_rule_instance(
 		create_prefab_instance(parent, prefab_prop)
 	else:
 		var size := array_to_vector3(template["size"])
-		var material: StandardMaterial3D = materials[template["material"]]
+		var material: Material = materials[template["material"]]
 		var shape: String = template.get("shape", "box")
 
-		create_prop_body(parent, instance_name, size, instance_position, material, shape)
+		create_primitive(parent, instance_name, size, instance_position, material, shape, template)
 
 
 func pad_index(value: int, width: int) -> String:
@@ -399,6 +510,12 @@ func apply_lights(lights: Array) -> void:
 		light.rotation_degrees = array_to_vector3(light_data["rotation_degrees"])
 		light.shadow_enabled = bool(light_data["shadows"])
 
+		if light_data.has("color"):
+			light.light_color = Color(light_data["color"])
+
+		if light_data.has("energy"):
+			light.light_energy = float(light_data["energy"])
+
 		lights_root.add_child(light)
 		set_scene_owner(light)
 
@@ -457,13 +574,73 @@ func apply_environment(environment_data: Dictionary) -> void:
 		if glow_data.has("intensity"):
 			environment.glow_intensity = float(glow_data["intensity"])
 
+	# Opcionais: tonemap, névoa (profundidade + altura) e SSAO (sombras de contato).
+	if environment_data.has("tonemap"):
+		environment.tonemap_mode = TONEMAP_MODES[environment_data["tonemap"]]
+
+	if environment_data.has("fog"):
+		var fog_data: Dictionary = environment_data["fog"]
+		environment.fog_enabled = bool(fog_data.get("enabled", true))
+
+		if fog_data.has("color"):
+			environment.fog_light_color = Color(fog_data["color"])
+		if fog_data.has("density"):
+			environment.fog_density = float(fog_data["density"])
+		if fog_data.has("sky_affect"):
+			environment.fog_sky_affect = float(fog_data["sky_affect"])
+		if fog_data.has("height"):
+			environment.fog_height = float(fog_data["height"])
+		if fog_data.has("height_density"):
+			environment.fog_height_density = float(fog_data["height_density"])
+
+	if environment_data.has("ssao"):
+		var ssao_data: Dictionary = environment_data["ssao"]
+		environment.ssao_enabled = bool(ssao_data.get("enabled", true))
+
+		if ssao_data.has("radius"):
+			environment.ssao_radius = float(ssao_data["radius"])
+		if ssao_data.has("intensity"):
+			environment.ssao_intensity = float(ssao_data["intensity"])
+
+
+# Primitiva de props/templates. Opcionais: "rotation_degrees" e "collision" (padrão true;
+# false = só a malha, para o que o jogador não alcança: estruturas altas e fundo).
+func create_primitive(
+	parent: Node3D,
+	object_name: String,
+	size: Vector3,
+	object_position: Vector3,
+	material: Material,
+	shape: String,
+	fields: Dictionary
+) -> void:
+	var node: Node3D
+
+	if bool(fields.get("collision", true)):
+		node = create_prop_body(parent, object_name, size, object_position, material, shape)
+	else:
+		node = Node3D.new()
+		node.name = object_name
+		node.position = object_position
+		parent.add_child(node)
+		set_scene_owner(node)
+		var mesh_instance := MeshInstance3D.new()
+		mesh_instance.name = "Mesh"
+		mesh_instance.mesh = create_mesh_for_shape(shape, size)
+		mesh_instance.material_override = material
+		node.add_child(mesh_instance)
+		set_scene_owner(mesh_instance)
+
+	if fields.has("rotation_degrees"):
+		node.rotation_degrees = array_to_vector3(fields["rotation_degrees"])
+
 
 func create_prop_body(
 	parent: Node3D,
 	object_name: String,
 	size: Vector3,
 	object_position: Vector3,
-	material: StandardMaterial3D,
+	material: Material,
 	shape: String = "box"
 ) -> StaticBody3D:
 

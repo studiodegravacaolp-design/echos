@@ -17,9 +17,13 @@ const REQUIRED_ROOM_MATERIALS := ["floor", "wall"]
 
 const VALID_PROP_SHAPES := ["box", "cylinder", "sphere"]
 
-const VALID_PROP_TYPES := ["primitive", "prefab"]
+const VALID_PROP_TYPES := ["primitive", "prefab", "group"]
 
 const VALID_RULE_TYPES := ["linear", "grid"]
+
+const VALID_WALL_SIDES := ["north", "south", "west", "east"]
+
+const VALID_TONEMAPS := ["linear", "reinhard", "filmic", "aces"]
 
 # Limite defensivo por regra — evita JSON malformado gerar milhares de nós
 # de uma vez no editor. Ver relatório da etapa de planejamento para o racional.
@@ -83,6 +87,17 @@ static func _validate_material_palette(palette, errors: Array[String]) -> void:
 			errors.append("material_palette.%s precisa ser um objeto." % material_name)
 			continue
 
+		# Material por shader: só o caminho do .gdshader (e parâmetros opcionais).
+		if entry.has("shader"):
+			var shader_path = entry["shader"]
+			if typeof(shader_path) != TYPE_STRING or not String(shader_path).ends_with(".gdshader"):
+				errors.append("material_palette.%s.shader precisa apontar para um arquivo '.gdshader'." % material_name)
+			elif not ResourceLoader.exists(shader_path):
+				errors.append("material_palette.%s.shader não encontrado em '%s'." % [material_name, shader_path])
+			if entry.has("shader_params") and typeof(entry["shader_params"]) != TYPE_DICTIONARY:
+				errors.append("material_palette.%s.shader_params precisa ser um objeto." % material_name)
+			continue
+
 		if not entry.has("color") or typeof(entry["color"]) != TYPE_STRING:
 			errors.append(
 				"material_palette.%s.color ausente ou inválido (esperado string hex)." % material_name
@@ -130,6 +145,72 @@ static func _validate_room(room, material_names: Array, errors: Array[String]) -
 				% required_material
 			)
 
+	if room.has("walls"):
+		_validate_walls(room, material_names, errors)
+
+
+# room.walls (opcional): por lado, altura, material e aberturas dentro do comprimento.
+static func _validate_walls(room: Dictionary, material_names: Array, errors: Array[String]) -> void:
+	var walls = room["walls"]
+
+	if typeof(walls) != TYPE_DICTIONARY:
+		errors.append("room.walls precisa ser um objeto.")
+		return
+
+	for side in walls.keys():
+		var label := "room.walls.%s" % side
+
+		if not VALID_WALL_SIDES.has(side):
+			errors.append("%s: lado inválido. Valores aceitos: %s." % [label, VALID_WALL_SIDES])
+			continue
+
+		var config = walls[side]
+
+		if typeof(config) != TYPE_DICTIONARY:
+			errors.append("%s precisa ser um objeto." % label)
+			continue
+
+		var height := float(room.get("wall_height", 0.0))
+
+		if config.has("height"):
+			if not _is_number(config["height"]) or float(config["height"]) <= 0.0:
+				errors.append("%s.height precisa ser um número maior que 0." % label)
+			else:
+				height = float(config["height"])
+
+		if config.has("material") and not material_names.has(config["material"]):
+			errors.append("%s.material '%s' não existe em material_palette." % [label, str(config["material"])])
+
+		var half_length := float(room.get("width" if side in ["north", "south"] else "depth", 0.0)) / 2.0
+		var openings = config.get("openings", [])
+
+		if typeof(openings) != TYPE_ARRAY:
+			errors.append("%s.openings precisa ser uma lista." % label)
+			continue
+
+		var previous_to := -half_length
+
+		for i in openings.size():
+			var opening = openings[i]
+			var opening_label := "%s.openings[%d]" % [label, i]
+
+			if typeof(opening) != TYPE_DICTIONARY or not _is_number(opening.get("from", null)) or not _is_number(opening.get("to", null)):
+				errors.append("%s precisa ter 'from' e 'to' numéricos." % opening_label)
+				continue
+
+			var from := float(opening["from"])
+			var to := float(opening["to"])
+			var bottom := float(opening.get("bottom", 0.0))
+			var top := float(opening.get("top", height))
+
+			if from < -half_length or to > half_length or from >= to:
+				errors.append("%s: [from, to] precisa estar dentro da parede e crescente." % opening_label)
+			if from < previous_to:
+				errors.append("%s: aberturas precisam estar em ordem e sem sobreposição." % opening_label)
+			if bottom < 0.0 or top > height or bottom >= top:
+				errors.append("%s: [bottom, top] precisa estar dentro da altura da parede." % opening_label)
+			previous_to = to
+
 
 static func _validate_props(props, material_names: Array, errors: Array[String]) -> void:
 	if typeof(props) != TYPE_ARRAY:
@@ -157,7 +238,9 @@ static func _validate_props(props, material_names: Array, errors: Array[String])
 			)
 			continue
 
-		if prop_type == "prefab":
+		if prop_type == "group":
+			_validate_group_prop(prop, i, material_names, errors)
+		elif prop_type == "prefab":
 			_validate_prefab_prop(prop, i, errors)
 		else:
 			_validate_primitive_prop(prop, i, material_names, errors)
@@ -198,6 +281,12 @@ static func _validate_primitive_fields(
 
 	if fields.has("scene"):
 		errors.append("%s é do tipo 'primitive' mas contém 'scene' (campo exclusivo de prefab)." % label)
+
+	if fields.has("collision") and typeof(fields["collision"]) != TYPE_BOOL:
+		errors.append("%s.collision precisa ser booleano." % label)
+
+	if fields.has("rotation_degrees") and not _is_vector3_array(fields["rotation_degrees"]):
+		errors.append("%s.rotation_degrees precisa ser um array [x, y, z] numérico." % label)
 
 
 # Campos compartilhados entre props[].type=="prefab" e
@@ -289,6 +378,12 @@ static func _validate_lights(lights, errors: Array[String]) -> void:
 		if typeof(light.get("shadows", null)) != TYPE_BOOL:
 			errors.append("lights[%d].shadows ausente ou não booleano." % i)
 
+		if light.has("color") and typeof(light["color"]) != TYPE_STRING:
+			errors.append("lights[%d].color precisa ser uma string hex." % i)
+
+		if light.has("energy") and not _is_number(light["energy"]):
+			errors.append("lights[%d].energy precisa ser numérico." % i)
+
 
 static func _validate_environment(environment, errors: Array[String]) -> void:
 	if typeof(environment) != TYPE_DICTIONARY:
@@ -309,6 +404,27 @@ static func _validate_environment(environment, errors: Array[String]) -> void:
 
 	if environment.has("glow"):
 		_validate_glow(environment["glow"], errors)
+
+	if environment.has("tonemap") and not VALID_TONEMAPS.has(environment["tonemap"]):
+		errors.append("environment.tonemap inválido. Valores aceitos: %s." % [VALID_TONEMAPS])
+
+	for section in ["fog", "ssao"]:
+		if not environment.has(section):
+			continue
+		var data = environment[section]
+		if typeof(data) != TYPE_DICTIONARY:
+			errors.append("environment.%s precisa ser um objeto." % section)
+			continue
+		for key in data.keys():
+			var value = data[key]
+			if key == "enabled":
+				if typeof(value) != TYPE_BOOL:
+					errors.append("environment.%s.enabled precisa ser booleano." % section)
+			elif key == "color":
+				if typeof(value) != TYPE_STRING:
+					errors.append("environment.%s.color precisa ser uma string hex." % section)
+			elif not _is_number(value):
+				errors.append("environment.%s.%s precisa ser numérico." % [section, key])
 
 
 static func _validate_glow(glow, errors: Array[String]) -> void:
@@ -500,3 +616,44 @@ static func _is_vector3_array(value) -> bool:
 			return false
 
 	return true
+
+
+# props[].type == "group": itens primitivos com posição local e nomes únicos no grupo.
+static func _validate_group_prop(prop: Dictionary, i: int, material_names: Array, errors: Array[String]) -> void:
+	var label := "props[%d]" % i
+
+	if prop.has("rotation_degrees") and not _is_vector3_array(prop["rotation_degrees"]):
+		errors.append("%s.rotation_degrees precisa ser um array [x, y, z] numérico." % label)
+
+	var items = prop.get("items", null)
+
+	if typeof(items) != TYPE_ARRAY or items.is_empty():
+		errors.append("%s.items precisa ser uma lista não vazia." % label)
+		return
+
+	var names := {}
+
+	for j in items.size():
+		var item = items[j]
+		var item_label := "%s.items[%d]" % [label, j]
+
+		if typeof(item) != TYPE_DICTIONARY:
+			errors.append("%s precisa ser um objeto." % item_label)
+			continue
+
+		var item_name = item.get("name", null)
+
+		if typeof(item_name) != TYPE_STRING or item_name.is_empty():
+			errors.append("%s.name ausente ou inválido." % item_label)
+		elif names.has(item_name):
+			errors.append("%s.name '%s' duplicado no grupo." % [item_label, item_name])
+		else:
+			names[item_name] = true
+
+		if not _is_vector3_array(item.get("position", null)):
+			errors.append("%s.position precisa ser um array [x, y, z] numérico." % item_label)
+
+		if item.get("type", "primitive") != "primitive":
+			errors.append("%s: grupos aceitam só primitivas." % item_label)
+
+		_validate_primitive_fields(item, item_label, material_names, errors)

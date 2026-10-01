@@ -8,6 +8,9 @@ signal dialogue_finished(dialogue: DialogueData)
 signal consequence_requested(consequence_id: String)
 
 var current_session: DialogueSession = null
+# Bloco C5: parte PERSISTENTE do diálogo (concluídos + última escolha por
+# dialogue_id + entry_id). Só registra; nenhum gameplay a consulta.
+var persistent_state: DialogueRuntimeState = DialogueRuntimeState.new()
 
 func start_dialogue(dialogue: DialogueData, start_entry_id: String = "") -> bool:
     end_dialogue()
@@ -40,6 +43,7 @@ func advance() -> bool:
         return true
     var finished: DialogueData = current_session.dialogue
     current_session = null
+    persistent_state.mark_completed(finished.dialogue_id)
     dialogue_finished.emit(finished)
     return false
 
@@ -49,6 +53,7 @@ func select_choice(choice_id: String) -> bool:
     var entry: DialogueEntry = current_session.get_current_entry()
     for choice: DialogueChoice in entry.choices:
         if choice.choice_id == choice_id:
+            persistent_state.record_choice(current_session.dialogue.dialogue_id, entry.entry_id, choice_id)
             for consequence: String in choice.consequences:
                 consequence_requested.emit(consequence)
             var moved: bool = current_session.select_choice(choice_id)
@@ -57,6 +62,7 @@ func select_choice(choice_id: String) -> bool:
             else:
                 var finished: DialogueData = current_session.dialogue
                 current_session = null
+                persistent_state.mark_completed(finished.dialogue_id)
                 dialogue_finished.emit(finished)
             return moved
     return false
@@ -67,6 +73,7 @@ func end_dialogue() -> void:
     var finished: DialogueData = current_session.dialogue
     current_session.end()
     current_session = null
+    persistent_state.mark_completed(finished.dialogue_id)
     dialogue_finished.emit(finished)
 
 func _emit_current() -> void:

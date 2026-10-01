@@ -1,0 +1,3215 @@
+{
+  "level_name": "Vardhelm — Distrito das Fundições (pátio da Forja 01)",
+  "material_palette": {
+    "floor": {
+      "shader": "res://assets/vardhelm/materials/floor_plates.gdshader",
+      "shader_params": {
+        "plate_color": "#2B2926",
+        "plate_color_alt": "#322D28",
+        "seam_color": "#151413",
+        "oil_color": "#0D0C0B",
+        "plate_size": 0.6,
+        "oil_amount": 0.35,
+        "metallic_value": 0.05,
+        "roughness_value": 0.95
+      }
+    },
+    "wall": {
+      "shader": "res://assets/vardhelm/materials/brick_wall.gdshader",
+      "shader_params": {
+        "brick_color": "#4A3328",
+        "brick_color_alt": "#3A2A22",
+        "mortar_color": "#1F1C19",
+        "soot_color": "#121113",
+        "brick_size": [
+          0.56,
+          0.24
+        ],
+        "soot_start": -9.8,
+        "soot_height": 7
+      }
+    },
+    "iron": {
+      "color": "#1E222A",
+      "metallic": 0.78,
+      "roughness": 0.55
+    },
+    "iron_worn": {
+      "color": "#3B2A22",
+      "metallic": 0.5,
+      "roughness": 0.8
+    },
+    "wood_old": {
+      "color": "#3F3022",
+      "metallic": 0,
+      "roughness": 0.92
+    },
+    "coal": {
+      "color": "#121112",
+      "metallic": 0.1,
+      "roughness": 1
+    },
+    "canvas": {
+      "color": "#4B3F30",
+      "metallic": 0,
+      "roughness": 1
+    },
+    "rubber": {
+      "color": "#141414",
+      "metallic": 0,
+      "roughness": 0.9
+    },
+    "soot": {
+      "color": "#18181A",
+      "metallic": 0,
+      "roughness": 1
+    },
+    "soot_far": {
+      "color": "#2A2825",
+      "metallic": 0,
+      "roughness": 1
+    },
+    "soot_mark": {
+      "color": "#0C0B0B",
+      "metallic": 0,
+      "roughness": 1
+    },
+    "oil_mark": {
+      "color": "#0A0908",
+      "metallic": 0.3,
+      "roughness": 0.35
+    },
+    "lamp": {
+      "color": "#2A2016",
+      "metallic": 0.2,
+      "roughness": 0.6,
+      "emission": {
+        "color": "#D89A5A",
+        "energy": 0.9
+      }
+    },
+    "distant_window": {
+      "color": "#1A1510",
+      "metallic": 0,
+      "roughness": 1,
+      "emission": {
+        "color": "#B07A40",
+        "energy": 0.45
+      }
+    }
+  },
+  "room": {
+    "width": 30,
+    "depth": 25,
+    "floor_thickness": 0.5,
+    "wall_height": 8,
+    "wall_thickness": 0.5,
+    "walls": {
+      "north": {
+        "height": 8,
+        "openings": [
+          {
+            "from": -10,
+            "to": 10
+          }
+        ]
+      },
+      "south": {
+        "height": 1.1,
+        "openings": [
+          {
+            "from": -3,
+            "to": 3
+          }
+        ]
+      },
+      "east": {
+        "height": 1.1
+      },
+      "west": {
+        "height": 8,
+        "openings": [
+          {
+            "from": -8.5,
+            "to": -6.5,
+            "bottom": 5,
+            "top": 7
+          },
+          {
+            "from": -3.5,
+            "to": 0.5,
+            "top": 4.5
+          },
+          {
+            "from": 3.5,
+            "to": 5.5,
+            "bottom": 5,
+            "top": 7
+          }
+        ]
+      }
+    }
+  },
+  "props": [
+    {
+      "name": "ForjaBase",
+      "size": [
+        20,
+        11.35,
+        14
+      ],
+      "position": [
+        0,
+        5.675,
+        -19.5
+      ],
+      "material": "wall"
+    },
+    {
+      "name": "ForjaBase_Cornice",
+      "size": [
+        20.6,
+        0.35,
+        0.5
+      ],
+      "position": [
+        0,
+        11.05,
+        -12.4
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_Pier_0",
+      "size": [
+        0.8,
+        11.35,
+        0.3
+      ],
+      "position": [
+        -10,
+        5.675,
+        -12.35
+      ],
+      "material": "wall"
+    },
+    {
+      "name": "ForjaBase_Pier_1",
+      "size": [
+        0.8,
+        11.35,
+        0.3
+      ],
+      "position": [
+        -3.2,
+        5.675,
+        -12.35
+      ],
+      "material": "wall"
+    },
+    {
+      "name": "ForjaBase_Pier_2",
+      "size": [
+        0.8,
+        11.35,
+        0.3
+      ],
+      "position": [
+        3.2,
+        5.675,
+        -12.35
+      ],
+      "material": "wall"
+    },
+    {
+      "name": "ForjaBase_Pier_3",
+      "size": [
+        0.8,
+        11.35,
+        0.3
+      ],
+      "position": [
+        10,
+        5.675,
+        -12.35
+      ],
+      "material": "wall"
+    },
+    {
+      "name": "ForjaBase_Doorway",
+      "size": [
+        2.6,
+        3.4,
+        0.06
+      ],
+      "position": [
+        -6,
+        1.7,
+        -12.47
+      ],
+      "material": "soot",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_DoorJamb_W",
+      "size": [
+        0.18,
+        3.6,
+        0.2
+      ],
+      "position": [
+        -7.4,
+        1.8,
+        -12.4
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_DoorJamb_E",
+      "size": [
+        0.18,
+        3.6,
+        0.2
+      ],
+      "position": [
+        -4.6,
+        1.8,
+        -12.4
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_DoorLintel",
+      "size": [
+        3,
+        0.3,
+        0.25
+      ],
+      "position": [
+        -6,
+        3.55,
+        -12.38
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_Plate",
+      "size": [
+        1.7,
+        0.5,
+        0.06
+      ],
+      "position": [
+        -6,
+        4.25,
+        -12.45
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_Vent",
+      "type": "group",
+      "position": [
+        4,
+        5.2,
+        -12.5
+      ],
+      "items": [
+        {
+          "name": "Frame",
+          "size": [
+            1.5,
+            1,
+            0.14
+          ],
+          "position": [
+            0,
+            0,
+            0.02
+          ],
+          "material": "iron_worn",
+          "collision": false
+        },
+        {
+          "name": "Slat_1",
+          "size": [
+            1.3,
+            0.06,
+            0.1
+          ],
+          "position": [
+            0,
+            0.3,
+            0.1
+          ],
+          "material": "soot",
+          "collision": false
+        },
+        {
+          "name": "Slat_2",
+          "size": [
+            1.3,
+            0.06,
+            0.1
+          ],
+          "position": [
+            0,
+            0.1,
+            0.1
+          ],
+          "material": "soot",
+          "collision": false
+        },
+        {
+          "name": "Slat_3",
+          "size": [
+            1.3,
+            0.06,
+            0.1
+          ],
+          "position": [
+            0,
+            -0.1,
+            0.1
+          ],
+          "material": "soot",
+          "collision": false
+        },
+        {
+          "name": "Slat_4",
+          "size": [
+            1.3,
+            0.06,
+            0.1
+          ],
+          "position": [
+            0,
+            -0.3,
+            0.1
+          ],
+          "material": "soot",
+          "collision": false
+        }
+      ]
+    },
+    {
+      "name": "ForjaBase_Pipe",
+      "size": [
+        0.3,
+        17,
+        0.3
+      ],
+      "position": [
+        0.5,
+        9,
+        -12.15
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder",
+      "rotation_degrees": [
+        0,
+        0,
+        90
+      ],
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_DownPipe",
+      "size": [
+        0.28,
+        9,
+        0.28
+      ],
+      "position": [
+        9.2,
+        4.5,
+        -12.15
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_PipeElbow",
+      "size": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "position": [
+        9.2,
+        9,
+        -12.15
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_Hopper",
+      "size": [
+        1,
+        0.5,
+        0.6
+      ],
+      "position": [
+        9.2,
+        0.25,
+        -12
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_LampBracket",
+      "size": [
+        0.08,
+        0.08,
+        0.5
+      ],
+      "position": [
+        -8.3,
+        3.3,
+        -12.15
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_Lamp",
+      "size": [
+        0.22,
+        0.32,
+        0.22
+      ],
+      "position": [
+        -8.3,
+        3.1,
+        -11.9
+      ],
+      "material": "lamp",
+      "collision": false
+    },
+    {
+      "name": "ForjaBase_DoorSoot",
+      "size": [
+        3.2,
+        0.012,
+        2.4
+      ],
+      "position": [
+        -6,
+        0.006,
+        -11.2
+      ],
+      "material": "soot_mark",
+      "collision": false
+    },
+    {
+      "name": "Hoist_Post_0",
+      "size": [
+        0.14,
+        13.1,
+        0.14
+      ],
+      "position": [
+        -0.85,
+        6.55,
+        -9.15
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_Post_1",
+      "size": [
+        0.14,
+        13.1,
+        0.14
+      ],
+      "position": [
+        0.85,
+        6.55,
+        -9.15
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_Post_2",
+      "size": [
+        0.14,
+        13.1,
+        0.14
+      ],
+      "position": [
+        -0.85,
+        6.55,
+        -8.05
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_Post_3",
+      "size": [
+        0.14,
+        13.1,
+        0.14
+      ],
+      "position": [
+        0.85,
+        6.55,
+        -8.05
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_TopRing_W",
+      "size": [
+        0.1,
+        0.1,
+        1.24
+      ],
+      "position": [
+        -0.85,
+        13.1,
+        -8.6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_TopRing_E",
+      "size": [
+        0.1,
+        0.1,
+        1.24
+      ],
+      "position": [
+        0.85,
+        13.1,
+        -8.6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_TopRing_S",
+      "size": [
+        1.8,
+        0.1,
+        0.1
+      ],
+      "position": [
+        0,
+        13.1,
+        -8.05
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_GantryPost_0",
+      "size": [
+        0.14,
+        2.5,
+        0.14
+      ],
+      "position": [
+        -2.475,
+        14.25,
+        -11.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_GantryPost_1",
+      "size": [
+        0.14,
+        2.5,
+        0.14
+      ],
+      "position": [
+        2.475,
+        14.25,
+        -11.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_GantryPost_2",
+      "size": [
+        0.14,
+        2.5,
+        0.14
+      ],
+      "position": [
+        -2.475,
+        14.25,
+        -9.5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_GantryPost_3",
+      "size": [
+        0.14,
+        2.5,
+        0.14
+      ],
+      "position": [
+        2.475,
+        14.25,
+        -9.5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_Jib_0",
+      "size": [
+        0.16,
+        0.22,
+        3.9
+      ],
+      "position": [
+        -2.475,
+        15.5,
+        -10.1
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_Jib_1",
+      "size": [
+        0.16,
+        0.22,
+        3.9
+      ],
+      "position": [
+        2.475,
+        15.5,
+        -10.1
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_JibEnd",
+      "size": [
+        5.2,
+        0.3,
+        0.3
+      ],
+      "position": [
+        0,
+        15.45,
+        -8.3
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "Hoist_JibMid",
+      "size": [
+        5.2,
+        0.2,
+        0.2
+      ],
+      "position": [
+        0,
+        15.5,
+        -9.5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_PulleyHanger",
+      "size": [
+        0.12,
+        0.45,
+        0.12
+      ],
+      "position": [
+        0,
+        15.25,
+        -8.6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_Pulley",
+      "size": [
+        0.9,
+        0.12,
+        0.9
+      ],
+      "position": [
+        0,
+        15,
+        -8.6
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder",
+      "rotation_degrees": [
+        90,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_PulleyAxle",
+      "size": [
+        0.7,
+        0.08,
+        0.08
+      ],
+      "position": [
+        0,
+        15,
+        -8.6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_Brace_W_0",
+      "size": [
+        0.05,
+        1.7,
+        0.05
+      ],
+      "position": [
+        -0.86,
+        2.2,
+        -8.6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        40,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_Brace_E_0",
+      "size": [
+        0.05,
+        1.7,
+        0.05
+      ],
+      "position": [
+        0.86,
+        2.2,
+        -8.6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        -40,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_Brace_W_1",
+      "size": [
+        0.05,
+        1.7,
+        0.05
+      ],
+      "position": [
+        -0.86,
+        5.7,
+        -8.6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        40,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_Brace_E_1",
+      "size": [
+        0.05,
+        1.7,
+        0.05
+      ],
+      "position": [
+        0.86,
+        5.7,
+        -8.6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        -40,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_Brace_W_2",
+      "size": [
+        0.05,
+        1.7,
+        0.05
+      ],
+      "position": [
+        -0.86,
+        9.2,
+        -8.6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        40,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_Brace_E_2",
+      "size": [
+        0.05,
+        1.7,
+        0.05
+      ],
+      "position": [
+        0.86,
+        9.2,
+        -8.6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        -40,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_Fence_W",
+      "size": [
+        0.06,
+        1.1,
+        1.1
+      ],
+      "position": [
+        -0.9,
+        0.55,
+        -8.6
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_Fence_E",
+      "size": [
+        0.06,
+        1.1,
+        1.1
+      ],
+      "position": [
+        0.9,
+        0.55,
+        -8.6
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_Fence_N",
+      "size": [
+        1.7,
+        1.1,
+        0.06
+      ],
+      "position": [
+        0,
+        0.55,
+        -9.15
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_FrontBar",
+      "size": [
+        1.7,
+        0.06,
+        0.06
+      ],
+      "position": [
+        0,
+        1,
+        -7.98
+      ],
+      "material": "iron_worn"
+    },
+    {
+      "name": "HoistCage",
+      "type": "group",
+      "position": [
+        0,
+        0,
+        -8.6
+      ],
+      "items": [
+        {
+          "name": "Floor",
+          "size": [
+            1.5,
+            0.1,
+            1.05
+          ],
+          "position": [
+            0,
+            0.05,
+            0
+          ],
+          "material": "iron_worn",
+          "collision": false
+        },
+        {
+          "name": "Top",
+          "size": [
+            1.5,
+            0.08,
+            1.05
+          ],
+          "position": [
+            0,
+            2.3,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Corner_0",
+          "size": [
+            0.07,
+            2.3,
+            0.07
+          ],
+          "position": [
+            -0.72,
+            1.15,
+            -0.5
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Corner_1",
+          "size": [
+            0.07,
+            2.3,
+            0.07
+          ],
+          "position": [
+            0.72,
+            1.15,
+            -0.5
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Corner_2",
+          "size": [
+            0.07,
+            2.3,
+            0.07
+          ],
+          "position": [
+            -0.72,
+            1.15,
+            0.5
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Corner_3",
+          "size": [
+            0.07,
+            2.3,
+            0.07
+          ],
+          "position": [
+            0.72,
+            1.15,
+            0.5
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarW_0",
+          "size": [
+            0.04,
+            0.04,
+            1
+          ],
+          "position": [
+            -0.72,
+            0.6,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarE_0",
+          "size": [
+            0.04,
+            0.04,
+            1
+          ],
+          "position": [
+            0.72,
+            0.6,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarN_0",
+          "size": [
+            1.44,
+            0.04,
+            0.04
+          ],
+          "position": [
+            0,
+            0.6,
+            -0.5
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarW_1",
+          "size": [
+            0.04,
+            0.04,
+            1
+          ],
+          "position": [
+            -0.72,
+            1.2,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarE_1",
+          "size": [
+            0.04,
+            0.04,
+            1
+          ],
+          "position": [
+            0.72,
+            1.2,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarN_1",
+          "size": [
+            1.44,
+            0.04,
+            0.04
+          ],
+          "position": [
+            0,
+            1.2,
+            -0.5
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarW_2",
+          "size": [
+            0.04,
+            0.04,
+            1
+          ],
+          "position": [
+            -0.72,
+            1.8,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarE_2",
+          "size": [
+            0.04,
+            0.04,
+            1
+          ],
+          "position": [
+            0.72,
+            1.8,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "BarN_2",
+          "size": [
+            1.44,
+            0.04,
+            0.04
+          ],
+          "position": [
+            0,
+            1.8,
+            -0.5
+          ],
+          "material": "iron",
+          "collision": false
+        }
+      ]
+    },
+    {
+      "name": "Hoist_LeverPost",
+      "size": [
+        0.14,
+        1.1,
+        0.14
+      ],
+      "position": [
+        1.3,
+        0.55,
+        -7.7
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Hoist_Lever",
+      "size": [
+        0.05,
+        0.55,
+        0.05
+      ],
+      "position": [
+        1.38,
+        1.3,
+        -7.7
+      ],
+      "material": "iron_worn",
+      "rotation_degrees": [
+        0,
+        0,
+        -25
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_LeverTop",
+      "size": [
+        0.05,
+        0.55,
+        0.05
+      ],
+      "position": [
+        1.3,
+        13.25,
+        -9.375
+      ],
+      "material": "iron_worn",
+      "rotation_degrees": [
+        0,
+        0,
+        -25
+      ],
+      "collision": false
+    },
+    {
+      "name": "Hoist_LeverTopMount",
+      "size": [
+        0.16,
+        0.16,
+        0.3
+      ],
+      "position": [
+        1.3,
+        13.02,
+        -9.375
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Hoist_Oil",
+      "size": [
+        1.3,
+        0.01,
+        0.9
+      ],
+      "position": [
+        1.4,
+        0.005,
+        -6.4
+      ],
+      "material": "oil_mark",
+      "collision": false
+    },
+    {
+      "name": "Rail_W",
+      "size": [
+        0.07,
+        0.06,
+        20.5
+      ],
+      "position": [
+        -0.36,
+        0.03,
+        5.25
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Rail_E",
+      "size": [
+        0.07,
+        0.06,
+        20.5
+      ],
+      "position": [
+        0.36,
+        0.03,
+        5.25
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Rail_Buffer",
+      "size": [
+        1.3,
+        0.8,
+        0.35
+      ],
+      "position": [
+        0,
+        0.4,
+        -4.95
+      ],
+      "material": "wood_old"
+    },
+    {
+      "name": "Rail_BufferBand",
+      "size": [
+        1.34,
+        0.08,
+        0.38
+      ],
+      "position": [
+        0,
+        0.62,
+        -4.95
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "CoalCart_1",
+      "type": "group",
+      "position": [
+        0,
+        0,
+        -1.5
+      ],
+      "items": [
+        {
+          "name": "Body",
+          "size": [
+            1,
+            0.62,
+            1.5
+          ],
+          "position": [
+            0,
+            0.62,
+            0
+          ],
+          "material": "iron_worn"
+        },
+        {
+          "name": "Rim",
+          "size": [
+            1.08,
+            0.06,
+            1.58
+          ],
+          "position": [
+            0,
+            0.95,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Coal",
+          "size": [
+            0.9,
+            0.24,
+            1.3
+          ],
+          "position": [
+            0,
+            1.05,
+            0
+          ],
+          "material": "coal",
+          "collision": false
+        },
+        {
+          "name": "Wheel_0",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            -0.52,
+            0.17,
+            -0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_1",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            0.52,
+            0.17,
+            -0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_2",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            -0.52,
+            0.17,
+            0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_3",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            0.52,
+            0.17,
+            0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        }
+      ]
+    },
+    {
+      "name": "CoalCart_2",
+      "type": "group",
+      "position": [
+        0,
+        0,
+        0.4
+      ],
+      "items": [
+        {
+          "name": "Body",
+          "size": [
+            1,
+            0.62,
+            1.5
+          ],
+          "position": [
+            0,
+            0.62,
+            0
+          ],
+          "material": "iron_worn"
+        },
+        {
+          "name": "Rim",
+          "size": [
+            1.08,
+            0.06,
+            1.58
+          ],
+          "position": [
+            0,
+            0.95,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Coal",
+          "size": [
+            0.9,
+            0.24,
+            1.3
+          ],
+          "position": [
+            0,
+            1.05,
+            0
+          ],
+          "material": "coal",
+          "collision": false
+        },
+        {
+          "name": "Wheel_0",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            -0.52,
+            0.17,
+            -0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_1",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            0.52,
+            0.17,
+            -0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_2",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            -0.52,
+            0.17,
+            0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_3",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            0.52,
+            0.17,
+            0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        }
+      ]
+    },
+    {
+      "name": "CoalCart_3",
+      "type": "group",
+      "position": [
+        0,
+        0,
+        2.3
+      ],
+      "items": [
+        {
+          "name": "Body",
+          "size": [
+            1,
+            0.62,
+            1.5
+          ],
+          "position": [
+            0,
+            0.62,
+            0
+          ],
+          "material": "iron_worn"
+        },
+        {
+          "name": "Rim",
+          "size": [
+            1.08,
+            0.06,
+            1.58
+          ],
+          "position": [
+            0,
+            0.95,
+            0
+          ],
+          "material": "iron",
+          "collision": false
+        },
+        {
+          "name": "Coal",
+          "size": [
+            0.9,
+            0.1,
+            1.3
+          ],
+          "position": [
+            0,
+            0.9800000000000001,
+            0
+          ],
+          "material": "coal",
+          "collision": false
+        },
+        {
+          "name": "Wheel_0",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            -0.52,
+            0.17,
+            -0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_1",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            0.52,
+            0.17,
+            -0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_2",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            -0.52,
+            0.17,
+            0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Wheel_3",
+          "size": [
+            0.34,
+            0.08,
+            0.34
+          ],
+          "position": [
+            0.52,
+            0.17,
+            0.5
+          ],
+          "material": "iron",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        }
+      ]
+    },
+    {
+      "name": "CartCoupling_1",
+      "size": [
+        0.08,
+        0.08,
+        0.4
+      ],
+      "position": [
+        0,
+        0.45,
+        -0.55
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "CartCoupling_2",
+      "size": [
+        0.08,
+        0.08,
+        0.4
+      ],
+      "position": [
+        0,
+        0.45,
+        1.35
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Rail_Oil",
+      "size": [
+        1.3,
+        0.01,
+        5
+      ],
+      "position": [
+        0,
+        0.004,
+        0.4
+      ],
+      "material": "oil_mark",
+      "collision": false
+    },
+    {
+      "name": "Rail_CoalBit_0",
+      "size": [
+        0.22,
+        0.08,
+        0.16
+      ],
+      "position": [
+        0.9,
+        0.04,
+        -2.3
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Rail_CoalBit_1",
+      "size": [
+        0.22,
+        0.08,
+        0.16
+      ],
+      "position": [
+        -0.8,
+        0.04,
+        3.4
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        30,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Rail_CoalBit_2",
+      "size": [
+        0.22,
+        0.08,
+        0.16
+      ],
+      "position": [
+        0.5,
+        0.04,
+        4.1
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        60,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Rail_CoalBit_3",
+      "size": [
+        0.22,
+        0.08,
+        0.16
+      ],
+      "position": [
+        -1.1,
+        0.04,
+        -0.1
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        90,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "CoalPile_A",
+      "size": [
+        3.2,
+        1.4,
+        3
+      ],
+      "position": [
+        -12.4,
+        0.7,
+        -6.1
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        18,
+        0
+      ]
+    },
+    {
+      "name": "CoalPile_A_Top",
+      "size": [
+        1.9,
+        0.55,
+        1.7
+      ],
+      "position": [
+        -12.4,
+        1.6,
+        -6.1
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        50,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "CoalPile_B",
+      "size": [
+        2.6,
+        1,
+        2.4
+      ],
+      "position": [
+        -12.1,
+        0.5,
+        -2.9
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        -14,
+        0
+      ]
+    },
+    {
+      "name": "CoalPile_B_Top",
+      "size": [
+        1.4,
+        0.4,
+        1.3
+      ],
+      "position": [
+        -12.1,
+        1.15,
+        -2.9
+      ],
+      "material": "coal",
+      "rotation_degrees": [
+        0,
+        30,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "CoalPile_Dust",
+      "size": [
+        5.2,
+        0.012,
+        7.4
+      ],
+      "position": [
+        -11.6,
+        0.006,
+        -4.5
+      ],
+      "material": "soot_mark",
+      "collision": false
+    },
+    {
+      "name": "CoalTrail",
+      "size": [
+        1.1,
+        0.012,
+        8.4
+      ],
+      "position": [
+        -8.9,
+        0.007,
+        -7.1
+      ],
+      "material": "soot_mark",
+      "rotation_degrees": [
+        0,
+        28,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Shovel_Handle_0",
+      "size": [
+        0.05,
+        1.3,
+        0.05
+      ],
+      "position": [
+        -10.35,
+        0.66,
+        -5.3
+      ],
+      "material": "wood_old",
+      "rotation_degrees": [
+        0,
+        0,
+        22
+      ],
+      "collision": false
+    },
+    {
+      "name": "Shovel_Blade_0",
+      "size": [
+        0.26,
+        0.34,
+        0.03
+      ],
+      "position": [
+        -10.12,
+        0.15,
+        -5.3
+      ],
+      "material": "iron_worn",
+      "rotation_degrees": [
+        0,
+        90,
+        22
+      ],
+      "collision": false
+    },
+    {
+      "name": "Shovel_Handle_1",
+      "size": [
+        0.05,
+        1.3,
+        0.05
+      ],
+      "position": [
+        -10.35,
+        0.66,
+        -4.6
+      ],
+      "material": "wood_old",
+      "rotation_degrees": [
+        0,
+        0,
+        22
+      ],
+      "collision": false
+    },
+    {
+      "name": "Shovel_Blade_1",
+      "size": [
+        0.26,
+        0.34,
+        0.03
+      ],
+      "position": [
+        -10.12,
+        0.15,
+        -4.6
+      ],
+      "material": "iron_worn",
+      "rotation_degrees": [
+        0,
+        90,
+        22
+      ],
+      "collision": false
+    },
+    {
+      "name": "Wheelbarrow",
+      "type": "group",
+      "position": [
+        -9.6,
+        0,
+        -0.9
+      ],
+      "items": [
+        {
+          "name": "Tray",
+          "size": [
+            0.7,
+            0.34,
+            1
+          ],
+          "position": [
+            0,
+            0.56,
+            0
+          ],
+          "material": "iron_worn"
+        },
+        {
+          "name": "Wheel",
+          "size": [
+            0.42,
+            0.08,
+            0.42
+          ],
+          "position": [
+            0,
+            0.21,
+            0.55
+          ],
+          "material": "rubber",
+          "shape": "cylinder",
+          "rotation_degrees": [
+            0,
+            0,
+            90
+          ],
+          "collision": false
+        },
+        {
+          "name": "Handle_W",
+          "size": [
+            0.05,
+            0.05,
+            0.8
+          ],
+          "position": [
+            -0.28,
+            0.6,
+            -0.75
+          ],
+          "material": "wood_old",
+          "collision": false
+        },
+        {
+          "name": "Handle_E",
+          "size": [
+            0.05,
+            0.05,
+            0.8
+          ],
+          "position": [
+            0.28,
+            0.6,
+            -0.75
+          ],
+          "material": "wood_old",
+          "collision": false
+        },
+        {
+          "name": "Load",
+          "size": [
+            0.6,
+            0.12,
+            0.85
+          ],
+          "position": [
+            0,
+            0.78,
+            0
+          ],
+          "material": "coal",
+          "collision": false
+        }
+      ],
+      "rotation_degrees": [
+        0,
+        25,
+        0
+      ]
+    },
+    {
+      "name": "Jib_WallPlate",
+      "size": [
+        0.3,
+        1,
+        0.8
+      ],
+      "position": [
+        -14.6,
+        6.2,
+        6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Jib_Beam",
+      "size": [
+        4,
+        0.3,
+        0.25
+      ],
+      "position": [
+        -12.8,
+        6.45,
+        6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Jib_Strut",
+      "size": [
+        0.14,
+        3.4,
+        0.14
+      ],
+      "position": [
+        -13.9,
+        5.1,
+        6
+      ],
+      "material": "iron",
+      "rotation_degrees": [
+        0,
+        0,
+        -52
+      ],
+      "collision": false
+    },
+    {
+      "name": "Jib_Trolley",
+      "size": [
+        0.5,
+        0.3,
+        0.4
+      ],
+      "position": [
+        -11.4,
+        6.15,
+        6
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "Jib_Chain",
+      "size": [
+        0.05,
+        3.3,
+        0.05
+      ],
+      "position": [
+        -11.4,
+        4.35,
+        6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Jib_Hook",
+      "size": [
+        0.2,
+        0.25,
+        0.08
+      ],
+      "position": [
+        -11.4,
+        2.7,
+        6
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Jib_Bucket",
+      "size": [
+        0.9,
+        0.8,
+        0.9
+      ],
+      "position": [
+        -11.4,
+        2.2,
+        6
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder",
+      "collision": false
+    },
+    {
+      "name": "Jib_Bin",
+      "size": [
+        2,
+        1,
+        1.6
+      ],
+      "position": [
+        -11.6,
+        0.5,
+        6
+      ],
+      "material": "wood_old"
+    },
+    {
+      "name": "Jib_BinCoal",
+      "size": [
+        1.8,
+        0.1,
+        1.4
+      ],
+      "position": [
+        -11.6,
+        1.03,
+        6
+      ],
+      "material": "coal",
+      "collision": false
+    },
+    {
+      "name": "IngotStack",
+      "size": [
+        1.3,
+        0.5,
+        1
+      ],
+      "position": [
+        -12.9,
+        0.25,
+        1.9
+      ],
+      "material": "iron_worn"
+    },
+    {
+      "name": "IngotStack_Top_0",
+      "size": [
+        0.3,
+        0.12,
+        0.95
+      ],
+      "position": [
+        -13.3,
+        0.56,
+        1.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "IngotStack_Top_1",
+      "size": [
+        0.3,
+        0.12,
+        0.95
+      ],
+      "position": [
+        -12.9,
+        0.56,
+        1.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "IngotStack_Top_2",
+      "size": [
+        0.3,
+        0.12,
+        0.95
+      ],
+      "position": [
+        -12.5,
+        0.56,
+        1.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_Doors",
+      "size": [
+        0.12,
+        4.5,
+        4
+      ],
+      "position": [
+        -15.2,
+        2.25,
+        -1.5
+      ],
+      "material": "iron_worn"
+    },
+    {
+      "name": "WestFoundry_DoorRib_0",
+      "size": [
+        0.06,
+        4.4,
+        0.08
+      ],
+      "position": [
+        -15.1,
+        2.2,
+        -2.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_DoorRib_1",
+      "size": [
+        0.06,
+        4.4,
+        0.08
+      ],
+      "position": [
+        -15.1,
+        2.2,
+        -2.1
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_DoorRib_2",
+      "size": [
+        0.06,
+        4.4,
+        0.08
+      ],
+      "position": [
+        -15.1,
+        2.2,
+        -0.9
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_DoorRib_3",
+      "size": [
+        0.06,
+        4.4,
+        0.08
+      ],
+      "position": [
+        -15.1,
+        2.2,
+        -0.1
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_Lintel",
+      "size": [
+        0.6,
+        0.35,
+        4.4
+      ],
+      "position": [
+        -14.9,
+        4.65,
+        -1.5
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_DoorSoot",
+      "size": [
+        2,
+        0.012,
+        4.2
+      ],
+      "position": [
+        -13.9,
+        0.006,
+        -1.5
+      ],
+      "material": "soot_mark",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_Glow_0",
+      "size": [
+        0.1,
+        2,
+        2
+      ],
+      "position": [
+        -15.6,
+        6,
+        -7.5
+      ],
+      "material": "distant_window",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_WindowBar_0_0",
+      "size": [
+        0.05,
+        2,
+        0.05
+      ],
+      "position": [
+        -14.95,
+        6,
+        -8
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_WindowBar_0_1",
+      "size": [
+        0.05,
+        2,
+        0.05
+      ],
+      "position": [
+        -14.95,
+        6,
+        -7.5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_WindowBar_0_2",
+      "size": [
+        0.05,
+        2,
+        0.05
+      ],
+      "position": [
+        -14.95,
+        6,
+        -7
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_Glow_1",
+      "size": [
+        0.1,
+        2,
+        2
+      ],
+      "position": [
+        -15.6,
+        6,
+        4.5
+      ],
+      "material": "distant_window",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_WindowBar_1_0",
+      "size": [
+        0.05,
+        2,
+        0.05
+      ],
+      "position": [
+        -14.95,
+        6,
+        4
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_WindowBar_1_1",
+      "size": [
+        0.05,
+        2,
+        0.05
+      ],
+      "position": [
+        -14.95,
+        6,
+        4.5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_WindowBar_1_2",
+      "size": [
+        0.05,
+        2,
+        0.05
+      ],
+      "position": [
+        -14.95,
+        6,
+        5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_LampBracket",
+      "size": [
+        0.5,
+        0.08,
+        0.08
+      ],
+      "position": [
+        -14.55,
+        3.3,
+        2.1
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "WestFoundry_Lamp",
+      "size": [
+        0.22,
+        0.32,
+        0.22
+      ],
+      "position": [
+        -14.3,
+        3.1,
+        2.1
+      ],
+      "material": "lamp",
+      "collision": false
+    },
+    {
+      "name": "Dock",
+      "size": [
+        3.8,
+        0.9,
+        12
+      ],
+      "position": [
+        12.85,
+        0.45,
+        3.5
+      ],
+      "material": "wall"
+    },
+    {
+      "name": "Dock_Coping",
+      "size": [
+        3.9,
+        0.08,
+        12.1
+      ],
+      "position": [
+        12.85,
+        0.94,
+        3.5
+      ],
+      "material": "iron_worn",
+      "collision": false
+    },
+    {
+      "name": "Dock_Crate_0",
+      "size": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "position": [
+        12.3,
+        1.35,
+        -0.5
+      ],
+      "material": "wood_old",
+      "rotation_degrees": [
+        0,
+        0,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Dock_Crate_1",
+      "size": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "position": [
+        13.3,
+        1.35,
+        -0.1
+      ],
+      "material": "wood_old",
+      "rotation_degrees": [
+        0,
+        12,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Dock_Crate_2",
+      "size": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "position": [
+        12.8,
+        2.25,
+        -0.3
+      ],
+      "material": "wood_old",
+      "rotation_degrees": [
+        0,
+        24,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Dock_Crate_3",
+      "size": [
+        0.9,
+        0.9,
+        0.9
+      ],
+      "position": [
+        13.2,
+        1.35,
+        6.7
+      ],
+      "material": "wood_old",
+      "rotation_degrees": [
+        0,
+        36,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "Dock_Barrel_0",
+      "size": [
+        0.6,
+        0.9,
+        0.6
+      ],
+      "position": [
+        10.4,
+        0.45,
+        6.1
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder"
+    },
+    {
+      "name": "Dock_Barrel_1",
+      "size": [
+        0.6,
+        0.9,
+        0.6
+      ],
+      "position": [
+        10.1,
+        0.45,
+        7
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder"
+    },
+    {
+      "name": "Dock_Barrel_2",
+      "size": [
+        0.6,
+        0.9,
+        0.6
+      ],
+      "position": [
+        10.9,
+        0.45,
+        7.3
+      ],
+      "material": "iron_worn",
+      "shape": "cylinder"
+    },
+    {
+      "name": "Dock_Sacks",
+      "size": [
+        1.6,
+        0.42,
+        0.6
+      ],
+      "position": [
+        10.35,
+        0.21,
+        0.9
+      ],
+      "material": "canvas"
+    },
+    {
+      "name": "Dock_SackTop",
+      "size": [
+        0.8,
+        0.36,
+        0.5
+      ],
+      "position": [
+        10.3,
+        0.6,
+        0.9
+      ],
+      "material": "canvas",
+      "rotation_degrees": [
+        0,
+        15,
+        0
+      ],
+      "collision": false
+    },
+    {
+      "name": "LampPost",
+      "size": [
+        0.14,
+        3.2,
+        0.14
+      ],
+      "position": [
+        3.4,
+        1.6,
+        -6.1
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "LampPost_Arm",
+      "size": [
+        0.8,
+        0.08,
+        0.08
+      ],
+      "position": [
+        3.05,
+        3.15,
+        -6.1
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "LampPost_Lamp",
+      "size": [
+        0.25,
+        0.35,
+        0.25
+      ],
+      "position": [
+        2.7,
+        2.93,
+        -6.1
+      ],
+      "material": "lamp",
+      "collision": false
+    },
+    {
+      "name": "Drain",
+      "size": [
+        0.8,
+        0.02,
+        0.5
+      ],
+      "position": [
+        6,
+        0.01,
+        -3.5
+      ],
+      "material": "iron",
+      "collision": false
+    },
+    {
+      "name": "Puddle",
+      "size": [
+        1.8,
+        0.01,
+        1.1
+      ],
+      "position": [
+        6.4,
+        0.004,
+        -2.6
+      ],
+      "material": "oil_mark",
+      "collision": false
+    },
+    {
+      "name": "SouthGate_Post_W",
+      "size": [
+        0.35,
+        2.6,
+        0.35
+      ],
+      "position": [
+        -3.1,
+        1.3,
+        12.5
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "SouthGate_Post_E",
+      "size": [
+        0.35,
+        2.6,
+        0.35
+      ],
+      "position": [
+        3.1,
+        1.3,
+        12.5
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "SouthGate_RailLow",
+      "size": [
+        5.9,
+        0.08,
+        0.08
+      ],
+      "position": [
+        0,
+        0.3,
+        12.5
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "SouthGate_RailHigh",
+      "size": [
+        5.9,
+        0.08,
+        0.08
+      ],
+      "position": [
+        0,
+        2.15,
+        12.5
+      ],
+      "material": "iron"
+    },
+    {
+      "name": "Bg_WestFoundry",
+      "size": [
+        12,
+        12,
+        30
+      ],
+      "position": [
+        -21.5,
+        6,
+        0.5
+      ],
+      "material": "wall",
+      "collision": false
+    },
+    {
+      "name": "Bg_WestFoundry_Chimney",
+      "size": [
+        1.8,
+        22,
+        1.8
+      ],
+      "position": [
+        -19,
+        11,
+        7.5
+      ],
+      "material": "soot",
+      "shape": "cylinder",
+      "collision": false
+    },
+    {
+      "name": "Bg_NE_1",
+      "size": [
+        10,
+        11,
+        12
+      ],
+      "position": [
+        24,
+        5.5,
+        -16.5
+      ],
+      "material": "soot_far",
+      "collision": false
+    },
+    {
+      "name": "Bg_NE_2",
+      "size": [
+        8,
+        10,
+        9
+      ],
+      "position": [
+        25,
+        5,
+        -4
+      ],
+      "material": "soot_far",
+      "collision": false
+    },
+    {
+      "name": "Bg_NE_1_Window_0",
+      "size": [
+        1.6,
+        0.9,
+        0.05
+      ],
+      "position": [
+        21.5,
+        6,
+        -10.47
+      ],
+      "material": "distant_window",
+      "collision": false
+    },
+    {
+      "name": "Bg_NE_1_Window_1",
+      "size": [
+        1.6,
+        0.9,
+        0.05
+      ],
+      "position": [
+        25.5,
+        6,
+        -10.47
+      ],
+      "material": "distant_window",
+      "collision": false
+    },
+    {
+      "name": "Bg_NE_1_Window_2",
+      "size": [
+        1.6,
+        0.9,
+        0.05
+      ],
+      "position": [
+        21.5,
+        9.5,
+        -10.47
+      ],
+      "material": "distant_window",
+      "collision": false
+    },
+    {
+      "name": "Bg_NE_1_Window_3",
+      "size": [
+        1.6,
+        0.9,
+        0.05
+      ],
+      "position": [
+        27,
+        9.5,
+        -10.47
+      ],
+      "material": "distant_window",
+      "collision": false
+    },
+    {
+      "name": "Bg_E_Shed",
+      "size": [
+        6,
+        3,
+        8
+      ],
+      "position": [
+        21,
+        1.5,
+        7.5
+      ],
+      "material": "soot_far",
+      "collision": false
+    },
+    {
+      "name": "Bg_S_Shed_1",
+      "size": [
+        10,
+        3,
+        6
+      ],
+      "position": [
+        -4,
+        1.5,
+        19.5
+      ],
+      "material": "soot_far",
+      "collision": false
+    },
+    {
+      "name": "Bg_S_Shed_2",
+      "size": [
+        8,
+        2.5,
+        6
+      ],
+      "position": [
+        8,
+        1.25,
+        20.5
+      ],
+      "material": "soot_far",
+      "collision": false
+    },
+    {
+      "name": "Bg_S_Street",
+      "size": [
+        40,
+        0.02,
+        6
+      ],
+      "position": [
+        0,
+        0.01,
+        15
+      ],
+      "material": "soot_mark",
+      "collision": false
+    },
+    {
+      "name": "Bg_CityGround",
+      "size": [
+        120,
+        0.02,
+        90
+      ],
+      "position": [
+        0,
+        -0.05,
+        10.5
+      ],
+      "material": "soot_far",
+      "collision": false
+    }
+  ],
+  "generation_rules": [
+    {
+      "name": "Sleepers",
+      "rule": "linear",
+      "position": [
+        0,
+        0.025,
+        -4.3
+      ],
+      "step": [
+        0,
+        0,
+        0.9
+      ],
+      "count": 22,
+      "template": {
+        "type": "primitive",
+        "size": [
+          1.1,
+          0.05,
+          0.2
+        ],
+        "material": "wood_old",
+        "collision": false
+      }
+    },
+    {
+      "name": "SouthGate_Bars",
+      "rule": "linear",
+      "position": [
+        -2.75,
+        1.22,
+        12.5
+      ],
+      "step": [
+        0.5,
+        0,
+        0
+      ],
+      "count": 12,
+      "template": {
+        "type": "primitive",
+        "size": [
+          0.05,
+          1.8,
+          0.05
+        ],
+        "material": "iron"
+      }
+    }
+  ],
+  "spawns": [
+    {
+      "name": "HoistBottom",
+      "type": "marker",
+      "position": [
+        0,
+        0.25,
+        -6.8
+      ]
+    }
+  ],
+  "camera": {
+    "projection": "orthogonal",
+    "size": 24,
+    "position": [
+      10,
+      9,
+      12
+    ],
+    "rotation_degrees": [
+      -35,
+      40,
+      0
+    ]
+  },
+  "lights": []
+}

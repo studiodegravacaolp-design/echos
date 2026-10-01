@@ -1,0 +1,6 @@
+{
+  "quest_id": "vardhelm_sealed_panel",
+  "title_key": "quest.vardhelm.sealed_panel.title",
+  "objective_keys": ["listen"],
+  "completion_consequence": ""
+}

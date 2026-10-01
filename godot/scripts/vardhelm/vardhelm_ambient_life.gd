@@ -2,6 +2,9 @@ extends Node3D
 class_name VardhelmAmbientLife
 
 const DATA_PATH := "res://data/vardhelm/ambient_life.json"
+## C21: outra área de Vardhelm pode usar a mesma vida com outro arquivo (definir antes do
+## _ready). O padrão continua sendo o da Forja 01.
+var data_path: String = DATA_PATH
 var environment_states: Dictionary = {}
 const ENVIRONMENTAL_OBSERVATION := preload("res://scripts/interaction/environmental_observation.gd")
 var _worker_defs: Array = []
@@ -10,6 +13,18 @@ var _story_defs: Array = []
 var _observation_defs: Array = []
 var _memory_response_defs: Array = []
 var _narrative_consequence_defs: Array = []
+## C13: reações persistentes (sutis) ao Primeiro Eco, derivadas de echo_awakened.
+const ROUTINE_DEFAULT := "default"
+const ROUTINE_AFTER_ECHO := "after_echo"
+var _after_echo_def: Dictionary = {}
+## C17.3: corpo de colisão leve dos trabalhadores comuns (raio/altura no JSON).
+var _worker_body_def: Dictionary = {}
+## C15: onde Durn fica quando o jogador disse "Não senti nada." e o Eco aconteceu.
+var _durn_alone_def: Dictionary = {}
+var _worker_routines: Dictionary = {}
+var _flicker_tween: Tween = null
+var _light_defaults: Dictionary = {}
+var _audio_defaults: Dictionary = {}
 var _presentation: Dictionary = {
     "show_station_labels": false,
     "show_story_prop_labels": false,
@@ -25,9 +40,9 @@ func _ready() -> void:
 	_build_workers()
 
 func _load_data() -> void:
-	var file := FileAccess.open(DATA_PATH, FileAccess.READ)
+	var file := FileAccess.open(data_path, FileAccess.READ)
 	if file == null:
-		push_error("VardhelmAmbientLife: não foi possível abrir %s" % DATA_PATH)
+		push_error("VardhelmAmbientLife: não foi possível abrir %s" % data_path)
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
 	if typeof(parsed) != TYPE_DICTIONARY:
@@ -37,8 +52,13 @@ func _load_data() -> void:
 	_stations = parsed.get("stations", [])
 	_story_defs = parsed.get("story_props", [])
 	_observation_defs = parsed.get("observations", [])
+	# C16: observações que só existem sob uma condição derivada (lista separada; mesmas regras).
+	_observation_defs = _observation_defs + parsed.get("conditional_observations", [])
 	_memory_response_defs = parsed.get("memory_responses", [])
 	_narrative_consequence_defs = parsed.get("narrative_consequences", [])
+	_after_echo_def = parsed.get("after_echo", {})
+	_worker_body_def = parsed.get("worker_body", {})
+	_durn_alone_def = parsed.get("durn_alone", {})
 	var presentation_raw = parsed.get("presentation", {})
 	if typeof(presentation_raw) == TYPE_DICTIONARY:
 		for key in _presentation.keys():
@@ -74,7 +94,8 @@ func _build_stations() -> void:
 		var p = definition.get("position", [0,0,0])
 		marker.position = Vector3(float(p[0]), float(p[1]), float(p[2]))
 		root.add_child(marker)
-		_box(marker, "StationBase", Vector3(0,0.12,0), Vector3(1.8,0.24,0.9), _mat(Color("#343434")))
+		# C17.2: estrado de madeira baixo (antes: laje cinza de protótipo).
+		_box(marker, "StationBase", Vector3(0,0.03,0), Vector3(1.8,0.06,0.9), _mat(Color("#3A2C20")))
 		var label := Label3D.new()
 		label.text = str(definition.get("label", "ATIVIDADE"))
 		label.font_size = 28
@@ -95,7 +116,7 @@ func _build_story_props() -> void:
 		var s = definition.get("size", [1,1,0.1])
 		var prop := _box(root, str(definition.get("id","StoryProp")),
 			Vector3(float(p[0]),float(p[1]),float(p[2])),
-			Vector3(float(s[0]),float(s[1]),float(s[2])), _mat(Color("#454545")))
+			Vector3(float(s[0]),float(s[1]),float(s[2])), _mat(Color(str(definition.get("color", "#454545")))))
 		var label := Label3D.new()
 		label.name = "Label"
 		label.text = str(definition.get("label",""))
@@ -141,7 +162,7 @@ func _build_observations() -> void:
 			"Marker",
 			Vector3(0, float(size_raw[1]) * 0.5, 0),
 			Vector3(float(size_raw[0]), float(size_raw[1]), float(size_raw[2])),
-			_mat(Color("#505050"))
+			_mat(Color(str(definition.get("marker_color", "#505050"))))
 		)
 		marker.visible = bool(definition.get("visible_marker", false))
 
@@ -156,6 +177,11 @@ func _build_observations() -> void:
 		observation.add_child(label)
 
 		root.add_child(observation)
+		# C16: observação que só existe em certas condições nasce indisponível; quem
+		# decide quando ela aparece é a derivação (set_observation_available).
+		observation.set_meta("marker_when_available", marker.visible)
+		if bool(definition.get("starts_unavailable", false)):
+			set_observation_available(observation.observation_id, false)
 
 
 func _build_workers() -> void:
@@ -174,28 +200,25 @@ func _create_worker(definition: Dictionary) -> Node3D:
 	var p = definition.get("position", [0,0,0])
 	worker.position = Vector3(float(p[0]),float(p[1]),float(p[2]))
 
-	var body := MeshInstance3D.new()
-	body.name = "Body"
-	var capsule := CapsuleMesh.new()
-	capsule.height = 1.45
-	capsule.radius = 0.34
-	body.mesh = capsule
-	body.position.y = 0.86
-	var accent := Color("#BDBDBD")
-	if definition.has("accent"):
-		accent = Color(str(definition["accent"]))
-	body.material_override = _mat(accent)
-	worker.add_child(body)
+	# C17.2: silhueta humana simples no lugar da cápsula (só visual). "accent" continua
+	# sendo a cor da camisa; "outfit" (opcional) acrescenta avental/boné/calça.
+	var outfit: Dictionary = definition.get("outfit", {}).duplicate()
+	outfit["shirt"] = str(definition.get("accent", HumanoidSilhouette.DEFAULT_SHIRT))
+	outfit["carrying"] = definition.has("carry")
+	HumanoidSilhouette.build(worker, outfit)
+	_add_worker_body(worker)
 
-	var head := MeshInstance3D.new()
-	head.name = "Head"
-	var sphere := SphereMesh.new()
-	sphere.height = 0.52
-	sphere.radius = 0.26
-	head.mesh = sphere
-	head.position = Vector3(0,1.75,0)
-	head.material_override = _mat(Color("#6E6E6E"))
-	worker.add_child(head)
+	# C17.1: opcional — material carregado nos braços ("carry": [largura, altura, profundidade]).
+	if definition.has("carry"):
+		var c = definition["carry"]
+		var carried := MeshInstance3D.new()
+		carried.name = "Carry"
+		var box := BoxMesh.new()
+		box.size = Vector3(float(c[0]), float(c[1]), float(c[2]))
+		carried.mesh = box
+		carried.position = Vector3(0, 1.0, -0.38)
+		carried.material_override = _mat(Color("#3F3022"))
+		worker.add_child(carried)
 
 	var label := Label3D.new()
 	label.text = str(definition.get("display_name", "Trabalhador"))
@@ -207,21 +230,47 @@ func _create_worker(definition: Dictionary) -> Node3D:
 	worker.add_child(label)
 	worker.add_to_group("vardhelm_ambient_worker")
 
-	var route_raw: Array = definition.get("route", [])
-	if route_raw.size() >= 2:
-		var route: Array[Vector3] = []
-		for rp in route_raw:
-			route.append(Vector3(float(rp[0]),float(rp[1]),float(rp[2])))
-		_animate_worker(worker, route, float(definition.get("idle_seconds",2.0)), float(definition.get("work_seconds",2.0)))
+	worker.set_meta("definition", definition)
+	_start_routine(worker, ROUTINE_DEFAULT)
+	_animate_worker(worker)
 	return worker
 
-func _animate_worker(worker: Node3D, route: Array[Vector3], idle_time: float, work_time: float) -> void:
+## C13: rotina de trabalho do trabalhador. "default" = rota original; "after_echo" =
+## rota alternativa opcional do JSON (after_echo_route), usada depois do Primeiro Eco.
+func _start_routine(worker: Node3D, routine: String, delay := 0.0) -> void:
+	var previous: Tween = _worker_routines.get(worker.name)
+	if previous != null and previous.is_valid():
+		previous.kill()
+	_worker_routines.erase(worker.name)
+	worker.set_meta("routine", routine)
+	var definition: Dictionary = worker.get_meta("definition", {})
+	var key := "after_echo_route" if routine == ROUTINE_AFTER_ECHO else "route"
+	var prefix := "after_echo_" if routine == ROUTINE_AFTER_ECHO else ""
+	var route: Array[Vector3] = []
+	for rp in definition.get(key, []):
+		route.append(Vector3(float(rp[0]), float(rp[1]), float(rp[2])))
+	if route.size() < 2:
+		return
+	var idle_time := float(definition.get(prefix + "idle_seconds", 2.0))
+	var work_time := float(definition.get(prefix + "work_seconds", 2.0))
+	if delay > 0.0:
+		var starter := create_tween()
+		starter.tween_interval(delay)
+		starter.tween_callback(func() -> void: _loop_route(worker, route, idle_time, work_time))
+		_worker_routines[worker.name] = starter
+	else:
+		_loop_route(worker, route, idle_time, work_time)
+
+func _loop_route(worker: Node3D, route: Array[Vector3], idle_time: float, work_time: float) -> void:
 	var tween := create_tween()
 	tween.set_loops()
 	for target in route:
 		tween.tween_property(worker, "position", target, work_time)
 		tween.tween_interval(idle_time)
-	var body := worker.get_node_or_null("Body")
+	_worker_routines[worker.name] = tween
+
+func _animate_worker(worker: Node3D) -> void:
+	var body := worker.find_child("Body", true, false)
 	if body:
 		var breathe := create_tween()
 		breathe.set_loops()
@@ -284,6 +333,7 @@ func _apply_persistent_state_visuals(state_id: String) -> void:
 	# Persistent consequences stay subtle: no lore reveal, only world-state dressing.
 	if state_id == "echo_awakened":
 		_set_station_attention(true)
+		_apply_after_echo_world()
 	elif state_id == "maintenance_remembered":
 		_set_story_prop_marked("QUADRO DE MANUTENÇÃO", true)
 	elif state_id == "sealed_panel_remembered":
@@ -366,3 +416,244 @@ func _react_station(station: Node3D) -> void:
 			label.text = original_text
 			label.scale = Vector3.ONE
 	)
+
+## Bloco C7: desfaz o estado PERSISTENTE derivado (environment_states + marcações
+## visuais persistentes de _apply_persistent_state_visuals), para que ele seja
+## re-derivado do WorldState em um Load V2. Aditivo: nunca chamado pelo gameplay.
+## Efeitos temporários (tweens de react_to_*) não são tocados.
+func reset_persistent_state() -> void:
+	environment_states.clear()
+	_stop_closing_silence()
+	_reset_after_echo_world()
+	var stations_node := get_node_or_null("AmbientStations")
+	if stations_node != null:
+		for label in stations_node.get_children():
+			if label is Label3D:
+				label.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	var props_node := get_node_or_null("EnvironmentalStoryProps")
+	if props_node != null:
+		for node in props_node.get_children():
+			if node is Node3D:
+				var label := node.get_node_or_null("Label") as Label3D
+				if label != null:
+					label.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+
+## C13 — Vardhelm reage ao Primeiro Eco, sem explicar nada. Tudo é DERIVADO de
+## echo_awakened (flag vardhelm_first_echo_complete): aplicado quando o Eco acontece e
+## re-derivado no Load V2 (reset_persistent_state + derivação existente). Idempotente:
+## re-aplicar não reinicia rotina, piscar nem áudio.
+##   1. a luz de trabalho sobre o painel selado fica mais fria e falha de vez em quando;
+##   2. o trabalhador da oficina deixa a bancada e fica parado perto do painel;
+##   3. o ruído das máquinas fica mais baixo.
+func is_after_echo_world_applied() -> bool:
+	return _flicker_tween != null and _flicker_tween.is_valid()
+
+func _after_echo_light() -> OmniLight3D:
+	var path := str(_after_echo_def.get("flicker_light", ""))
+	return get_parent().get_node_or_null(path) as OmniLight3D if path != "" and get_parent() != null else null
+
+## Malha da luminária (o set dressing embrulha a MeshInstance3D num Node3D).
+func _after_echo_fixture() -> MeshInstance3D:
+	var path := str(_after_echo_def.get("flicker_fixture", ""))
+	var holder := get_parent().get_node_or_null(path) if path != "" and get_parent() != null else null
+	if holder == null:
+		return null
+	for child in holder.get_children():
+		if child is MeshInstance3D:
+			return child
+	return null
+
+func _after_echo_audio() -> AudioStreamPlayer:
+	var path := str(_after_echo_def.get("quiet_audio", ""))
+	return get_parent().get_node_or_null(path) as AudioStreamPlayer if path != "" and get_parent() != null else null
+
+func _apply_after_echo_world() -> void:
+	var workers_root := get_node_or_null("AmbientWorkers")
+	if workers_root != null:
+		for worker in workers_root.get_children():
+			var definition: Dictionary = worker.get_meta("definition", {})
+			if definition.has("after_echo_route") and worker.get_meta("routine", "") != ROUTINE_AFTER_ECHO:
+				# Depois do sobressalto do Eco (react_to_consequence) ele sai da rotina.
+				_start_routine(worker, ROUTINE_AFTER_ECHO, float(_after_echo_def.get("routine_delay", 0.6)))
+	var light := _after_echo_light()
+	if light != null and not is_after_echo_world_applied():
+		if _light_defaults.is_empty():
+			_light_defaults = {"color": light.light_color, "energy": light.light_energy, "range": light.omni_range}
+		var base_energy: float = _light_defaults["energy"]
+		var cold := Color(str(_after_echo_def.get("flicker_color", "#FFFFFF")))
+		var steps: Array = _after_echo_def.get("flicker_steps", [])
+		light.light_color = cold
+		light.omni_range = float(_after_echo_def.get("flicker_range", _light_defaults["range"]))
+		if not steps.is_empty():
+			light.light_energy = base_energy * float(steps[0][0])
+		# A luminária (malha emissiva) acompanha a luz: fria e falhando junto.
+		var fixture := _after_echo_fixture()
+		var fixture_material: StandardMaterial3D = null
+		var fixture_energy := float(_after_echo_def.get("fixture_energy", 1.5))
+		if fixture != null:
+			fixture_material = StandardMaterial3D.new()
+			fixture_material.albedo_color = cold.darkened(0.55)
+			fixture_material.emission_enabled = true
+			fixture_material.emission = cold
+			fixture_material.emission_energy_multiplier = fixture_energy * (float(steps[0][0]) if not steps.is_empty() else 1.0)
+			fixture.material_override = fixture_material
+		_flicker_tween = create_tween()
+		_flicker_tween.set_loops()
+		for step in steps:
+			_flicker_tween.tween_property(light, "light_energy", base_energy * float(step[0]), float(step[1]))
+			if fixture_material != null:
+				_flicker_tween.parallel().tween_property(fixture_material, "emission_energy_multiplier", fixture_energy * float(step[0]), float(step[1]))
+	var audio := _after_echo_audio()
+	if audio != null:
+		if _audio_defaults.is_empty():
+			_audio_defaults = {"volume_db": audio.volume_db}
+		audio.volume_db = float(_audio_defaults["volume_db"]) + float(_after_echo_def.get("quiet_audio_db", 0.0))
+
+func _reset_after_echo_world() -> void:
+	var workers_root := get_node_or_null("AmbientWorkers")
+	if workers_root != null:
+		for worker in workers_root.get_children():
+			if worker.get_meta("routine", "") == ROUTINE_AFTER_ECHO:
+				var definition: Dictionary = worker.get_meta("definition", {})
+				var p = definition.get("position", [0, 0, 0])
+				_start_routine(worker, ROUTINE_DEFAULT)
+				worker.position = Vector3(float(p[0]), float(p[1]), float(p[2]))
+	if _flicker_tween != null and _flicker_tween.is_valid():
+		_flicker_tween.kill()
+	_flicker_tween = null
+	var light := _after_echo_light()
+	if light != null and not _light_defaults.is_empty():
+		light.light_color = _light_defaults["color"]
+		light.light_energy = _light_defaults["energy"]
+		light.omni_range = _light_defaults["range"]
+	var fixture := _after_echo_fixture()
+	if fixture != null:
+		fixture.material_override = null
+	var audio := _after_echo_audio()
+	if audio != null and not _audio_defaults.is_empty():
+		audio.volume_db = _audio_defaults["volume_db"]
+
+
+## C14 — encerramento da primeira sequência: ao concluir o exame do painel, Vardhelm
+## fica em silêncio por alguns segundos (zumbido, vapor e máquinas quase somem) e a
+## luz fria sobre o painel se apaga; depois tudo volta ao estado pós-Eco. Transitório
+## (nada é salvo); um Load no meio interrompe e devolve o som e a luz ao estado derivado.
+var _silence_tween: Tween = null
+var _silence_defaults: Dictionary = {}
+
+func is_closing_silence_active() -> bool:
+	return _silence_tween != null and _silence_tween.is_valid()
+
+func _silence_players() -> Array:
+	var players: Array = []
+	var definition: Dictionary = _after_echo_def.get("closing_silence", {})
+	for path in definition.get("audio", []):
+		var player := get_parent().get_node_or_null(str(path)) as AudioStreamPlayer if get_parent() != null else null
+		if player != null:
+			players.append(player)
+			if not _silence_defaults.has(player.name):
+				_silence_defaults[player.name] = player.volume_db
+	return players
+
+## Volume "de repouso" de cada som: o original, ou o do estado pós-Eco (máquinas).
+func _resting_volume(player: AudioStreamPlayer) -> float:
+	if player == _after_echo_audio() and not _audio_defaults.is_empty():
+		var offset := float(_after_echo_def.get("quiet_audio_db", 0.0)) if environment_states.has("echo_awakened") else 0.0
+		return float(_audio_defaults["volume_db"]) + offset
+	return float(_silence_defaults.get(player.name, player.volume_db))
+
+func play_closing_silence() -> void:
+	if is_closing_silence_active():
+		return
+	var definition: Dictionary = _after_echo_def.get("closing_silence", {})
+	var players := _silence_players()
+	if definition.is_empty() or players.is_empty():
+		return
+	var fade_out := float(definition.get("fade_out", 1.2))
+	var hold := float(definition.get("hold", 4.0))
+	var fade_in := float(definition.get("fade_in", 3.0))
+	var silent_db := float(definition.get("silent_db", -40.0))
+	var light := _after_echo_light()
+	var lamp_off := bool(definition.get("lamp_off", false)) and light != null and is_after_echo_world_applied()
+	if lamp_off:
+		_flicker_tween.pause()
+	# Passos sequenciais explícitos: some (fade_out) → silêncio (hold) → volta (fade_in).
+	_silence_tween = create_tween()
+	for i in players.size():
+		var step := _silence_tween.parallel() if i > 0 else _silence_tween
+		step.tween_property(players[i], "volume_db", silent_db, fade_out)
+	if lamp_off:
+		_silence_tween.parallel().tween_property(light, "light_energy", 0.0, fade_out)
+	_silence_tween.tween_interval(hold)
+	for i in players.size():
+		var step := _silence_tween.parallel() if i > 0 else _silence_tween
+		step.tween_property(players[i], "volume_db", _resting_volume(players[i]), fade_in)
+	_silence_tween.tween_callback(_end_closing_silence)
+
+func _end_closing_silence() -> void:
+	_silence_tween = null
+	if _flicker_tween != null and _flicker_tween.is_valid():
+		_flicker_tween.play()
+
+## Interrompe o encerramento (Load no meio dele): som no volume de repouso.
+func _stop_closing_silence() -> void:
+	if _silence_tween != null and _silence_tween.is_valid():
+		_silence_tween.kill()
+	_silence_tween = null
+	for player in _silence_players():
+		player.volume_db = _resting_volume(player)
+
+
+## C15 — Durn sozinho: estado de ambiente derivado da consequência da escolha
+## "Não senti nada." (vardhelm_felt_nothing → durn_alone). Só se mostra depois do Eco
+## (echo_awakened): quem posiciona Durn é o slice, que é dono do NPC.
+func durn_alone_def() -> Dictionary:
+	return _durn_alone_def
+
+func is_durn_alone_after_echo() -> bool:
+	var state := str(_durn_alone_def.get("environment_state", ""))
+	var after := str(_durn_alone_def.get("after", ""))
+	return state != "" and environment_states.has(state) and (after == "" or environment_states.has(after))
+
+
+## C16 — liga/desliga uma observação (interação + marca visível). Não guarda nada:
+## a disponibilidade é derivada do estado persistente por quem chama.
+func set_observation_available(observation_id: String, available: bool) -> void:
+	var node := get_node_or_null("EnvironmentalObservations/%s" % observation_id) as EnvironmentalObservation
+	if node == null:
+		return
+	node.interaction_enabled = available
+	var marker := node.get_node_or_null("Marker") as Node3D
+	if marker != null:
+		marker.visible = available and bool(node.get_meta("marker_when_available", false))
+
+func is_observation_available(observation_id: String) -> bool:
+	var node := get_node_or_null("EnvironmentalObservations/%s" % observation_id) as EnvironmentalObservation
+	return node != null and node.interaction_enabled
+
+
+## C17.3 — o jogador não atravessa o corpo de um trabalhador. Cápsula fina (só pernas e
+## tronco) num AnimatableBody3D filho do trabalhador: acompanha a rota do tween sem nenhum
+## processamento novo, e a rota nunca depende da física (não trava nem treme).
+##   camada 1 (a mesma do cenário, que o jogador já colide) · máscara 0 (não detecta nada:
+##   trabalhadores não colidem entre si nem com o cenário) · fora da camada 2 (interação):
+##   o detector do E não o enxerga. Durn é montado pelo slice e não passa por aqui.
+func _add_worker_body(worker: Node3D) -> void:
+	if _worker_body_def.is_empty():
+		return
+	var radius := float(_worker_body_def.get("radius", 0.25))
+	var height := float(_worker_body_def.get("height", 1.7))
+	var body := AnimatableBody3D.new()
+	body.name = "BodyCollider"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var shape := CollisionShape3D.new()
+	shape.name = "Shape"
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = radius
+	capsule.height = height
+	shape.shape = capsule
+	shape.position = Vector3(0, height / 2.0, 0)
+	body.add_child(shape)
+	worker.add_child(body)

@@ -19,6 +19,11 @@ func _physics_process(delta: float) -> void:
 	# aqui — assim input.y > 0 significa "em direção ao topo da tela", que é
 	# o que multiplicamos por "forward" abaixo. Não inverter esta ordem.
 	var input_vector := Input.get_vector("move_left", "move_right", "move_down", "move_up")
+	# C11: Ctrl+S / Ctrl+L usam as mesmas teclas físicas do movimento (S = move_down).
+	# Com Ctrl pressionado o personagem não anda: antes, salvar gravava a posição e o
+	# personagem recuava logo em seguida, e o Load parecia devolver a outro lugar.
+	if Input.is_key_pressed(KEY_CTRL):
+		input_vector = Vector2.ZERO
 	var direction := _movement_direction(input_vector)
 
 	velocity.x = direction.x * move_speed

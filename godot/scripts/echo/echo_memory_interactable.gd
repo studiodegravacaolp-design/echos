@@ -27,6 +27,12 @@ func interact(actor: Node) -> bool:
         return false
     revealed = true
     interaction_enabled = false
+    # Bloco C8: o slice adiciona "Visual"/"Light" DEPOIS do _ready deste nó;
+    # resolve as referências na hora de usar (a esfera ficava visível).
+    if _visual == null:
+        _visual = get_node_or_null("Visual") as MeshInstance3D
+    if _light == null:
+        _light = get_node_or_null("Light") as OmniLight3D
     if _visual != null:
         _visual.visible = false
     if _light != null:

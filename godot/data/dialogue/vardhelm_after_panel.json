@@ -1,0 +1,23 @@
+{
+  "dialogue_id": "vardhelm_after_panel",
+  "entries": [
+    {
+      "entry_id": "heard",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_panel.heard",
+      "choices": []
+    },
+    {
+      "entry_id": "not_alone",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_panel.not_alone",
+      "choices": []
+    },
+    {
+      "entry_id": "quiet",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.after_panel.quiet",
+      "choices": []
+    }
+  ]
+}

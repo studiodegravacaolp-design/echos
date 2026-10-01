@@ -1,0 +1,264 @@
+{
+  "version": 1,
+  "_comment": "C21 — vida do Distrito das Fundições (pátio da Forja 01). Coordenadas locais ao nó FoundryDistrict/Life (origem = origem do nível).",
+  "workers": [
+    {
+      "id": "worker_district_shovel_01",
+      "display_name": "Trabalhador",
+      "position": [
+        -10.3,
+        0,
+        -3.7
+      ],
+      "idle_seconds": 1.4,
+      "work_seconds": 1.1,
+      "accent": "#6F6A62",
+      "outfit": {
+        "cap": true
+      },
+      "route": [
+        [
+          -10.3,
+          0,
+          -3.7
+        ],
+        [
+          -10.75,
+          0,
+          -4.4
+        ]
+      ]
+    },
+    {
+      "id": "worker_district_hauler_01",
+      "display_name": "Trabalhador",
+      "position": [
+        -9.3,
+        0,
+        -4.5
+      ],
+      "idle_seconds": 2,
+      "work_seconds": 4.2,
+      "accent": "#7A746A",
+      "outfit": {
+        "apron": true
+      },
+      "route": [
+        [
+          -9.3,
+          0,
+          -4.5
+        ],
+        [
+          -7.6,
+          0,
+          -10.8
+        ]
+      ],
+      "carry": [
+        0.5,
+        0.35,
+        0.35
+      ]
+    },
+    {
+      "id": "worker_district_hauler_02",
+      "display_name": "Trabalhador",
+      "position": [
+        -1.4,
+        0,
+        1.5
+      ],
+      "idle_seconds": 1.8,
+      "work_seconds": 2.8,
+      "accent": "#857E72",
+      "outfit": {
+        "cap": true
+      },
+      "route": [
+        [
+          -1.4,
+          0,
+          1.5
+        ],
+        [
+          -1.8,
+          0,
+          -5.5
+        ],
+        [
+          -4.4,
+          0,
+          -10.8
+        ],
+        [
+          -1.8,
+          0,
+          -5.5
+        ]
+      ],
+      "carry": [
+        0.5,
+        0.35,
+        0.35
+      ]
+    },
+    {
+      "id": "worker_district_carts_01",
+      "display_name": "Trabalhador",
+      "position": [
+        1,
+        0,
+        2.8
+      ],
+      "idle_seconds": 3.2,
+      "work_seconds": 1.6,
+      "accent": "#6A665F",
+      "outfit": {
+        "apron": true,
+        "cap": true
+      },
+      "route": [
+        [
+          1,
+          0,
+          2.8
+        ],
+        [
+          1,
+          0,
+          3.8
+        ]
+      ]
+    },
+    {
+      "id": "worker_district_jib_01",
+      "display_name": "Trabalhador",
+      "position": [
+        -10.1,
+        0,
+        5.2
+      ],
+      "idle_seconds": 2.4,
+      "work_seconds": 1.8,
+      "accent": "#7E786D",
+      "outfit": {
+        "cap": true
+      },
+      "route": [
+        [
+          -10.1,
+          0,
+          5.2
+        ],
+        [
+          -10.1,
+          0,
+          6.7
+        ]
+      ]
+    },
+    {
+      "id": "worker_district_dock_01",
+      "display_name": "Trabalhador",
+      "position": [
+        9.2,
+        0,
+        -0.9
+      ],
+      "idle_seconds": 2.2,
+      "work_seconds": 3.6,
+      "accent": "#8A8378",
+      "outfit": {},
+      "route": [
+        [
+          9.2,
+          0,
+          -0.9
+        ],
+        [
+          9.2,
+          0,
+          5.1
+        ]
+      ],
+      "carry": [
+        0.6,
+        0.45,
+        0.45
+      ]
+    }
+  ],
+  "stations": [],
+  "story_props": [],
+  "observations": [
+    {
+      "id": "foundry_coal_carts",
+      "label": "EXAMINAR",
+      "position": [
+        1.1,
+        0.9,
+        0.4
+      ],
+      "size": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "interaction_radius": 1.3,
+      "visible_marker": false,
+      "title_key": "observation.foundry_coal_carts.title",
+      "text_key": "observation.foundry_coal_carts.text",
+      "seen_flag": "observation_foundry_coal_carts_seen"
+    },
+    {
+      "id": "foundry_chain_pulley",
+      "label": "EXAMINAR",
+      "position": [
+        -11.6,
+        1.2,
+        4.4
+      ],
+      "size": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "interaction_radius": 1.4,
+      "visible_marker": false,
+      "title_key": "observation.foundry_chain_pulley.title",
+      "text_key": "observation.foundry_chain_pulley.text",
+      "seen_flag": "observation_foundry_chain_pulley_seen"
+    },
+    {
+      "id": "foundry_forge_door",
+      "label": "EXAMINAR",
+      "position": [
+        -6,
+        1.2,
+        -11.5
+      ],
+      "size": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "interaction_radius": 1.5,
+      "visible_marker": false,
+      "title_key": "observation.foundry_forge_door.title",
+      "text_key": "observation.foundry_forge_door.text",
+      "seen_flag": "observation_foundry_forge_door_seen",
+      "after_echo_text_key": "observation.foundry_forge_door.after_echo"
+    }
+  ],
+  "worker_body": {
+    "radius": 0.25,
+    "height": 1.7
+  },
+  "presentation": {
+    "show_station_labels": false,
+    "show_story_prop_labels": false,
+    "show_worker_labels": false,
+    "show_observation_labels": false
+  }
+}
