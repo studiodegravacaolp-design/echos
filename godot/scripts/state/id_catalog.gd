@@ -56,6 +56,11 @@ const OBSERVATION_DURN_NOTES := "observation.vardhelm.durn_notes"
 const OBSERVATION_FOUNDRY_COAL_CARTS := "observation.vardhelm.foundry_coal_carts"
 const OBSERVATION_FOUNDRY_CHAIN_PULLEY := "observation.vardhelm.foundry_chain_pulley"
 const OBSERVATION_FOUNDRY_FORGE_DOOR := "observation.vardhelm.foundry_forge_door"
+## C23: rua do Distrito das Fundições — observações ambientais, sem memória.
+const OBSERVATION_FOUNDRY_STREET_GATE := "observation.vardhelm.foundry_street_gate"
+const OBSERVATION_FOUNDRY_STREET_SHIFT_BOARD := "observation.vardhelm.foundry_street_shift_board"
+const OBSERVATION_FOUNDRY_STREET_ORE_WAGONS := "observation.vardhelm.foundry_street_ore_wagons"
+const OBSERVATION_FOUNDRY_STREET_SHARPENING := "observation.vardhelm.foundry_street_sharpening"
 
 ## Estados de ambiente (derivados, nunca persistidos — A1 §3.3). Usados só como
 ## IDs de eventos world_state_changed (Bloco B1).
@@ -75,13 +80,13 @@ const KNOWN_IDS := {
 	KIND_ECHO: [ECHO_FIRST],
 	KIND_MEMORY: [MEMORY_FIRST_ECHO, MEMORY_MAINTENANCE_BOARD, MEMORY_SEALED_PANEL, MEMORY_TOOL_RACK],
 	KIND_CONSEQUENCE: [CONSEQUENCE_HEARD_ECHO, CONSEQUENCE_FIRST_ECHO_COMPLETE, CONSEQUENCE_FELT_NOTHING],
-	KIND_OBSERVATION: [OBSERVATION_MAINTENANCE_BOARD, OBSERVATION_SEALED_PANEL, OBSERVATION_TOOL_RACK, OBSERVATION_DURN_NOTES, OBSERVATION_FOUNDRY_COAL_CARTS, OBSERVATION_FOUNDRY_CHAIN_PULLEY, OBSERVATION_FOUNDRY_FORGE_DOOR],
+	KIND_OBSERVATION: [OBSERVATION_MAINTENANCE_BOARD, OBSERVATION_SEALED_PANEL, OBSERVATION_TOOL_RACK, OBSERVATION_DURN_NOTES, OBSERVATION_FOUNDRY_COAL_CARTS, OBSERVATION_FOUNDRY_CHAIN_PULLEY, OBSERVATION_FOUNDRY_FORGE_DOOR, OBSERVATION_FOUNDRY_STREET_GATE, OBSERVATION_FOUNDRY_STREET_SHIFT_BOARD, OBSERVATION_FOUNDRY_STREET_ORE_WAGONS, OBSERVATION_FOUNDRY_STREET_SHARPENING],
 	KIND_ENVSTATE: [ENVSTATE_ECHO_AWAKENED, ENVSTATE_MAINTENANCE_REMEMBERED, ENVSTATE_SEALED_PANEL_REMEMBERED, ENVSTATE_TOOLS_REMEMBERED, ENVSTATE_DURN_ALONE],
 }
 
 ## Aliases: ID atual do conteúdo/runtime -> ID canônico, por tipo.
 ## Fontes: data/dialogue/vardhelm_intro.json, vardhelm_after_echo.json, vardhelm_after_panel.json, data/quests/vardhelm_first_echo.json, vardhelm_sealed_panel.json,
-## data/vardhelm/ambient_life.json, data/vardhelm/foundry_district_life.json (C21) e scripts/vardhelm/vardhelm_vertical_slice.gd.
+## data/vardhelm/ambient_life.json, data/vardhelm/foundry_district_life.json (C21), data/vardhelm/foundry_street_life.json (C23) e scripts/vardhelm/vardhelm_vertical_slice.gd.
 const ALIASES := {
 	KIND_NPC: {
 		"vardhelm.durn": NPC_DURN,
@@ -114,6 +119,10 @@ const ALIASES := {
 		"foundry_coal_carts": OBSERVATION_FOUNDRY_COAL_CARTS,
 		"foundry_chain_pulley": OBSERVATION_FOUNDRY_CHAIN_PULLEY,
 		"foundry_forge_door": OBSERVATION_FOUNDRY_FORGE_DOOR,
+		"foundry_street_gate": OBSERVATION_FOUNDRY_STREET_GATE,
+		"foundry_street_shift_board": OBSERVATION_FOUNDRY_STREET_SHIFT_BOARD,
+		"foundry_street_ore_wagons": OBSERVATION_FOUNDRY_STREET_ORE_WAGONS,
+		"foundry_street_sharpening": OBSERVATION_FOUNDRY_STREET_SHARPENING,
 	},
 	# Fonte: narrative_consequences[].environment_state em data/vardhelm/ambient_life.json.
 	KIND_ENVSTATE: {

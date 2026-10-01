@@ -11,6 +11,8 @@ extends Node3D
 ##   - atmosfera: lampiões, placas, fumaça do respiro da Forja 01, vapor, poeira de carvão;
 ##   - névoa de altura e luz ambiente: acompanham a área do jogador (derivado da posição);
 ##   - desenho: o pátio só é desenhado no pátio ou perto do patamar (custo medido no C21);
+##   - C23: a rua do distrito (vp_03), pelo portão sul do pátio, com uma segunda vida e
+##     animações simples (carga da talha, pedra de afiar, trem de carga) vindas dos dados;
 ##   - reação: depois do Primeiro Eco o respiro da Forja 01 solta menos fumaça (derivado da
 ##     flag persistente vardhelm_first_echo_complete, a mesma que o C13 usa).
 ##
@@ -26,6 +28,8 @@ signal area_changed(in_district: bool)
 
 var config: Dictionary = {}
 var life: VardhelmAmbientLife
+## C23: todas as vidas do distrito (pátio = a primeira; rua = "StreetLife").
+var lives: Array[VardhelmAmbientLife] = []
 var hoist_top: TransitionPoint
 var hoist_bottom: TransitionPoint
 var player_in_district := false
@@ -45,6 +49,9 @@ var _environment: Environment
 var _fog_tween: Tween
 var _fade: ColorRect
 var _smoke: Array[CPUParticles3D] = []
+## C23: níveis desenhados juntos (pátio + rua); o primeiro é o da talha.
+var _levels: Array[Node3D] = []
+var _animations: Array[Tween] = []
 
 
 func setup(slice: Node) -> void:
@@ -56,9 +63,15 @@ func setup(slice: Node) -> void:
 		push_error("VardhelmFoundryDistrict: nível do pátio ausente")
 		return
 	# O nível traz uma câmera (exigida pelo schema do LevelBuilder); a do jogador manda.
-	var level_camera := _level.get_node_or_null("Camera3D") as Camera3D
-	if level_camera != null:
-		level_camera.current = false
+	_levels = [_level]
+	for level_name in config.get("extra_levels", []):
+		var extra := slice.get_node_or_null(str(level_name)) as Node3D
+		if extra != null:
+			_levels.append(extra)
+	for level in _levels:
+		var level_camera := level.get_node_or_null("Camera3D") as Camera3D
+		if level_camera != null:
+			level_camera.current = false
 	var world_environment := slice.get_node_or_null("VP01_Vardhelm/WorldEnvironment") as WorldEnvironment
 	if world_environment != null:
 		_environment = world_environment.environment
@@ -70,6 +83,7 @@ func setup(slice: Node) -> void:
 	_build_signs()
 	_build_atmosphere()
 	_build_fade()
+	_build_animations()
 	var narrative = slice.get("narrative_controller")
 	if narrative != null:
 		narrative.consequence_applied.connect(func(_id) -> void: refresh.call_deferred())
@@ -81,14 +95,40 @@ func observation_root() -> Node:
 	return life.get_node_or_null("EnvironmentalObservations") if life != null else null
 
 
+## C23: as raízes de observação de todas as vidas do distrito (pátio e rua).
+func observation_roots() -> Array[Node]:
+	var roots: Array[Node] = []
+	for each in lives:
+		var root := each.get_node_or_null("EnvironmentalObservations")
+		if root != null:
+			roots.append(root)
+	return roots
+
+
+func life_named(life_name: String) -> VardhelmAmbientLife:
+	for each in lives:
+		if each.name == life_name:
+			return each
+	return null
+
+
 # --- vida ------------------------------------------------------------------------------
 
 func _build_life() -> void:
-	life = VARDHELM_LIFE.new()
-	life.name = "Life"
-	life.data_path = str(config.get("life_data", ""))
-	life.position = _vec(config.get("origin", [0, 0, 0]))
-	add_child(life)
+	life = _add_life("Life", str(config.get("life_data", "")), config.get("origin", [0, 0, 0]))
+	# C23: vidas extras (ex.: a rua), mesma classe, outro arquivo e outra origem.
+	for definition in config.get("extra_lives", []):
+		_add_life(str(definition.get("name", "ExtraLife")), str(definition.get("data", "")), definition.get("origin", [0, 0, 0]))
+
+
+func _add_life(life_name: String, data: String, origin) -> VardhelmAmbientLife:
+	var each := VARDHELM_LIFE.new()
+	each.name = life_name
+	each.data_path = data
+	each.position = _vec(origin)
+	add_child(each)
+	lives.append(each)
+	return each
 
 
 # --- talha: passagem entre o patamar da Forja 01 e o pátio -------------------------------
@@ -259,8 +299,10 @@ func _apply_view() -> void:
 		return
 	district_drawn = drawn
 	var keep := str(config.get("landing_view", {}).get("always_visible_prefix", "Hoist"))
-	var generated := _level.get_node_or_null("Generated")
-	if generated != null:
+	for level in _levels:
+		var generated := level.get_node_or_null("Generated")
+		if generated == null:
+			continue
 		for child in generated.get_children():
 			if child.name == "Props":
 				for prop in child.get_children():
@@ -268,11 +310,36 @@ func _apply_view() -> void:
 						(prop as Node3D).visible = drawn
 			elif child is Node3D:
 				(child as Node3D).visible = drawn
-	if life != null:
-		life.visible = drawn
+	for each in lives:
+		each.visible = drawn
 	for node in get_children():
 		if node is OmniLight3D or node is CPUParticles3D or node is Label3D:
 			(node as Node3D).visible = drawn
+
+
+# --- C23: animações simples de cenário (dados) -------------------------------------------------
+
+## Cada entrada: {"level", "node" (relativo ao nível), "move": [dx,dy,dz] (vai e volta) ou
+## "spin": "x"|"y"|"z" (volta completa), "seconds"}. Tweens em laço; nada é salvo.
+func _build_animations() -> void:
+	for definition in config.get("animations", []):
+		var level := _slice.get_node_or_null(str(definition.get("level", ""))) as Node3D
+		var node := level.get_node_or_null(str(definition.get("node", ""))) as Node3D if level != null else null
+		if node == null:
+			push_warning("VardhelmFoundryDistrict: animação sem nó: %s" % str(definition))
+			continue
+		var seconds := float(definition.get("seconds", 2.0))
+		var tween := create_tween().set_loops()
+		if definition.has("move"):
+			var start := node.position
+			var target := start + _vec(definition["move"])
+			tween.tween_property(node, "position", target, seconds).set_trans(Tween.TRANS_SINE)
+			tween.tween_property(node, "position", start, seconds).set_trans(Tween.TRANS_SINE)
+		elif definition.has("spin"):
+			var axis := str(definition["spin"])
+			var base: float = node.rotation[ ["x", "y", "z"].find(axis) ]
+			tween.tween_property(node, "rotation:" + axis, base + TAU, seconds).from(base)
+		_animations.append(tween)
 
 
 # --- atmosfera ------------------------------------------------------------------------------

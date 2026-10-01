@@ -24,7 +24,7 @@
 - **Conteúdo:** Ato 2 (Profundezas de Brenhold) + 9 templates de inimigos
 - **Assets & Visuais:** Git LFS (.gitattributes, Portraits, Spritesheets)
 - **Save V2 (Godot):** Blocos C1–C10.5 — **V2 é o caminho padrão desde o C10.5** (Ctrl+S/Ctrl+L só V2; legado só com flags OFF explícitas); endurecimento no C10 (câmera/UI/mensagens/Durn; migração OPT-IN decidida e não implementada; checklist humano pronto, não executado); prontidão de adoção medida no C9; ciclo Save V2 + Load V2 operacional opt-in desde o C8 (flags de save e load OFF por padrão); Load V2 operacional desde o C7 (flag OFF por padrão; rehearsal + snapshot + rollback; Ctrl+L antigo continua o padrão e o caminho legado); modo sombra; desde o C2 roda em paralelo no Ctrl+S/Ctrl+L reais, depois do SaveService (que segue operacional), só gravando e comparando; C3–C5 restauram GameState → runtime apenas em diagnóstico/sandbox, com adapters sobre contratos formais (DialogueRuntimeState, RuntimeStateDerivationContract); C6 prova o pipeline arquivo → sandbox (SaveV2DiagnosticCoordinator, flag OFF por padrão, failure policy) ([`docs/architecture/BLOCK_C1_SAVE_V2_SHADOW.md`](docs/architecture/BLOCK_C1_SAVE_V2_SHADOW.md))
-- **Narrativa de Vardhelm (Godot):** Bloco C12 — ponte pós-Primeiro Eco: Durn reage uma vez sem explicar, pista do painel selado e investigação curta `vardhelm_sealed_panel`; persistida pelo Save/Load V2 ([`docs/architecture/BLOCK_C12_POST_ECHO_BRIDGE.md`](docs/architecture/BLOCK_C12_POST_ECHO_BRIDGE.md)); Bloco C13 — o mundo reage ao Eco sem avisar (luz fria sobre o painel, trabalhador fora da rotina, máquinas mais baixas), derivado de `echo_awakened` ([`docs/architecture/BLOCK_C13_LIVING_VARDHELM.md`](docs/architecture/BLOCK_C13_LIVING_VARDHELM.md)); Bloco C14 — primeira sequência completa: encerramento em silêncio ao examinar o painel e gancho na fala final de Durn ("Então não fui só eu."); validado em teste humano ([`docs/architecture/BLOCK_C14_FIRST_SEQUENCE.md`](docs/architecture/BLOCK_C14_FIRST_SEQUENCE.md)); Bloco C15 — primeira escolha com consequência perceptível: "Não senti nada." faz Durn ir sozinho até onde o Eco aconteceu, validado em teste humano ([`docs/architecture/BLOCK_C15_CHOICE_CONSEQUENCE.md`](docs/architecture/BLOCK_C15_CHOICE_CONSEQUENCE.md)); Bloco C16 — a mesma escolha abre uma possibilidade futura: no lugar vazio de Durn fica uma folha que pode ser examinada; validado em teste humano ([`docs/architecture/BLOCK_C16_FUTURE_POSSIBILITY.md`](docs/architecture/BLOCK_C16_FUTURE_POSSIBILITY.md)); Bloco C17 — a baia oeste da Forja 01 construída: tijolo e ferro, paredes em corte no sul e leste, entrada aberta, painel num anteparo, cidade abaixo, luz de cima e forja como foco quente ([`docs/architecture/BLOCK_C17_VISUAL_SLICE.md`](docs/architecture/BLOCK_C17_VISUAL_SLICE.md)); C17.1–C17.3 (densidade, identidade, colisão dos trabalhadores); validados em teste humano; Bloco C18 — a dica "E • …" ganhou ciclo de vida (entra suave, espera 0,75 s ao sair, volta sem piscar), componente genérico `ContextualWindowLifecycle` ([`docs/architecture/BLOCK_C18_CONTEXTUAL_WINDOWS.md`](docs/architecture/BLOCK_C18_CONTEXTUAL_WINDOWS.md)); validado em teste humano; **Bloco C19 — auditoria de fechamento: a Forja de Vardhelm é CANDIDATA A FECHAMENTO** (sem pendência real; itens provisórios e futuros registrados) ([`docs/architecture/BLOCK_C19_FORGE_CLOSING_AUDIT.md`](docs/architecture/BLOCK_C19_FORGE_CLOSING_AUDIT.md)); **Bloco C20 — padrão de produção para os próximos cenários** (regra CONCEITO → … → ACABAMENTO, modelo e checklists; próximo cenário ainda não definido no material canônico) ([`docs/architecture/SCENARIO_PRODUCTION_STANDARD.md`](docs/architecture/SCENARIO_PRODUCTION_STANDARD.md)); **Bloco C21 — Distrito das Fundições** (pátio sob a Forja 01, ligado pela talha; vida, atmosfera, 3 observações, reação derivada do C13; Save V2), escolhido por evidência documental; C21.1 abriu a passagem entre a Forja e a talha (bancada 0,6 m a oeste: vão de 0,9 → 1,5 m) depois do teste humano; novo teste humano pendente ([`docs/scenarios/vardhelm_foundry_district.md`](docs/scenarios/vardhelm_foundry_district.md))
+- **Narrativa de Vardhelm (Godot):** Bloco C12 — ponte pós-Primeiro Eco: Durn reage uma vez sem explicar, pista do painel selado e investigação curta `vardhelm_sealed_panel`; persistida pelo Save/Load V2 ([`docs/architecture/BLOCK_C12_POST_ECHO_BRIDGE.md`](docs/architecture/BLOCK_C12_POST_ECHO_BRIDGE.md)); Bloco C13 — o mundo reage ao Eco sem avisar (luz fria sobre o painel, trabalhador fora da rotina, máquinas mais baixas), derivado de `echo_awakened` ([`docs/architecture/BLOCK_C13_LIVING_VARDHELM.md`](docs/architecture/BLOCK_C13_LIVING_VARDHELM.md)); Bloco C14 — primeira sequência completa: encerramento em silêncio ao examinar o painel e gancho na fala final de Durn ("Então não fui só eu."); validado em teste humano ([`docs/architecture/BLOCK_C14_FIRST_SEQUENCE.md`](docs/architecture/BLOCK_C14_FIRST_SEQUENCE.md)); Bloco C15 — primeira escolha com consequência perceptível: "Não senti nada." faz Durn ir sozinho até onde o Eco aconteceu, validado em teste humano ([`docs/architecture/BLOCK_C15_CHOICE_CONSEQUENCE.md`](docs/architecture/BLOCK_C15_CHOICE_CONSEQUENCE.md)); Bloco C16 — a mesma escolha abre uma possibilidade futura: no lugar vazio de Durn fica uma folha que pode ser examinada; validado em teste humano ([`docs/architecture/BLOCK_C16_FUTURE_POSSIBILITY.md`](docs/architecture/BLOCK_C16_FUTURE_POSSIBILITY.md)); Bloco C17 — a baia oeste da Forja 01 construída: tijolo e ferro, paredes em corte no sul e leste, entrada aberta, painel num anteparo, cidade abaixo, luz de cima e forja como foco quente ([`docs/architecture/BLOCK_C17_VISUAL_SLICE.md`](docs/architecture/BLOCK_C17_VISUAL_SLICE.md)); C17.1–C17.3 (densidade, identidade, colisão dos trabalhadores); validados em teste humano; Bloco C18 — a dica "E • …" ganhou ciclo de vida (entra suave, espera 0,75 s ao sair, volta sem piscar), componente genérico `ContextualWindowLifecycle` ([`docs/architecture/BLOCK_C18_CONTEXTUAL_WINDOWS.md`](docs/architecture/BLOCK_C18_CONTEXTUAL_WINDOWS.md)); validado em teste humano; **Bloco C19 — auditoria de fechamento: a Forja de Vardhelm é CANDIDATA A FECHAMENTO** (sem pendência real; itens provisórios e futuros registrados) ([`docs/architecture/BLOCK_C19_FORGE_CLOSING_AUDIT.md`](docs/architecture/BLOCK_C19_FORGE_CLOSING_AUDIT.md)); **Bloco C20 — padrão de produção para os próximos cenários** (regra CONCEITO → … → ACABAMENTO, modelo e checklists; próximo cenário ainda não definido no material canônico) ([`docs/architecture/SCENARIO_PRODUCTION_STANDARD.md`](docs/architecture/SCENARIO_PRODUCTION_STANDARD.md)); **Bloco C21 — Distrito das Fundições** (pátio sob a Forja 01, ligado pela talha; vida, atmosfera, 3 observações, reação derivada do C13; Save V2), escolhido por evidência documental; C21.1 abriu a passagem entre a Forja e a talha (bancada 0,6 m a oeste: vão de 0,9 → 1,5 m); **C21 e C21.1 validados em teste humano (fechados)**; **Bloco C22** — mapa de produção de Vardhelm, arco além do gancho não definido, decisões D1–D7 com o usuário ([`docs/architecture/BLOCK_C22_VARDHELM_WORLD_MAP.md`](docs/architecture/BLOCK_C22_VARDHELM_WORLD_MAP.md)); **Bloco C22.1** — cânone do Ato 1 consolidado (Primeiro Eco como evento incitante, investigação, Elyra no Ato 1, combate com função, nível 10 não rígido, matriz de revelação) ([`docs/lore/VARDHELM_ACT1_CANON.md`](docs/lore/VARDHELM_ACT1_CANON.md)); **Bloco C23** — rua do Distrito das Fundições pelo portão sul aberto (Fase 4, abertura do mundo; 12 trabalhadores, 4 observações; teste humano pendente) ([`docs/scenarios/vardhelm_foundry_street.md`](docs/scenarios/vardhelm_foundry_street.md)); **Bloco C24** — design da investigação (Fase 5) até o encontro com Elyra, só documentação; **C24.1** — decisões H1–H5, H7 (conceito) e H8 registradas, H6 aberto, H9 reservado; checkpoint local C22–C24 ([`docs/03_narrativa/VARDHELM_INVESTIGATION_DESIGN.md`](docs/03_narrativa/VARDHELM_INVESTIGATION_DESIGN.md)) ([`docs/scenarios/vardhelm_foundry_district.md`](docs/scenarios/vardhelm_foundry_district.md))
 - **Eventos estruturados (Godot):** Bloco B1 — `GameEventBus` de runtime (sem Autoload) alimentado por `GameplayEventPublisher`; não controla gameplay ([`docs/architecture/BLOCK_B1_STRUCTURED_EVENTS.md`](docs/architecture/BLOCK_B1_STRUCTURED_EVENTS.md))
 - **GameState canônico (Godot):** Modo sombra (Bloco A3) — acompanha Vardhelm em runtime via `GameStateShadowRecorder` (consumidor de eventos desde o B1), sem ser fonte de verdade e sem Save/Load ([`docs/architecture/BLOCK_A3_SHADOW_GAME_STATE.md`](docs/architecture/BLOCK_A3_SHADOW_GAME_STATE.md)); contratos do A2 em `godot/scripts/state/` ([`docs/architecture/BLOCK_A1_CANONICAL_GAME_STATE.md`](docs/architecture/BLOCK_A1_CANONICAL_GAME_STATE.md))
 
@@ -34,7 +34,115 @@
 
 ## 🗓️ Histórico de Entregas & Modificações
 
-### [2026-09-30] — Bloco C21.1: Correção de circulação entre a Forja 01 e o pátio (Godot) (HEAD)
+### [2026-10-01] — Bloco C24.1: Checkpoint local C22–C24 + decisões humanas H1–H9 (HEAD)
+- **Commit local** (sem push) consolidando o C22 (mapa de Vardhelm), o C22.1 (cânone do Ato 1), o C23 (rua do Distrito das Fundições) e o C24 (design da investigação). É um **estado técnico recuperável**, não aprovação artística. **C23: tecnicamente aprovado, teste humano ainda pendente. C24: design documentado, decisões humanas em consolidação.**
+- **Decisões humanas registradas (só documentação):**
+  - **H1:** painel fechado durante a investigação, aberto ou rompido no clímax, com revelação material sem cosmologia.
+  - **H2:** Durn fica na Forja e deixa aos poucos de ser o motor; clímax não definido.
+  - **H3:** o Galpão guarda o histórico operacional do reforço/selamento.
+  - **H4:** Elyra investiga o que existia antes das fundições.
+  - **H5:** "Véu" ainda não é introduzido.
+  - **H6:** conflito NÃO DEFINIDO (K-4 candidata).
+  - **H7:** verdade parcial aprovada como conceito; quem, por quê e o quê ficam em aberto.
+  - **H8:** progressão narrativa, não relógio.
+  - **H9:** ponte Arqueóloga ↔ Arconte reservada.
+- **Documentos atualizados:** [`VARDHELM_INVESTIGATION_DESIGN.md`](docs/03_narrativa/VARDHELM_INVESTIGATION_DESIGN.md) (tabela de decisões no topo e marcas "→ H#"), [`BLOCK_C24_VARDHELM_INVESTIGATION.md`](docs/architecture/BLOCK_C24_VARDHELM_INVESTIGATION.md) §5.1, [`VARDHELM_ACT1_CANON.md`](docs/lore/VARDHELM_ACT1_CANON.md) §5/§14, [`vardhelm_world_map.md`](docs/scenarios/vardhelm_world_map.md).
+- **UID:** `godot/tests/save_v2/c21_1_passage_playtest.gd.uid` incluído. É o UID gerado pelo Godot para o script versionado `c21_1_passage_playtest.gd` (`uid://cibmtij27ua3w`, único no projeto); o repositório já versiona os `.uid` dos outros playtests.
+- **Testes antes do commit:**
+  - `npx tsc --noEmit` exit 0;
+  - runner 1732/1732 (11 SCRIPT ERROR conhecidos de `memories/save_service.gd:44`, caminho legado);
+  - cena principal com 0 erros;
+  - testes legados iguais ao baseline;
+  - sonda A0 com a mesma diferença conhecida do baseline do C4 (textos e trabalhadores alterados em blocos anteriores).
+  - Playtests, todos renderizado e headless: C11 52/52, C15 17/17, C16 16/16, C17.3 11/11, C18 17/17, C21 25/25, C21.1 24/24, C23 16/16.
+  - C9 renderizado 66/66.
+  - Saves reais intactos.
+- Nenhum gameplay alterado no C24.1. C25 não iniciado.
+
+### [2026-10-01] — Bloco C24: Design da investigação de Vardhelm — do Primeiro Eco ao encontro com Elyra (documentação)
+- **Somente documentação.** Nenhum .gd, .tscn, dado de gameplay, localização, quest ou NPC alterado. C23 continua tecnicamente aprovado e aguardando fechamento humano/artístico.
+- **Criados:**
+  - [`VARDHELM_INVESTIGATION_DESIGN.md`](docs/03_narrativa/VARDHELM_INVESTIGATION_DESIGN.md): especificação da Fase 5. Fica em `docs/03_narrativa/` (a pasta de narrativa que já existe) em vez de criar `docs/narrative/`.
+  - [`BLOCK_C24_VARDHELM_INVESTIGATION.md`](docs/architecture/BLOCK_C24_VARDHELM_INVESTIGATION.md): registro do bloco, decisões humanas H1–H9 e blocos C25–C30 propostos.
+- **Design:** a investigação reaproveita consequências que já estão no jogo, sem fenômeno novo:
+  - os **horários** (folha de Durn ou relato, conforme a escolha do C15; quadro de manutenção; turnos da rua);
+  - o painel **reforçado** e a Forja 01 mais baixa que as outras fundições.
+- **Escalada proposta:** incidente → anomalia → registro → padrão → origem do selo (Galpão de Manufatura) → cruzamento com Elyra no mesmo registro → "já aconteceu antes e foi calado" → conflito.
+- **Recomendações:** painel fechado até o clímax; Durn como testemunha que não explica; "Véu" só na boca de Elyra, sem definição; conflito K-4. Cada decisão tem classe A–E; as propostas (C) **não** viraram cânone.
+- **Atualizados:** `VARDHELM_ACT1_CANON.md` (§5 e §14, como proposta), `vardhelm_world_map.md` (fluxo das Fases 5–7, Galpão).
+- **Testes:** nenhum executado (bloco de documentação); nenhum teste humano alegado.
+
+### [2026-10-01] — Bloco C23: Rua do Distrito das Fundições — Vardhelm como cidade (Godot)
+- **Função (Fase 4 do Ato 1):** a transição entre o microcosmo da Forja e Vardhelm como cidade; normalidade primeiro; prepara a investigação sem resolvê-la ([`BLOCK_C23_FOUNDRY_STREET.md`](docs/architecture/BLOCK_C23_FOUNDRY_STREET.md), [`vardhelm_foundry_street.md`](docs/scenarios/vardhelm_foundry_street.md)).
+- **Construído:** rua de serviço de 56 × 15 m (`vardhelm_foundry_street_01.json` → `vp_03_vardhelm_foundry_street.tscn`), saindo **andando pelo portão sul do pátio**, agora aberto com as folhas para dentro.
+  - Norte: fachada da fundição oeste (porta, quadro de turnos) e armazém leste (doca, talha de braço com carga subindo e descendo).
+  - Piso: o ramal do pátio encontra a linha da rua; vagões de minério.
+  - Sul: corredor ferroviário com trem de carga.
+  - Oeste: cancela; a rua continua na névoa.
+  - 12 trabalhadores anônimos: 7 andando virados para onde vão, 5 parados com função.
+  - 4 observações curtas; o portão tem texto pós-Eco que repete o fato do C13 visto de fora ("a Forja 01 soa mais baixa que as outras fundições").
+- **Compartilhado:**
+  - AmbientLife: 3 opções **opcionais** (`face_movement`, `facing_degrees`, `carry_offset`); Forja e pátio idênticos;
+  - controlador do distrito: `extra_levels`, `extra_lives`, `observation_roots()`, `life_named()`, `animations`;
+  - slice: raízes de observação do distrito;
+  - 4 IDs de observação;
+  - pátio: portão aberto, trilho até o portão, fundo sul removido; `vp_02` re-assada com `unique_id` preservados;
+  - 3 checks de contagem do C21 adaptados aos itens do pátio e à config.
+- **Sem:** Elyra, combate, NPC nomeado, quest, diálogo, segundo Eco, lore profundo.
+- **Corrigido durante o bloco** (achado do playtest): as folhas do portão, abertas para fora, avançavam 2,85 m sobre a calçada e travavam quem andava junto ao muro. Passaram a abrir para dentro do pátio.
+- **Testes:**
+  - runner **1732/1732** (C23 38/38); playtest novo `c23_foundry_street_playtest.gd` **16/16** renderizado e headless (larguras reais: portão 5,85 m, rua 9,15–14,8 m);
+  - C21.1 24/24; C21 25/25; C11 52/52; C15 17/17; C16 16/16; C17.3 11/11; C18 17/17 (renderizado e headless); C9 66/66;
+  - cena principal sem erros; legados iguais; saves reais intactos; `tsc` limpo.
+- **Desempenho (na tomada):** rua 16,6–17,0 ms; pátio 16,65 ms; Forja (sonda do C19) 17,37–17,52 ms (C21.1: 17,26 ms). A rua tem 217 malhas e 17 corpos.
+- **Pendências:**
+  - B: cruzamentos ocasionais de pedestres; primeira perna das rotas no AmbientLife (resolvida por dados na rua);
+  - C: sensação de cidade maior e ocupação (**teste humano pendente**).
+- **Sem commit, sem push.**
+
+### [2026-10-01] — Bloco C22.1: Consolidação canônica do arco de Vardhelm — Ato 1
+- **Documental**, sem gameplay: as decisões humanas D1–D7 sobre o relatório do C22 foram formalizadas.
+- **Novos:**
+  - [`docs/lore/VARDHELM_ACT1_CANON.md`](docs/lore/VARDHELM_ACT1_CANON.md): referência canônica do Ato 1, com a origem de cada item ([DH] decisão humana, [HIST+DH] material histórico, [DOC] documento, [IMPL] implementado);
+  - [`docs/lore/LORE_REVELATION_MATRIX.md`](docs/lore/LORE_REVELATION_MATRIX.md): camadas de revelação, verdade fragmentada entre os povos, Lurídeos.
+- **Decisões formalizadas:**
+  - o **Primeiro Eco é o evento incitante** e cria a pergunta, sem entregar a resposta;
+  - depois do gancho começa uma **investigação em Vardhelm**;
+  - **Elyra participa do Ato 1** como arqueóloga élfica com conhecimento incompleto, sem revelar a linhagem (Ato 4);
+  - Durn segue como primeiro vínculo local, com o futuro NÃO DEFINIDO;
+  - **haverá combate no Ato 1**, só com função narrativa;
+  - o **nível 10 não é condição rígida** de saída;
+  - clímax, conclusão e transição são obrigatórios; a forma da viagem fica para depois;
+  - só áreas com função entram; Brenhold foi **adiado**;
+  - Kael (Draconiano) fica reservado ao Ato 2;
+  - Aethel, Asterion (civilização, não deus), Homem Cinzento e Último Experimento ficam na camada 3;
+  - "Véu" só aparece com justificativa do personagem;
+  - estrutura macro em **10 fases**;
+  - o C23 (rua do distrito) é a transição da Forja para a cidade.
+- **Preservados:**
+  - contradições: Brenhold; nível 10 × runtime;
+  - pontos a conciliar: "arqueóloga élfica" × "Última Arconte Rúnica"; Kael no Ato 2 × documentação do Ato 4.
+- **Atualizados:** `BLOCK_C22_VARDHELM_WORLD_MAP.md` (§14) e `vardhelm_world_map.md` (fluxo por fases).
+- **Local escolhido para o lore:** `docs/lore/`, como pedido. `DOCUMENTACAO/` é um esqueleto `CANON_LOCKED` vazio, `docs/03_narrativa` guarda eventos individuais e `docs/01_cenario` guarda a bíblia racial travada.
+- **Sem commit, sem push.** C22 e C22.1 continuam no working tree; HEAD `b01da03`.
+
+### [2026-10-01] — Bloco C22: Mapa de produção e continuidade do contexto de Vardhelm
+- **Contexto:** C21 e C21.1 **fechados**; o teste humano confirmou o acesso confortável entre a Forja 01 e o pátio.
+- **Documental:** auditoria, mapeamento e planejamento. Nenhum gameplay alterado; nenhuma área, NPC, quest, diálogo, memória, Eco ou consequência criado.
+- **Novos:**
+  - [`BLOCK_C22_VARDHELM_WORLD_MAP.md`](docs/architecture/BLOCK_C22_VARDHELM_WORLD_MAP.md): estado atual, fontes, classificação A–E, Durn, Elyra, Primeiro Eco, saída do Ato 1, definição de "Vardhelm completa" (V1–V12), backlog, candidato a C23, decisões D1–D7;
+  - [`vardhelm_world_map.md`](docs/scenarios/vardhelm_world_map.md): mapa conceitual, locais e fluxo 🟢/🟡/⚪.
+- **Achados:**
+  - o arco de Vardhelm depois do gancho "Então não fui só eu." **não está definido** no repositório;
+  - Durn só existe no slice (sem futuro documentado);
+  - Elyra só aparece nos Atos 4 e 5 (Avatar, "Última Arconte Rúnica", escolha final); a associação dela com o Ato 1 é material histórico **fora do repositório**;
+  - a saída do Ato 1 é `EVT_TRANSICAO_ATO1_ATO2` no **nível 10** (documentos de sistema), mas o slice Godot não tem níveis nem combate (contradição registrada);
+  - Aethel, Asterion e Homem Cinzento não aparecem em nenhum arquivo.
+- **Candidato técnico ao C23:** a rua do Distrito das Fundições, além do portão sul do pátio (TIER1 §1.4.1). **Recomendação: não construir antes da decisão D1.**
+- **Refinamento UX registrado (não corrigido):** a janela de observação (660 × 300 px fixos) é grande demais para textos curtos.
+- **Git:** HEAD `b01da03` local, sem push; C22 não commitado.
+
+### [2026-09-30] — Bloco C21.1: Correção de circulação entre a Forja 01 e o pátio (Godot)
 - **Problema (teste humano do C21):** o jogador teve bastante dificuldade para chegar à talha.
 - **Causa (inspeção com a cápsula real do jogador, 0,80 m de largura):**
   - a **bancada** (3,2 m, no eixo do portão, 1,5 m à frente dele) deixava só 0,90 m até o respiro de brasas, ou seja, **0,10 m** livres para o centro do jogador;

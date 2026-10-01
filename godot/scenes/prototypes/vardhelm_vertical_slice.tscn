@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/prototypes/vp_01_vardhelm.tscn" id="1_vardhelm"]
 [ext_resource type="Script" path="res://scripts/vardhelm/vardhelm_vertical_slice.gd" id="2_slice"]
 [ext_resource type="PackedScene" path="res://scenes/prototypes/vardhelm_audio.tscn" id="3_audio"]
 [ext_resource type="PackedScene" path="res://scenes/prototypes/vp_02_vardhelm_foundry_district.tscn" id="4_district"]
+[ext_resource type="PackedScene" path="res://scenes/prototypes/vp_03_vardhelm_foundry_street.tscn" id="5_street"]
 
 [node name="VardhelmVerticalSlice" type="Node3D"]
 script = ExtResource("2_slice")
@@ -12,5 +13,8 @@ script = ExtResource("2_slice")
 
 [node name="VP02_FoundryDistrict" parent="." instance=ExtResource("4_district")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -11.9, 19.5)
+
+[node name="VP03_FoundryStreet" parent="." instance=ExtResource("5_street")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -11.9, 39.5)
 
 [node name="VardhelmAudio" parent="." instance=ExtResource("3_audio")]

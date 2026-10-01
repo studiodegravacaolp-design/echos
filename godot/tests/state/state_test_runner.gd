@@ -48,6 +48,7 @@ const SUITES := [
 	preload("res://tests/save_v2/test_c17_forge_bay.gd"),
 	preload("res://tests/save_v2/test_c18_contextual_windows.gd"),
 	preload("res://tests/save_v2/test_c21_foundry_district.gd"),
+	preload("res://tests/save_v2/test_c23_foundry_street.gd"),
 ]
 
 var _checks := 0

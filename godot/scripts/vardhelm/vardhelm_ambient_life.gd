@@ -199,6 +199,9 @@ func _create_worker(definition: Dictionary) -> Node3D:
 	worker.name = str(definition.get("id", "Worker"))
 	var p = definition.get("position", [0,0,0])
 	worker.position = Vector3(float(p[0]),float(p[1]),float(p[2]))
+	# C23 (opcional): para onde o trabalhador parado olha, em graus (frente = −Z local).
+	if definition.has("facing_degrees"):
+		worker.rotation_degrees.y = float(definition["facing_degrees"])
 
 	# C17.2: silhueta humana simples no lugar da cápsula (só visual). "accent" continua
 	# sendo a cor da camisa; "outfit" (opcional) acrescenta avental/boné/calça.
@@ -217,6 +220,10 @@ func _create_worker(definition: Dictionary) -> Node3D:
 		box.size = Vector3(float(c[0]), float(c[1]), float(c[2]))
 		carried.mesh = box
 		carried.position = Vector3(0, 1.0, -0.38)
+		# C23 (opcional): carga em outra altura/distância (ex.: carrinho de mão empurrado).
+		if definition.has("carry_offset"):
+			var o = definition["carry_offset"]
+			carried.position = Vector3(float(o[0]), float(o[1]), float(o[2]))
 		carried.material_override = _mat(Color("#3F3022"))
 		worker.add_child(carried)
 
@@ -264,10 +271,20 @@ func _start_routine(worker: Node3D, routine: String, delay := 0.0) -> void:
 func _loop_route(worker: Node3D, route: Array[Vector3], idle_time: float, work_time: float) -> void:
 	var tween := create_tween()
 	tween.set_loops()
+	# C23 (opcional, "face_movement"): vira para o próximo ponto antes de andar até ele.
+	var face := bool((worker.get_meta("definition", {}) as Dictionary).get("face_movement", false))
 	for target in route:
+		if face:
+			tween.tween_callback(_face_towards.bind(worker, target))
 		tween.tween_property(worker, "position", target, work_time)
 		tween.tween_interval(idle_time)
 	_worker_routines[worker.name] = tween
+
+func _face_towards(worker: Node3D, target: Vector3) -> void:
+	var d := target - worker.position
+	d.y = 0.0
+	if d.length() > 0.05:
+		worker.rotation.y = atan2(-d.x, -d.z)
 
 func _animate_worker(worker: Node3D) -> void:
 	var body := worker.find_child("Body", true, false)

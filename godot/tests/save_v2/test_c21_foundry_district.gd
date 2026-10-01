@@ -131,7 +131,9 @@ func _test_scene(t) -> void:
 	var forge_workers := game.get_node("AmbientLife/AmbientWorkers").get_children()
 	var forge_observations := game.get_node("AmbientLife/EnvironmentalObservations").get_children()
 	t.check(forge_workers.size() == 7 and forge_observations.size() == 4, "Forja 01 intacta: 7 trabalhadores, 4 observações")
-	t.check(game.observation_roots().size() == 2 and district.observation_root().get_child_count() == 3, "duas raízes de observação (Forja e pátio), 3 no pátio")
+	# C23: a rua acrescentou uma terceira raiz; o que o C21 garante é a da Forja e a do pátio.
+	var roots := game.observation_roots()
+	t.check(roots.has(game.get_node("AmbientLife/EnvironmentalObservations")) and roots.has(district.observation_root()) and district.observation_root().get_child_count() == 3, "raízes de observação da Forja e do pátio presentes, 3 no pátio")
 	var level_camera := level.get_node("Camera3D") as Camera3D
 	t.check(not level_camera.current and game.player.camera.current, "a câmera do jogador continua sendo a atual")
 	var environments := game.find_children("*", "WorldEnvironment", true, false)
@@ -141,8 +143,11 @@ func _test_scene(t) -> void:
 	var mismatched := bodies.filter(func(b): return b.find_children("*", "MeshInstance3D", false, false).size() != 1 or b.find_children("*", "CollisionShape3D", false, false).size() != 1)
 	t.check(bodies.size() > 40 and mismatched.is_empty(), "colisão = geometria: %d corpos, cada um com a própria malha" % bodies.size())
 	var lights := district.find_children("*", "OmniLight3D", false, false)
-	t.check(lights.size() == 3 and lights.all(func(l): return not l.shadow_enabled), "3 lampiões de querosene, sem sombra")
-	t.check(district.find_children("*", "CPUParticles3D", false, false).size() == 3, "fumaça do respiro, vapor e poeira de carvão (3 emissores)")
+	# C23: os lampiões da rua entram no mesmo controlador; os 3 primeiros da config são os do pátio.
+	var config_lamps: Array = district.config.get("lamps", [])
+	t.check(lights.size() == config_lamps.size() and config_lamps.size() >= 3 and lights.all(func(l): return not l.shadow_enabled), "lampiões de querosene da config (%d, os 3 primeiros no pátio), sem sombra" % lights.size())
+	var emitters := district.find_children("*", "CPUParticles3D", false, false).map(func(p): return String(p.name))
+	t.check(emitters.has("ForgeVentSmoke") and emitters.has("WestFoundrySteam") and emitters.size() == (district.config.get("smoke", []) as Array).size() + 1, "fumaça do respiro, vapor e poeira de carvão do pátio presentes (%s)" % str(emitters))
 
 
 func _test_integration(t) -> void:

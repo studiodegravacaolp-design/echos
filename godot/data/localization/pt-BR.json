@@ -60,5 +60,14 @@
   "observation.foundry_chain_pulley.text": "A corrente desce da viga até a caçamba. Os elos de baixo estão lisos de tanto uso; os de cima, pretos de fuligem.",
   "observation.foundry_forge_door.title": "Porta da fundição",
   "observation.foundry_forge_door.text": "Pela porta, o barulho da Forja 01 desce até o pátio. Os carregadores entram e saem sem olhar para cima.",
-  "observation.foundry_forge_door.after_echo": "Pela porta, o barulho da Forja 01 chega mais baixo do que antes. Os carregadores continuam entrando e saindo."
+  "observation.foundry_forge_door.after_echo": "Pela porta, o barulho da Forja 01 chega mais baixo do que antes. Os carregadores continuam entrando e saindo.",
+  "observation.foundry_street_gate.title": "Portão do pátio",
+  "observation.foundry_street_gate.text": "O portão do pátio da Forja 01 dá direto na rua. O trilho do carvão passa por baixo dele.",
+  "observation.foundry_street_gate.after_echo": "Daqui da rua, a Forja 01 soa mais baixa que as outras fundições.",
+  "observation.foundry_street_shift_board.title": "Quadro de turnos",
+  "observation.foundry_street_shift_board.text": "Turnos a giz, riscados e refeitos. Os nomes mudam; os horários continuam os mesmos.",
+  "observation.foundry_street_ore_wagons.title": "Vagões de minério",
+  "observation.foundry_street_ore_wagons.text": "Chegam pela linha da rua cheios de minério e voltam vazios para buscar mais.",
+  "observation.foundry_street_sharpening.title": "Pedra de afiar",
+  "observation.foundry_street_sharpening.text": "Ferramentas de várias fundições esperam a vez. Cada cabo tem a marca do dono riscada."
 }

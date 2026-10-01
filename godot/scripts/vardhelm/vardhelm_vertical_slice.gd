@@ -473,8 +473,9 @@ func observation_roots() -> Array[Node]:
     var forge := get_node_or_null("AmbientLife/EnvironmentalObservations")
     if forge != null:
         roots.append(forge)
-    if foundry_district != null and foundry_district.observation_root() != null:
-        roots.append(foundry_district.observation_root())
+    # C23: todas as vidas do distrito (pátio e rua).
+    if foundry_district != null:
+        roots.append_array(foundry_district.observation_roots())
     return roots
 
 func _setup_vardhelm_dressing() -> void:
