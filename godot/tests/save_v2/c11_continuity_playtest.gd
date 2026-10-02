@@ -413,11 +413,20 @@ func _run() -> void:
 		guard += 1
 	await _frames(4)
 	_check(final_lines == ["...Você ouviu, não ouviu?", "Então não fui só eu.", "..."], "C14: gancho — Durn: %s" % " / ".join(final_lines))
+	# C25: o gancho não se repete; ao voltar, Durn passa aos horários (antes: silêncio).
 	await _key(KEY_E)
-	var silent_line := game.dialogue_box.text_label.text if game.dialogue_controller.is_active() else ""
-	await _key(KEY_ENTER, false, true)
+	var next_line := game.dialogue_box.text_label.text if game.dialogue_controller.is_active() else ""
+	guard = 0
+	while game.dialogue_controller.is_active() and guard < 8:
+		var hour_buttons: Array = game.dialogue_box.choices_box.get_children().filter(func(c): return c is Button and not c.is_queued_for_deletion())
+		if hour_buttons.is_empty():
+			await _key(KEY_ENTER, false, true)
+		else:
+			(hour_buttons[0] as Button).pressed.emit()
+			await _frames(3)
+		guard += 1
 	await _frames(4)
-	_check(silent_line == "..." and not game.dialogue_controller.is_active(), "C14: depois, Durn só fica em silêncio (\"%s\")" % silent_line)
+	_check(next_line == "...Eu comecei a anotar." and not game.dialogue_controller.is_active(), "C14/C25: depois do gancho, Durn não o repete e passa aos horários (\"%s\")" % next_line)
 	await _key(KEY_S, true)
 	var state_g := {"functional": _functional(), "projection": _projection()}
 	await _walk_to(spawn, 0.6, 300)

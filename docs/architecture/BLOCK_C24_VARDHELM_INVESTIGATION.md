@@ -67,7 +67,7 @@ Os detalhes e as 14 perguntas respondidas estão na especificação (§§0–17)
 | H8 | **decidido** | progressão narrativa, **não relógio**, dispara os eventos importantes do painel |
 | H9 | **reservado** | ponte "arqueóloga élfica" ↔ "Última Arconte Rúnica" não se resolve agora |
 
-**Estado do C24:** design documentado; decisões humanas em consolidação (H6 aberto; H7 com detalhes abertos; H9 reservado). Os blocos abaixo continuam **não implementados**, e o C25 não foi iniciado.
+**Estado do C24:** design documentado; decisões humanas em consolidação (H6 aberto; H7 com detalhes abertos; H9 reservado). Os blocos abaixo continuam **não implementados**, salvo o C25 (implementado depois: [`BLOCK_C25_THE_HOURS.md`](BLOCK_C25_THE_HOURS.md)).
 
 ## 6. Decomposição em blocos de produção (não implementados)
 

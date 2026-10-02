@@ -134,6 +134,15 @@ Qualquer outro distrito: **NÃO DEFINIDO**.
 
 O restante da especificação do C24 continua **proposta**.
 
+**Os horários [DH, C26]:** cânone atual de Vardhelm, aprovado depois do C25 ([`BLOCK_C25_THE_HOURS.md`](../architecture/BLOCK_C25_THE_HOURS.md)).
+- Durn anotou hoje **5h58, 13h58 e 17h41**; **17h41** é o momento do Primeiro Eco.
+- O quadro de turnos marca as trocas às **6h, 14h e 22h**.
+- 5h58 e 13h58 caem pouco antes das trocas de 6h e de 14h; 17h41 **não** tem essa relação. É um padrão parcial, não uma resposta.
+- Só se revisam se um sistema de tempo exigir isso concretamente no futuro.
+- **Continuam NÃO DEFINIDOS:** o que o fenômeno é, por que acontece perto da troca de turno e por que 17h41 foi diferente.
+
+**C26 (implementado; leitura de produção, não cânone novo):** depois da comparação, o quadro de manutenção mostra uma linha **raspada** que termina em "...58", e o painel mostra parafusos de reforço **mais novos que a placa**. É evidência, não fato estabelecido: **não** se afirma quem raspou, quem reforçou, quando nem por quê ([`BLOCK_C26_REREADS_PATTERN.md`](../architecture/BLOCK_C26_REREADS_PATTERN.md)).
+
 ## 6. Elyra
 
 **Presença no Ato 1 [HIST+DH]:**

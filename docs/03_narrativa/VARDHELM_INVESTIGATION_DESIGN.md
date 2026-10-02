@@ -338,6 +338,35 @@ C23 continua **tecnicamente aprovado e aguardando o fechamento humano/artístico
 | Pedra de afiar | marca de dono riscada: possível ligação com a "ferramenta familiar" da Forja (opcional) |
 | Caminho ao Galpão | a rua é o acesso natural; a saída (porta, cancela, direção) fica a definir no bloco de construção |
 
+## 18.1 Implementado no C25 — os horários
+
+O primeiro passo (§16: "volta a Durn — os horários" e o início do "padrão") está jogável. Detalhes em [`BLOCK_C25_THE_HOURS.md`](../architecture/BLOCK_C25_THE_HOURS.md).
+
+| Item | Como ficou | Classe |
+|---|---|---|
+| Os horários | 5h58 · 13h58 · 17h41 (o último sublinhado; o momento do Primeiro Eco) | **[A] cânone** (decisão humana depois do C25) |
+| Rotina da cidade | troca de turno às 6h, 14h e 22h (quadro de turnos da rua) | **[A] cânone** (idem) |
+| Caminho "Sentir o quê?" | Durn conta ("Eu comecei a anotar." … "Não sei. Só sei que repetiu.") | [C] implementado |
+| Caminho "Não senti nada." | Durn aponta a folha; a folha mostra os horários | [C] implementado |
+| Padrão percebido | dois horários minutos antes da troca de turno; o sublinhado fora da rotina | [C] implementado; **não explica nada** |
+| Próximo objetivo | "Descubra o que acontece na Forja 01 nesses horários." (sem apontar o Galpão) | [C] implementado |
+| Memória | nenhuma nova (os horários são conhecimento, não impressão) | [C] |
+| Painel, Elyra, Véu | intocados (H1, H4, H5) | [A] |
+
+## 18.2 Implementado no C26 — releituras e padrão
+
+Detalhes em [`BLOCK_C26_REREADS_PATTERN.md`](../architecture/BLOCK_C26_REREADS_PATTERN.md). Cobre o "padrão" e o início de "quem selou?" do §16.
+
+| Item | Como ficou | Classe |
+|---|---|---|
+| Gatilho | a comparação no quadro de turnos (C25) | [C] implementado |
+| Quadro de manutenção relido | linha raspada; resta "...58" (continua a "marca quase apagada" do C13) | [C] implementado; **evidência, não fato** |
+| Painel relido | parafusos do reforço mais novos que a placa; continua fechado (H1) | [C] implementado |
+| 17h41 | sem correspondência; nenhum texto o explica | [A] (decisão humana) |
+| Objetivo seguinte | "Descubra quem reforçou o painel e onde ficam os registros da Forja." | [C] implementado; prepara o Galpão (H3) sem nomeá-lo |
+| Durn | "...Raspado? Não fui eu." (caminho da confiança); silêncio no outro | [C] implementado (H2) |
+| Memória | nenhuma nova | [C] |
+
 ## 19. Local deste documento
 
 O pedido indicava `docs/narrative/`, pasta que **não existe**. O repositório já tem [`docs/03_narrativa/`](.) para documentos de narrativa, ao lado de `docs/lore/` (cânone) e `docs/scenarios/` (cenários). Criar `docs/narrative/` duplicaria uma pasta com a mesma função. Por isso o documento fica em `docs/03_narrativa/`.

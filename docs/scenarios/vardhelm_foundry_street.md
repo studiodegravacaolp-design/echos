@@ -106,6 +106,7 @@
 | Portão do pátio | "O portão do pátio da Forja 01 dá direto na rua. O trilho do carvão passa por baixo dele." | onde a Forja fica na cidade |
 | Portão do pátio, **depois do Eco** | "Daqui da rua, a Forja 01 soa mais baixa que as outras fundições." | a pergunta "aquilo afetou só a Forja?" sem resposta nem novo fenômeno |
 | Quadro de turnos | "Turnos a giz, riscados e refeitos. Os nomes mudam; os horários continuam os mesmos." | trabalho e rotina |
+| Quadro de turnos, **com os horários de Durn** (C25) | "Troca de turno às 6h, às 14h e às 22h. Dois horários de Durn caem minutos antes da troca. O sublinhado, não." | a anomalia comparada com a rotina da cidade ([`BLOCK_C25_THE_HOURS.md`](../architecture/BLOCK_C25_THE_HOURS.md)) |
 | Vagões de minério | "Chegam pela linha da rua cheios de minério e voltam vazios para buscar mais." | circulação de material |
 | Pedra de afiar | "Ferramentas de várias fundições esperam a vez. Cada cabo tem a marca do dono riscada." | manutenção; a rua serve a muitas fundições |
 
@@ -150,7 +151,7 @@
 
 # LACUNAS
 
-- O papel da rua na investigação (Fase 5): **NÃO DEFINIDO**. A rua só prepara o palco.
+- O papel da rua na investigação (Fase 5): **C25** — o quadro de turnos é a rotina com que o jogador compara os horários de Durn. O resto da rua não mudou.
 - Nomes da fundição oeste e do armazém; o que fica além da cancela e do corredor.
 - `LOC-` da rua.
 

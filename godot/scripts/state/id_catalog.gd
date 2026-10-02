@@ -30,10 +30,20 @@ const DIALOGUE_INTRO := "dialogue.vardhelm.intro"
 ## C12: conversa de Durn depois do Primeiro Eco.
 const DIALOGUE_AFTER_ECHO := "dialogue.vardhelm.after_echo"
 const DIALOGUE_AFTER_PANEL := "dialogue.vardhelm.after_panel"
+## C25: os horários — Durn conta o que anotou (caminho "Sentir o quê?") ou aponta a folha ("Não senti nada.").
+const DIALOGUE_THE_HOURS := "dialogue.vardhelm.the_hours"
+const DIALOGUE_THE_NOTES := "dialogue.vardhelm.the_notes"
+## C26: a reação curta de Durn à linha raspada (caminho "Sentir o quê?").
+const DIALOGUE_THE_MARK := "dialogue.vardhelm.the_mark"
 
 const QUEST_FIRST_ECHO := "quest.vardhelm.first_echo"
 ## C12: próxima investigação apontada por Durn (painel selado).
 const QUEST_SEALED_PANEL := "quest.vardhelm.sealed_panel"
+## C25: os horários (conhecer e comparar) e o que vem depois deles.
+const QUEST_THE_HOURS := "quest.vardhelm.the_hours"
+const QUEST_THOSE_HOURS := "quest.vardhelm.those_hours"
+## C26: depois das releituras — quem reforçou o painel e onde ficam os registros.
+const QUEST_THE_REINFORCEMENT := "quest.vardhelm.the_reinforcement"
 
 const ECHO_FIRST := "echo.vardhelm.first"
 
@@ -75,8 +85,8 @@ const ENVSTATE_DURN_ALONE := "envstate.vardhelm.durn_alone"
 const KNOWN_IDS := {
 	KIND_SCENARIO: [SCENARIO_VARDHELM],
 	KIND_NPC: [NPC_DURN],
-	KIND_DIALOGUE: [DIALOGUE_INTRO, DIALOGUE_AFTER_ECHO, DIALOGUE_AFTER_PANEL],
-	KIND_QUEST: [QUEST_FIRST_ECHO, QUEST_SEALED_PANEL],
+	KIND_DIALOGUE: [DIALOGUE_INTRO, DIALOGUE_AFTER_ECHO, DIALOGUE_AFTER_PANEL, DIALOGUE_THE_HOURS, DIALOGUE_THE_NOTES, DIALOGUE_THE_MARK],
+	KIND_QUEST: [QUEST_FIRST_ECHO, QUEST_SEALED_PANEL, QUEST_THE_HOURS, QUEST_THOSE_HOURS, QUEST_THE_REINFORCEMENT],
 	KIND_ECHO: [ECHO_FIRST],
 	KIND_MEMORY: [MEMORY_FIRST_ECHO, MEMORY_MAINTENANCE_BOARD, MEMORY_SEALED_PANEL, MEMORY_TOOL_RACK],
 	KIND_CONSEQUENCE: [CONSEQUENCE_HEARD_ECHO, CONSEQUENCE_FIRST_ECHO_COMPLETE, CONSEQUENCE_FELT_NOTHING],
@@ -85,7 +95,7 @@ const KNOWN_IDS := {
 }
 
 ## Aliases: ID atual do conteúdo/runtime -> ID canônico, por tipo.
-## Fontes: data/dialogue/vardhelm_intro.json, vardhelm_after_echo.json, vardhelm_after_panel.json, data/quests/vardhelm_first_echo.json, vardhelm_sealed_panel.json,
+## Fontes: data/dialogue/vardhelm_intro.json, vardhelm_after_echo.json, vardhelm_after_panel.json, vardhelm_the_hours.json, vardhelm_the_notes.json (C25), vardhelm_the_mark.json (C26), data/quests/vardhelm_first_echo.json, vardhelm_sealed_panel.json, vardhelm_the_hours.json, vardhelm_those_hours.json (C25), vardhelm_the_reinforcement.json (C26),
 ## data/vardhelm/ambient_life.json, data/vardhelm/foundry_district_life.json (C21), data/vardhelm/foundry_street_life.json (C23) e scripts/vardhelm/vardhelm_vertical_slice.gd.
 const ALIASES := {
 	KIND_NPC: {
@@ -95,10 +105,16 @@ const ALIASES := {
 		"vardhelm_intro": DIALOGUE_INTRO,
 		"vardhelm_after_echo": DIALOGUE_AFTER_ECHO,
 		"vardhelm_after_panel": DIALOGUE_AFTER_PANEL,
+		"vardhelm_the_hours": DIALOGUE_THE_HOURS,
+		"vardhelm_the_notes": DIALOGUE_THE_NOTES,
+		"vardhelm_the_mark": DIALOGUE_THE_MARK,
 	},
 	KIND_QUEST: {
 		"vardhelm_first_echo": QUEST_FIRST_ECHO,
 		"vardhelm_sealed_panel": QUEST_SEALED_PANEL,
+		"vardhelm_the_hours": QUEST_THE_HOURS,
+		"vardhelm_those_hours": QUEST_THOSE_HOURS,
+		"vardhelm_the_reinforcement": QUEST_THE_REINFORCEMENT,
 	},
 	KIND_MEMORY: {
 		"vardhelm_first_echo_memory": MEMORY_FIRST_ECHO,

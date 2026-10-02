@@ -1,0 +1,11 @@
+{
+  "dialogue_id": "vardhelm_the_mark",
+  "entries": [
+    {
+      "entry_id": "not_me",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_mark.not_me",
+      "choices": []
+    }
+  ]
+}

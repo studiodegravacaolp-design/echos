@@ -81,7 +81,8 @@ func _test_scene(t) -> void:
 	var lamp := dressing.get_node_or_null("WorkLight_00") as OmniLight3D
 	var fixture := dressing.get_node_or_null("WorkLightFixture_00") as Node3D
 	t.check(lamp != null and fixture != null and lamp.position.is_equal_approx(Vector3(-6.2, 2.55, 2.0)) and fixture.position.is_equal_approx(Vector3(-6.2, 2.7, 2.0)) and lamp.light_color.is_equal_approx(Color("#FF8A3D")) and is_equal_approx(lamp.light_energy, 0.35), "WorkLight_00 e luminária: mesmos nomes, posição, cor e energia (C13/C14)")
-	var observations := {"maintenance_board": Vector3(-5.7, 1.4, -3.9), "sealed_panel": Vector3(-6.7, 1.3, 1.8), "tool_rack": Vector3(-3.5, 1.1, 3.1), "durn_notes": Vector3(-4.0, 0.02, -2.0)}
+	# C26: a âncora de interação do quadro desceu ao chão (como a de Durn) — ver BLOCK_C26 §6.
+	var observations := {"maintenance_board": Vector3(-5.7, 0.25, -3.9), "sealed_panel": Vector3(-6.7, 1.3, 1.8), "tool_rack": Vector3(-3.5, 1.1, 3.1), "durn_notes": Vector3(-4.0, 0.02, -2.0)}
 	var moved: Array = []
 	for id in observations:
 		var node := game.get_node("AmbientLife/EnvironmentalObservations/%s" % id) as Node3D

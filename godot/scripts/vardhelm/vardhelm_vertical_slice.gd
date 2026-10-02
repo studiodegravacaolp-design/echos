@@ -51,6 +51,10 @@ var quest_data: QuestData
 var after_echo_dialogue_data: DialogueData
 var followup_quest_data: QuestData
 var after_panel_dialogue_data: DialogueData
+## C25: os horários — primeiro passo da investigação (quests + derivações; sem estado próprio).
+var hours: VardhelmHoursInvestigation
+## C26: releituras — o quadro de manutenção e o painel, relidos depois da comparação.
+var rereads: VardhelmRereadsInvestigation
 
 var objective_panel: PanelContainer
 var objective_label: Label
@@ -145,6 +149,8 @@ func _setup_services() -> void:
     after_echo_dialogue_data = JSON_LOADER.load_dialogue(AFTER_ECHO_DIALOGUE_PATH)
     after_panel_dialogue_data = JSON_LOADER.load_dialogue(AFTER_PANEL_DIALOGUE_PATH)
     followup_quest_data = JSON_LOADER.load_quest(FOLLOWUP_QUEST_PATH)
+    hours = VardhelmHoursInvestigation.new(quest_controller, narrative_controller)
+    rereads = VardhelmRereadsInvestigation.new(quest_controller, narrative_controller)
 
 func _setup_ui() -> void:
     var canvas := CanvasLayer.new()
@@ -547,13 +553,23 @@ func _on_npc_interaction(_actor: Node, _target: Interactable) -> void:
     # C12: antes do Primeiro Eco, a conversa inicial de sempre. Depois dele, Durn
     # reage à descoberta uma vez; concluída essa conversa, só retoma a pista.
     # C14: depois do painel examinado, a última fala dele (uma vez); depois, silêncio.
+    # C25: depois do gancho, os horários (ele conta, ou aponta a folha, conforme a escolha).
     if not _first_echo_resolved():
         dialogue_controller.start_dialogue(dialogue_data, "start")
     elif quest_controller.states.is_completed(FOLLOWUP_QUEST_ID):
         if not dialogue_controller.persistent_state.is_completed(AFTER_PANEL_DIALOGUE_ID):
             dialogue_controller.start_dialogue(after_panel_dialogue_data, "heard")
-        else:
+            return
+        # Save de antes do C25 (gancho já dito, etapa ainda não aberta): abre agora, ao voltar a ele.
+        hours.start()
+        # C26: depois da linha raspada, só uma reação curta (nunca uma nova etapa).
+        var pick := rereads.durn_dialogue()
+        if pick.is_empty():
+            pick = hours.durn_dialogue(dialogue_controller.persistent_state, after_panel_dialogue_data, AFTER_PANEL_SILENT_ENTRY)
+        if pick.is_empty():
             dialogue_controller.start_dialogue(after_panel_dialogue_data, AFTER_PANEL_SILENT_ENTRY)
+        else:
+            dialogue_controller.start_dialogue(pick[0], pick[1])
     elif not dialogue_controller.persistent_state.is_completed(AFTER_ECHO_DIALOGUE_ID):
         dialogue_controller.start_dialogue(after_echo_dialogue_data, "start")
     else:
@@ -612,6 +628,10 @@ func _on_dialogue_finished(dialogue: DialogueData) -> void:
     # C12: a conversa pós-Eco abre a próxima investigação (painel selado).
     if dialogue != null and dialogue.dialogue_id == AFTER_ECHO_DIALOGUE_ID and not quest_controller.states.active.has(FOLLOWUP_QUEST_ID) and not quest_controller.states.is_completed(FOLLOWUP_QUEST_ID):
         quest_controller.start_quest(FOLLOWUP_QUEST_ID)
+    # C25: o gancho ("Então não fui só eu.") abre os horários; Durn contando-os conclui a 1ª parte.
+    if dialogue != null and dialogue.dialogue_id == AFTER_PANEL_DIALOGUE_ID:
+        hours.start()
+    hours.on_dialogue_finished(dialogue)
     _refresh_objective_text()
 
 func _on_dialogue_consequence(consequence_id: String) -> void:
@@ -737,7 +757,9 @@ func _on_candidate_changed(candidate: Interactable) -> void:
 
 func _on_observation_revealed(observation_id: String, title_key: String, text_key: String) -> void:
     var title := localization.tr_key(title_key)
-    var text := localization.tr_key(text_key)
+    # C25: a folha e o quadro de turnos, lidos por quem investiga os horários.
+    # C26: o quadro de manutenção e o painel, relidos depois da comparação.
+    var text := localization.tr_key(rereads.observation_text_key(observation_id, hours.observation_text_key(observation_id, text_key)))
     observation_title.text = title
     observation_text.text = text
     observation_panel.visible = true
@@ -758,6 +780,10 @@ func _on_observation_revealed(observation_id: String, title_key: String, text_ke
         var ambient_life := get_node_or_null("AmbientLife") as VardhelmAmbientLife
         if ambient_life != null:
             ambient_life.play_closing_silence()
+    # C25: a folha dá os horários; o quadro de turnos, a comparação com a rotina.
+    hours.on_observation(observation_id)
+    # C26: a linha raspada e o reforço mais novo; com os dois, a investigação segue.
+    rereads.on_observation(observation_id)
 
     observation_timer = get_tree().create_timer(5.0)
     observation_timer.timeout.connect(_hide_observation_panel, CONNECT_ONE_SHOT)
@@ -946,7 +972,12 @@ func _process(_delta: float) -> void:
 # banner de conclusão do Primeiro Eco sai de cena quando a próxima etapa começa.
 func _apply_followup_objective() -> void:
     if quest_controller.states.is_completed(FOLLOWUP_QUEST_ID):
-        objective_label.text = localization.tr_key(FOLLOWUP_DONE_KEY)
+        # C25: os horários substituem o "✓ O painel selado" quando começam.
+        # C26: a etapa do reforço substitui a dos horários.
+        var stage_key := rereads.objective_key()
+        if stage_key.is_empty():
+            stage_key = hours.objective_key()
+        objective_label.text = localization.tr_key(FOLLOWUP_DONE_KEY if stage_key.is_empty() else stage_key)
         completion_banner.visible = false
     elif quest_controller.states.active.has(FOLLOWUP_QUEST_ID):
         objective_label.text = localization.tr_key(FOLLOWUP_OBJECTIVE_KEY)
@@ -958,12 +989,19 @@ func _apply_followup_objective() -> void:
 
 # C12: a conclusão de uma quest está apresentada? (usado pela derivação do Save V2)
 # Primeiro Eco: banner de conclusão ou a próxima etapa que o substitui.
+# C25: uma etapa seguinte no objetivo também apresenta a conclusão das anteriores.
 func is_quest_completion_presented(runtime_quest_id: String) -> bool:
-    var followup_shown := objective_label.text == localization.tr_key(FOLLOWUP_OBJECTIVE_KEY) or objective_label.text == localization.tr_key(FOLLOWUP_DONE_KEY)
+    var trace_shown := objective_label.text == localization.tr_key(VardhelmRereadsInvestigation.OBJECTIVE_TRACE_KEY)
+    var hours_shown := trace_shown or VardhelmHoursInvestigation.objective_keys().any(func(key: String) -> bool: return objective_label.text == localization.tr_key(key))
+    var followup_shown := objective_label.text == localization.tr_key(FOLLOWUP_OBJECTIVE_KEY) or objective_label.text == localization.tr_key(FOLLOWUP_DONE_KEY) or hours_shown
     if runtime_quest_id == QUEST_ID:
         return completion_banner.visible or followup_shown
     if runtime_quest_id == FOLLOWUP_QUEST_ID:
-        return objective_label.text == localization.tr_key(FOLLOWUP_DONE_KEY)
+        return objective_label.text == localization.tr_key(FOLLOWUP_DONE_KEY) or hours_shown
+    if runtime_quest_id == VardhelmHoursInvestigation.THE_HOURS_QUEST_ID:
+        return objective_label.text == localization.tr_key(VardhelmHoursInvestigation.OBJECTIVE_FIND_OUT_KEY) or trace_shown
+    if runtime_quest_id == VardhelmHoursInvestigation.THOSE_HOURS_QUEST_ID:
+        return trace_shown
     return false
 
 # C15: consequência da escolha "Não senti nada." Durn tinha dito "Se acontecer de

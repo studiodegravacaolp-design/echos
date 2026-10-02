@@ -1,0 +1,6 @@
+{
+  "quest_id": "vardhelm_those_hours",
+  "title_key": "quest.vardhelm.those_hours.title",
+  "objective_keys": ["mark", "panel"],
+  "completion_consequence": ""
+}

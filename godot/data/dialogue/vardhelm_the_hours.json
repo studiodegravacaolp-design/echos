@@ -1,0 +1,40 @@
+{
+  "dialogue_id": "vardhelm_the_hours",
+  "entries": [
+    {
+      "entry_id": "noted",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_hours.noted",
+      "choices": []
+    },
+    {
+      "entry_id": "times",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_hours.times",
+      "choices": []
+    },
+    {
+      "entry_id": "last",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_hours.last",
+      "choices": [
+        {
+          "choice_id": "why",
+          "text_key": "dialogue.vardhelm.the_hours.choice.why",
+          "next_entry_id": "unknown"
+        },
+        {
+          "choice_id": "meaning",
+          "text_key": "dialogue.vardhelm.the_hours.choice.meaning",
+          "next_entry_id": "unknown"
+        }
+      ]
+    },
+    {
+      "entry_id": "unknown",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_hours.unknown",
+      "choices": []
+    }
+  ]
+}

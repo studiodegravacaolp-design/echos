@@ -1,0 +1,6 @@
+{
+  "quest_id": "vardhelm_the_hours",
+  "title_key": "quest.vardhelm.the_hours.title",
+  "objective_keys": ["hours", "compare"],
+  "completion_consequence": ""
+}

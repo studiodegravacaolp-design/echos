@@ -36,8 +36,15 @@ func build_targets() -> RuntimeRestoreTargets:
         targets.npcs = {npc_id: _slice.npc}
     targets.dialogue_state = _slice.dialogue_controller.persistent_state
     # C12: todas as conversas do Vardhelm (inicial + pós-Eco), para validar escolhas.
+    # C25: + as conversas dos horários.
     var definitions := {}
-    for data in [_slice.dialogue_data, _slice.after_echo_dialogue_data, _slice.after_panel_dialogue_data]:
+    var all_dialogues: Array = [_slice.dialogue_data, _slice.after_echo_dialogue_data, _slice.after_panel_dialogue_data]
+    if _slice.hours != null:
+        all_dialogues.append_array([_slice.hours.the_hours_dialogue, _slice.hours.the_notes_dialogue])
+    # C26: + a reação de Durn à linha raspada.
+    if _slice.rereads != null:
+        all_dialogues.append(_slice.rereads.the_mark_dialogue)
+    for data in all_dialogues:
         if data == null:
             continue
         var dialogue_id := GameIdCatalog.canonical_id(GameIdCatalog.KIND_DIALOGUE, data.dialogue_id)
@@ -112,7 +119,7 @@ func derive_quest_presentation() -> bool:
 
 func describe_quest_presentation(quest_id: String) -> Dictionary:
     var legacy := GameIdCatalog.legacy_id(GameIdCatalog.KIND_QUEST, quest_id)
-    if not _available() or not [VardhelmVerticalSlice.QUEST_ID, VardhelmVerticalSlice.FOLLOWUP_QUEST_ID].has(legacy):
+    if not _available() or not [VardhelmVerticalSlice.QUEST_ID, VardhelmVerticalSlice.FOLLOWUP_QUEST_ID, VardhelmHoursInvestigation.THE_HOURS_QUEST_ID, VardhelmHoursInvestigation.THOSE_HOURS_QUEST_ID, VardhelmRereadsInvestigation.REINFORCEMENT_QUEST_ID].has(legacy):
         return {}
     return {"completion_presented": _slice.is_quest_completion_presented(legacy)}
 

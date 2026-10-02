@@ -99,7 +99,7 @@ func _test_data(t) -> void:
 	t.check((life["observations"] as Array).all(func(o): return not o.has("memory_id")) and (life["workers"] as Array).all(func(w): return not w.has("dialogue")), "observações sem memória; trabalhadores anônimos, sem diálogo")
 	var canonical := OBSERVATIONS.map(func(id): return GameIdCatalog.canonical_id(GameIdCatalog.KIND_OBSERVATION, id))
 	t.check(canonical.all(func(id): return String(id).begins_with("observation.vardhelm.foundry_street_") and GameIdCatalog.is_known(GameIdCatalog.KIND_OBSERVATION, id)), "IDs canônicos novos: %s" % str(canonical))
-	t.check(GameIdCatalog.KNOWN_IDS[GameIdCatalog.KIND_SCENARIO] == [GameIdCatalog.SCENARIO_VARDHELM] and GameIdCatalog.KNOWN_IDS[GameIdCatalog.KIND_NPC] == [GameIdCatalog.NPC_DURN] and GameIdCatalog.KNOWN_IDS[GameIdCatalog.KIND_QUEST].size() == 2, "nenhum cenário, NPC ou quest novos (a rua é parte de scenario.vardhelm)")
+	t.check(GameIdCatalog.KNOWN_IDS[GameIdCatalog.KIND_SCENARIO] == [GameIdCatalog.SCENARIO_VARDHELM] and GameIdCatalog.KNOWN_IDS[GameIdCatalog.KIND_NPC] == [GameIdCatalog.NPC_DURN] and (GameIdCatalog.KNOWN_IDS[GameIdCatalog.KIND_QUEST] as Array).all(func(q): return not String(q).contains("street")), "nenhum cenário, NPC ou quest da rua (a rua é parte de scenario.vardhelm; as quests do C25 são da investigação)")
 	var locale: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(LOCALE_PATH))
 	var texts: Array = []
 	for id in OBSERVATIONS:

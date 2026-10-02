@@ -216,12 +216,13 @@ func _test_sequence(t) -> void:
 	var final_talk := _talk(game)
 	t.check(final_talk == ["...Você ouviu, não ouviu?", "Então não fui só eu.", "..."], "gancho: Durn — \"%s\"" % " / ".join(final_talk))
 	t.check(game.dialogue_controller.persistent_state.is_completed(AFTER_PANEL), "fala final registrada (DialogueRuntimeState)")
+	# C25: o gancho não se repete; ao voltar, Durn passa aos horários (antes: silêncio).
 	var again := _talk(game)
-	t.check(again == ["..."], "depois, Durn só fica em silêncio (não repete, não explica) %s" % str(again))
+	t.check(again[0] == "...Eu comecei a anotar." and not again.has("Então não fui só eu."), "depois, Durn não repete o gancho (C25: passa aos horários) %s" % str(again))
 	# ESTADO FINAL
 	var story := _story(game)
-	t.check(story["quests"] == [[], ["vardhelm_first_echo", "vardhelm_sealed_panel"]] and story["world_reacted"] == [true, "after_echo"], "estado final: as duas etapas concluídas, mundo pós-Eco")
-	t.check(game.narrative_controller.world_state.memories.count("vardhelm_first_echo_complete") == 1 and _count("echo_triggered") == 1 and _count("quest_completed") == 2 and _count("quest_started") == 2, "nada duplicado ao longo da sequência")
+	t.check(story["quests"] == [["vardhelm_the_hours"], ["vardhelm_first_echo", "vardhelm_sealed_panel"]] and story["world_reacted"] == [true, "after_echo"], "estado final: as duas etapas concluídas (C25: os horários abertos), mundo pós-Eco")
+	t.check(game.narrative_controller.world_state.memories.count("vardhelm_first_echo_complete") == 1 and _count("echo_triggered") == 1 and _count("quest_completed") == 2 and _count("quest_started") == 3, "nada duplicado ao longo da sequência (C25: + o início dos horários)")
 	t.check(spy.calls == 0, "SaveService legado nunca chamado")
 
 
@@ -271,11 +272,11 @@ func _test_save_load(t) -> void:
 	_key(t, KEY_L)
 	_key(t, KEY_L)
 	var load_events := _events.slice(before)
-	t.check(game.last_v2_load_result.is_success() and t.same_json(_story(game), state_e) and _talk(game) == ["..."], "E. Load repetido (3×): mesmo estado final; Durn em silêncio")
+	t.check(game.last_v2_load_result.is_success() and t.same_json(_story(game), state_e) and _talk(game)[0] == "...Eu comecei a anotar.", "E. Load repetido (3×): mesmo estado final; Durn não repete o gancho (C25: os horários)")
 	t.check(load_events.count("game_loaded") == 3 and load_events.count("consequence_applied") == 0 and load_events.count("quest_completed") == 0 and load_events.count("dialogue_completed") == 0 and load_events.count("echo_triggered") == 0 and load_events.count("memory_recovered") == 0 and load_events.count("observation_discovered") == 0, "Loads não reemitem diálogo, quest, consequência, Eco, memória nem observação (%s)" % str(load_events))
 	var world := game.narrative_controller.world_state
 	var projected: GameState = SaveV2RuntimeSnapshot.project(VardhelmRuntimeStateProvider.new(game).build_targets())["state"]
-	t.check(world.memories.count("vardhelm_first_echo_complete") == 1 and world.memories.count("vardhelm_heard_echo") == 1 and game.quest_controller.states.completed.size() == 2 and projected.world.observations.size() == 1 and projected.dialogue.to_dict().get("completed", []).size() == 3, "nenhuma duplicação: memórias, quests, observação, 3 diálogos concluídos")
+	t.check(world.memories.count("vardhelm_first_echo_complete") == 1 and world.memories.count("vardhelm_heard_echo") == 1 and game.quest_controller.states.completed.size() == 2 and projected.world.observations.size() == 1 and projected.dialogue.to_dict().get("completed", []).size() == 4, "nenhuma duplicação: memórias, quests, observação, 4 diálogos concluídos (C25: + os horários)")
 	t.check(game.last_v2_save_result.shadow_divergence.is_empty(), "sombra sem divergência no save final")
 	t.check(spy.calls == 0, "SaveService legado nunca chamado")
 

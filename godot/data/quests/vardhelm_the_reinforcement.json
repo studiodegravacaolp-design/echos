@@ -1,0 +1,6 @@
+{
+  "quest_id": "vardhelm_the_reinforcement",
+  "title_key": "quest.vardhelm.the_reinforcement.title",
+  "objective_keys": ["trace"],
+  "completion_consequence": ""
+}

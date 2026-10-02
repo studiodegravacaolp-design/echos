@@ -72,8 +72,11 @@ AETHERIS (universo)
 🟢 Fase 4 — abertura do mundo: rua do Distrito das Fundições (C23; teste humano pendente)
    ↓
 🟡 Fase 5 — investigação em Vardhelm (design C24; H1–H5, H7 conceito e H8 decididos no C24.1)
-   │   Durn: os horários (A: relato / B: folha) → releituras (quadro de manutenção, turnos)
-   │   → padrão → quem selou o painel? → Galpão de Manufatura (ordens de serviço)
+   │   🟢 C25 — os horários (5h58 · 13h58 · 17h41; trocas 6h/14h/22h — cânone): Durn conta (A) / a folha (B) → quadro de turnos da rua (comparação)
+   │      → "Descubra o que acontece na Forja 01 nesses horários." (teste humano pendente)
+   │   🟢 C26 — releituras: quadro de manutenção (linha raspada, "...58") + painel (reforço mais novo)
+   │      → "Descubra quem reforçou o painel e onde ficam os registros da Forja." (teste humano pendente)
+   │   ⏳ C27 — Galpão de Manufatura (histórico operacional do selo)
    ↓
 🟡 Fase 6 — Elyra (arqueóloga élfica) cruza o caminho do protagonista: ela investiga o que existia antes das fundições; as investigações convergem sobre registros relacionados (H4) [C22.1]
    ↓
@@ -86,7 +89,7 @@ AETHERIS (universo)
 🟡 Ato 2 — Ostrell (não iniciar)
 
 🟢 Pátio do Distrito das Fundições: acessível pela talha a qualquer momento (lateral ao arco)
-   ├── 🟢 rua do distrito (portão sul, C23)
+   ├── 🟢 rua do distrito (portão sul, C23; o quadro de turnos ganhou a leitura dos horários no C25)
    └── 🟡 Galpão de Manufatura (posição ⚪; função H3: histórico operacional do reforço/selamento do painel)
 ```
 

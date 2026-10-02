@@ -1,0 +1,17 @@
+{
+  "dialogue_id": "vardhelm_the_notes",
+  "entries": [
+    {
+      "entry_id": "denied",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_notes.denied",
+      "choices": []
+    },
+    {
+      "entry_id": "sheet",
+      "speaker_id": "npc.vardhelm.elder.name",
+      "text": "dialogue.vardhelm.the_notes.sheet",
+      "choices": []
+    }
+  ]
+}
